@@ -72,3 +72,28 @@ func (d *Directory) ListAdmins(ctx context.Context) ([]identity.User, error) {
 func (d *Directory) GetUserCount(ctx context.Context) (int64, error) {
 	return d.repository.countAll(ctx)
 }
+
+// RequireRootAdmin returns the actor's user when it is the active root admin and answers
+// permission_denied otherwise. The persisted bootstrap designation decides, never the global role.
+func (d *Directory) RequireRootAdmin(ctx context.Context, actor identity.Actor) (identity.User, error) {
+	record, isFound, err := d.repository.getByID(ctx, actor.UserID)
+	if err != nil {
+		return identity.User{}, err
+	}
+
+	if !isFound || !record.IsBootstrapAdmin || !record.IsActive() || record.Role != identity.RoleAdmin {
+		return identity.User{}, ErrNotRootAdmin
+	}
+
+	return record.ToUser(), nil
+}
+
+// GetRootAdmin reports false when the instance has no root admin yet.
+func (d *Directory) GetRootAdmin(ctx context.Context) (identity.User, bool, error) {
+	record, isFound, err := d.repository.getBootstrapAdmin(ctx)
+	if err != nil || !isFound {
+		return identity.User{}, isFound, err
+	}
+
+	return record.ToUser(), true, nil
+}

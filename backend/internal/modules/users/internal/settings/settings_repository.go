@@ -39,12 +39,13 @@ func (r *settingsRepository) getOrCreate(ctx context.Context) (Settings, error) 
 		return Settings{}, fmt.Errorf("read the instance settings: %w", err)
 	}
 
+	defaults := DefaultSwitches()
 	settings = Settings{
 		ID:                                uuid.New(),
-		IsAllowExternalRegistrations:      true,
-		IsAllowMemberInvitations:          true,
-		IsMemberAllowedToCreateWorkspaces: true,
-		IsTwoFactorAuthRequired:           false,
+		IsAllowExternalRegistrations:      defaults.IsAllowExternalRegistrations,
+		IsAllowMemberInvitations:          defaults.IsAllowMemberInvitations,
+		IsMemberAllowedToCreateWorkspaces: defaults.IsMemberAllowedToCreateWorkspaces,
+		IsTwoFactorAuthRequired:           defaults.IsTwoFactorAuthRequired,
 	}
 
 	err = database.Conn(ctx, r.db).Create(&settings).Error

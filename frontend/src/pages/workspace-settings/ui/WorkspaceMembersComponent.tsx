@@ -665,27 +665,25 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
           </div>
         </div>
         <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <div>
-            <Button
-              onClick={() => {
-                setIsAddMemberModalOpen(false);
-                setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
-                setAddMemberEmailError(false);
-                setSearchInputValue('');
-                setSearchedTerm(undefined);
-              }}
-            >
-              {t('common.actions.cancel')}
-            </Button>
-            <Button
-              variant={'filled'}
-              onClick={handleAddMember}
-              loading={isAddingMember}
-              aria-busy={isAddingMember}
-            >
-              {t('workspaces.members.add.submit')}
-            </Button>
-          </div>
+          <Button
+            onClick={() => {
+              setIsAddMemberModalOpen(false);
+              setAddMemberForm(EMPTY_ADD_MEMBER_FORM);
+              setAddMemberEmailError(false);
+              setSearchInputValue('');
+              setSearchedTerm(undefined);
+            }}
+          >
+            {t('common.actions.cancel')}
+          </Button>
+          <Button
+            variant={'filled'}
+            onClick={handleAddMember}
+            loading={isAddingMember}
+            aria-busy={isAddingMember}
+          >
+            {t('workspaces.members.add.submit')}
+          </Button>
         </div>
       </Dialog>
 
@@ -712,14 +710,12 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
           </div>
         </div>
         <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <div>
-            <Button onClick={() => setIsInviteDialogOpen(false)} style={{ display: 'none' }}>
-              {t('common.actions.cancel')}
-            </Button>
-            <Button variant={'filled'} onClick={() => setIsInviteDialogOpen(false)}>
-              {t('common.actions.ok')}
-            </Button>
-          </div>
+          <Button onClick={() => setIsInviteDialogOpen(false)} style={{ display: 'none' }}>
+            {t('common.actions.cancel')}
+          </Button>
+          <Button variant={'filled'} onClick={() => setIsInviteDialogOpen(false)}>
+            {t('common.actions.ok')}
+          </Button>
         </div>
       </Dialog>
 
@@ -786,28 +782,26 @@ export function WorkspaceMembersComponent({ selectedWorkspace, user, onUnavailab
           )}
         </div>
         <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <div>
-            <Button
-              onClick={() => {
-                setIsTransferOwnershipModalOpen(false);
-                setTransferForm({ selectedMemberId: '' });
-                setTransferMemberError(false);
-              }}
-            >
-              {t('common.actions.cancel')}
-            </Button>
-            <Button
-              variant={'filled'}
-              onClick={handleTransferOwnership}
-              loading={isTransferringOwnership}
-              color={'danger'}
-              className={'!border-danger !bg-danger !text-surface'}
-              disabled={eligibleMembers.length === 0}
-              aria-busy={isTransferringOwnership}
-            >
-              {t('workspaces.transferOwnership.submit')}
-            </Button>
-          </div>
+          <Button
+            onClick={() => {
+              setIsTransferOwnershipModalOpen(false);
+              setTransferForm({ selectedMemberId: '' });
+              setTransferMemberError(false);
+            }}
+          >
+            {t('common.actions.cancel')}
+          </Button>
+          <Button
+            variant={'filled'}
+            onClick={handleTransferOwnership}
+            loading={isTransferringOwnership}
+            color={'danger'}
+            className={'!border-danger !bg-danger !text-surface'}
+            disabled={eligibleMembers.length === 0}
+            aria-busy={isTransferringOwnership}
+          >
+            {t('workspaces.transferOwnership.submit')}
+          </Button>
         </div>
       </Dialog>
     </div>

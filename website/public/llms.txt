@@ -101,7 +101,7 @@ See [AI usage and the development process](https://databasus.com/faq#ai-usage).
 
 ### Restore
 
-- [Restoring without Databasus](https://databasus.com/how-to-recover-without-databasus): decrypting and restoring backups with standard tools and your secret key.
+- [Backing up and recovering Databasus itself](https://databasus.com/faq#backup-databasus): hourly encrypted backups of the internal database to your storages, a separately saved master key and recovery at startup or in the interface, so Databasus stays recoverable even if its own server is lost.
 - [Restore Verification](https://databasus.com/restore-verification): the verification agent, resource budgets, schedules and reading results.
 
 ### Comparisons

@@ -149,6 +149,8 @@ func setDataPaths(loadedConfig *Config, rootDirectory string) {
 	loadedConfig.SecretKeyPath = filepath.Join(loadedConfig.DataDirectory, "secret.key")
 	loadedConfig.TelemetryInstancePath = filepath.Join(loadedConfig.DataDirectory, "instance.json")
 	loadedConfig.LogFilePath = filepath.Join(loadedConfig.DataDirectory, "databasus.log")
+	loadedConfig.RecoveryStateDirectory = filepath.Join(loadedConfig.DataDirectory, "instance-recovery")
+	loadedConfig.InstanceBackupSpoolFolder = filepath.Join(loadedConfig.DataDirectory, "instance-backup-spool")
 }
 
 func getRootDirectory(spec LoadSpec) string {

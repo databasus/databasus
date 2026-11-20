@@ -24,6 +24,7 @@ import (
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/healthcheck"
+	"databasus-backend/internal/modules/instancebackups"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/telemetry"
@@ -32,9 +33,6 @@ import (
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/migrations"
 )
-
-const olderVersionRefusal = "Returning to an older Databasus version after an upgrade is not supported. " +
-	"Start the image of the newer version instead"
 
 type App struct {
 	usersModule        users.Module
@@ -45,6 +43,7 @@ type App struct {
 	backupsModule      backups.Module
 	verificationModule verification.Module
 	healthcheckModule  healthcheck.Module
+	instanceBackups    instancebackups.Module
 	environment        *Environment
 	db                 *gorm.DB
 	transactor         *database.Transactor
@@ -109,6 +108,13 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	}
 
 	transactor := database.NewTransactor(db)
+
+	lifecycle, err := newStartupDeps(environment)
+	if err != nil {
+		closeDatabase(db)
+
+		return nil, err
+	}
 
 	masterKey, err := moveLegacyAndOpenMasterKey(ctx, crypto.Deps{
 		Transactor:          transactor,
@@ -271,6 +277,28 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Notifiers:  notifiersModule,
 	})
 
+	instanceBackupsModule, err := instancebackups.New(instancebackups.Deps{
+		DB:                      db,
+		Transactor:              transactor,
+		Clock:                   environment.Clock,
+		AuditLog:                auditLog,
+		MasterKey:               masterKey,
+		Mailer:                  environment.Mailer,
+		Lifecycle:               lifecycle,
+		RebuildRequest:          environment.RebuildRequest,
+		MaxRecoveryArchiveBytes: environment.Config.RecoveryMaxArchiveBytes,
+		SpoolFolder:             environment.Config.InstanceBackupSpoolFolder,
+		Users:                   usersModule,
+		Workspaces:              workspacesModule,
+		Storages:                storagesModule,
+		Databases:               databasesModule,
+	})
+	if err != nil {
+		closeDatabase(db)
+
+		return nil, err
+	}
+
 	telemetryModule := telemetry.New(telemetry.Deps{
 		Users:        usersModule,
 		Databases:    databasesModule,
@@ -289,6 +317,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	subscribeToWorkspaceDeleting(workspacesModule, databasesModule, notifiersModule, storagesModule)
 	subscribeToNotifierTransferring(notifiersModule, databasesModule)
 	subscribeToStorageTransferring(storagesModule, backupsModule)
+	subscribeToStorageDeleting(storagesModule, instanceBackupsModule)
 	subscribeToDatabaseEvents(databaseSubscriptions{
 		Databases:    databasesModule,
 		Backups:      backupsModule,
@@ -303,6 +332,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	jobs = append(jobs, verificationModule.GetJobs()...)
 	jobs = append(jobs, healthcheckModule.GetJobs()...)
 	jobs = append(jobs, telemetryModule.GetJobs()...)
+	jobs = append(jobs, instanceBackupsModule.GetJobs()...)
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
@@ -314,6 +344,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		backupsModule:      backupsModule,
 		verificationModule: verificationModule,
 		healthcheckModule:  healthcheckModule,
+		instanceBackups:    instanceBackupsModule,
 		environment:        environment,
 		db:                 db,
 		transactor:         transactor,
@@ -333,7 +364,8 @@ func (a *App) StartModules(ctx context.Context) error {
 	if err := a.backupsModule.Start(ctx); err != nil {
 		return err
 	}
-	return nil
+
+	return a.instanceBackups.Start(ctx)
 }
 
 // WaitForBackupRuns returns once every backup run has written its outcome, or with ctx's error.

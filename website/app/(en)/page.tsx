@@ -208,10 +208,10 @@ export default function Index() {
               },
               {
                 "@type": "Question",
-                name: "What is Databasus adoption level?",
+                name: "What is the adoption level of Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus is the most widely adopted open-source PostgreSQL backup tool today. At the moment of 17 June 2026, it has been pulled over 1,800,000 times on Docker by DBAs, DevOps engineers, developers and teams worldwide. With 8,500+ GitHub stars, it surpasses pgBackRest (~4,200 stars, available since 2014) and WAL-G (~4,100 stars, available since 2017). Databasus launched in 2025 and outpaced both within its first year. This adoption level reflects strong community trust and preference among database professionals.",
+                  text: "Databasus has over 2.6 million Docker pulls and 9.2k GitHub stars. For comparison, pgBackRest has around 4.5k stars, WAL-G around 4.3k and Barman about 3.3k, which makes Databasus the most popular database backup tool on GitHub.",
                 },
               },
               {
@@ -219,7 +219,7 @@ export default function Index() {
                 name: "What backup types does Databasus support?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus supports physical, full, incremental, WAL and logical backups. Physical backups are a file-level copy of the entire database cluster — faster to back up and restore for large datasets than logical dumps, and built on PostgreSQL 17's native backup mechanism, so we rely on PostgreSQL's own battle-tested tooling instead of re-inventing it. Full backups are a complete, self-contained copy of the cluster, the base every backup chain starts from. Incremental backups store only what changed since the previous backup, so backups stay small and fast. WAL streaming continuously captures the database write stream, enabling Point-in-time recovery (PITR) for disaster recovery and near-zero data loss. High availability (HA): supports timeline changes after primary switches in Patroni and CloudNativePG (CNPG) clusters. Logical backups are a native dump of the database in its engine-specific binary format, compressed and streamed directly to storage with no intermediate files. All of these backups can run over an SSH tunnel if you have a requirement for non-public connections, so the database never has to be exposed publicly. SSH tunneling is built in.",
+                  text: "Databasus supports physical, full, incremental, WAL and logical backups. Physical backups are a file-level copy of the entire database cluster — faster to back up and restore for large datasets than logical dumps, and built on PostgreSQL 17's native backup mechanism, so we rely on PostgreSQL's own battle-tested tooling instead of re-inventing it. Full backups are a complete, self-contained copy of the cluster, the base every backup chain starts from. Incremental backups store only what changed since the previous backup, so backups stay small and fast. WAL streaming continuously captures the database write stream, enabling Point-in-time recovery (PITR) for disaster recovery and near-zero data loss. High availability (HA): supports timeline changes after primary switches in Patroni and CloudNativePG (CNPG) clusters without gaps: WAL and incremental chains continue on the new timeline. Logical backups are a native dump of the database in its engine-specific binary format, compressed and streamed directly to storage with no intermediate files. All of these backups can run over an SSH tunnel if you have a requirement for non-public connections, so the database never has to be exposed publicly. SSH tunneling is built in.",
                 },
               },
               {
@@ -1296,8 +1296,33 @@ export default function Index() {
             />
             <FaqItem
               number="6"
-              question="What is Databasus adoption level?"
-              answer="Databasus is the most widely adopted open-source PostgreSQL backup tool today. At the moment of 17 June 2026, it has been pulled over 1,800,000 times on Docker by DBAs, DevOps engineers, developers and teams worldwide. With 8,500+ GitHub stars, it surpasses pgBackRest (~4,200 stars, available since 2014) and WAL-G (~4,100 stars, available since 2017). Databasus launched in 2025 and outpaced both within its first year. This adoption level reflects strong community trust and preference among database professionals."
+              question="What is the adoption level of Databasus?"
+              answer={
+                <>
+                  Databasus has over 2.6 million Docker pulls and 9.2k GitHub stars. For comparison, pgBackRest has around 4.5k stars, WAL-G around 4.3k and Barman about 3.3k, which makes Databasus the most popular database backup tool on GitHub.
+                  <br />
+                  <br />
+                  It has been accepted into the open-source programs of
+                  Anthropic and OpenAI as an important, critical project. Today
+                  Databasus is used by enterprises, teams and DevOps engineers,
+                  backed by a large and active community.
+                  <br />
+                  <br />
+                  Databasus has been developed and used since 2023, and open
+                  source in widespread use since early 2025. It has been in real
+                  production use for a while, so it is battle-tested across many
+                  edge cases. Crucially, Databasus does not invent custom ways
+                  to back up your data — it relies on PostgreSQL&apos;s native,
+                  tested implementation instead of building its own workarounds
+                  for edge cases.
+                  <br />
+                  <br />
+                  Our goal is to become the standard backup tool for PostgreSQL
+                  from version 17 and above. Databasus is the first backup tool
+                  built on PostgreSQL&apos;s native, efficient and now standard
+                  backup protocol instead of writing its own implementations.
+                </>
+              }
             />
             <FaqItem
               number="7"
@@ -1469,8 +1494,9 @@ export default function Index() {
                     </li>
                     <li>
                       <strong>High availability (HA)</strong>: supports timeline
-                      changes after primary switches in Patroni and CloudNativePG
-                      (CNPG) clusters
+                      changes after primary switches in Patroni and
+                      CloudNativePG (CNPG) clusters without gaps: WAL and
+                      incremental chains continue on the new timeline
                     </li>
                     <li>
                       <strong>Logical</strong> — native dump of the database in
@@ -1524,14 +1550,23 @@ export default function Index() {
               answer={
                 <>
                   You can join our large community of developers, DBAs and
-                  DevOps engineers at{" "}
+                  DevOps engineers in our chats on{" "}
                   <a
                     href="https://t.me/databasus_community"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    t.me/databasus_community
+                    Telegram
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="/discord"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Discord
                   </a>
                   . The community is a great place to ask questions, share
                   experiences, get help with configuration and stay updated with
@@ -1541,39 +1576,6 @@ export default function Index() {
             />
             <FaqItem
               number="14"
-              question="What is the adoption level of Databasus?"
-              answer={
-                <>
-                  Databasus has over 1.8 million Docker pulls and 8.5k GitHub
-                  stars. For comparison, pgBackRest and WAL-G sit at around 4.2k
-                  stars each and Barman at about 3.1k, which makes Databasus the
-                  most popular database backup tool on GitHub.
-                  <br />
-                  <br />
-                  It has been accepted into the open-source programs of
-                  Anthropic and OpenAI as an important, critical project. Today
-                  Databasus is used by enterprises, teams and DevOps engineers,
-                  backed by a large and active community.
-                  <br />
-                  <br />
-                  Databasus has been developed and used since 2023, and open
-                  source in widespread use since early 2025. It has been in real
-                  production use for a while, so it is battle-tested across many
-                  edge cases. Crucially, Databasus does not invent custom ways
-                  to back up your data — it relies on PostgreSQL&apos;s native,
-                  tested implementation instead of building its own workarounds
-                  for edge cases.
-                  <br />
-                  <br />
-                  Our goal is to become the standard backup tool for PostgreSQL
-                  from version 17 and above. Databasus is the first backup tool
-                  built on PostgreSQL&apos;s native, efficient and now standard
-                  backup protocol instead of writing its own implementations.
-                </>
-              }
-            />
-            <FaqItem
-              number="15"
               question="I forgot my admin email or password"
               answer={
                 <>

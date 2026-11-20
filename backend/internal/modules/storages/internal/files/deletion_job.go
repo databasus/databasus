@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math"
 	// math/rand only adds retry jitter here, not anything secret.
 	// nosemgrep: go.lang.security.audit.crypto.math_random.math-random-used
 	"math/rand/v2"
@@ -13,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/lib/background"
+	"databasus-backend/internal/lib/backoff"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/logging"
@@ -153,7 +153,7 @@ func (j *DeletionJob) attemptDeletion(ctx context.Context, pending PendingDeleti
 				NotBefore:         now.Add(retryDelay),
 				Now:               now,
 			},
-			sanitizeError(err),
+			logging.RedactError(err, maxPersistedErrorLength),
 		)
 		if updateErr != nil {
 			return updateErr
@@ -236,34 +236,14 @@ func (j *DeletionJob) reportSummary(ctx context.Context) {
 		slog.Duration("oldest_age", time.Duration(summary.OldestAgeMs)*time.Millisecond))
 }
 
-// getRetryDelay stops growing at the maximum, so an unreachable provider settles into one attempt per
-// maximum delay rather than an ever-widening gap.
 func (j *DeletionJob) getRetryDelay(attemptCount int) time.Duration {
-	attemptCount = max(attemptCount, 1)
+	policy := backoff.Exponential{First: j.timings.RetryBaseDelay, Max: j.timings.RetryMaxDelay}
 
-	growth := math.Pow(2, float64(attemptCount-1))
-
-	delay := time.Duration(float64(j.timings.RetryBaseDelay) * growth)
-	if delay > j.timings.RetryMaxDelay || delay <= 0 {
-		delay = j.timings.RetryMaxDelay
-	}
-
-	return j.jitter(delay)
+	return j.jitter(policy.GetDelay(attemptCount))
 }
 
 func getJitteredDelay(delay time.Duration) time.Duration {
 	return delay/2 + time.Duration(rand.Int64N(int64(delay/2)+1))
-}
-
-// sanitizeError counts runes, because cutting a multi-byte character in half makes Postgres reject
-// the whole update and lose the backoff with it.
-func sanitizeError(err error) string {
-	message := []rune(logging.Redact(err.Error()))
-	if len(message) > maxPersistedErrorLength {
-		message = message[:maxPersistedErrorLength]
-	}
-
-	return string(message)
 }
 
 func (j *DeletionJob) prepareAttempt(ctx context.Context, pending *PendingDeletion) (time.Duration, error) {

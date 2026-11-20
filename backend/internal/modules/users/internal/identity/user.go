@@ -39,12 +39,14 @@ const (
 
 // User is a user as other modules see it: never the password hash or the identity provider IDs.
 type User struct {
-	ID        uuid.UUID
-	Email     string
-	Name      string
-	Role      Role
-	Status    Status
-	CreatedAt time.Time
+	ID     uuid.UUID
+	Email  string
+	Name   string
+	Role   Role
+	Status Status
+	// IsRootAdmin is the persisted bootstrap designation; the global role alone does not grant it.
+	IsRootAdmin bool
+	CreatedAt   time.Time
 }
 
 func (u User) IsActive() bool {

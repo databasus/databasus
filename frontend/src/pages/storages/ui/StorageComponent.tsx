@@ -20,9 +20,12 @@ import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 
 // eslint-disable-next-line i18next/no-literal-string -- API error code, not copy
 const STORAGE_IN_USE_CODE = 'in_use';
+// eslint-disable-next-line i18next/no-literal-string -- API error code, not copy
+const DATABASUS_BACKUP_IN_USE_CODE = 'databasus_backup_in_use';
 
 interface Props {
   onUnavailable?: () => void;
+  onOpenDatabasusBackups?: () => void;
   storageId: string;
   onStorageChanged: (storage: Storage) => void;
   onStorageDeleted: () => void;
@@ -32,6 +35,7 @@ interface Props {
 
 export const StorageComponent = ({
   onUnavailable,
+  onOpenDatabasusBackups,
   storageId,
   onStorageChanged,
   onStorageDeleted,
@@ -65,6 +69,8 @@ export const StorageComponent = ({
     query.error instanceof ApiError && [403, 404].includes(query.error.status ?? 0);
   const storage = isAccessRefused || isUnavailable ? undefined : query.data;
   const error = actionError ?? query.error ?? undefined;
+  const isDatabasusBackupDestination =
+    error instanceof ApiError && error.code === DATABASUS_BACKUP_IN_USE_CODE;
   const setStorage = (resource: Storage) => {
     void client.cancelQueries({ queryKey: query.queryKey, exact: true });
     client.setQueryData(query.queryKey, resource);
@@ -271,23 +277,35 @@ export const StorageComponent = ({
         {error !== undefined &&
           (storage ? (
             <Alert
+              className="mb-4 max-w-2xl"
               color="danger"
               icon={
                 <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
               }
               title={translateApiError(error, t)}
-            />
+            >
+              {isDatabasusBackupDestination && onOpenDatabasusBackups && (
+                <Button size="xs" variant="outline" onClick={onOpenDatabasusBackups}>
+                  {t('storages.config.openDatabasusBackups')}
+                </Button>
+              )}
+            </Alert>
           ) : (
             <LoadFailure error={error} onRetry={loadSettings} />
           ))}
         {connectionError !== undefined && (
           <Alert
+            className="mb-4 max-w-2xl"
             color="danger"
             title={t('storages.connectionTestFailed', { error: connectionError })}
           />
         )}
         {isDeleteBlocked && (
-          <Alert color="danger" title={t('storages.config.removeBlockedByBackups')} />
+          <Alert
+            className="mb-4 max-w-2xl"
+            color="danger"
+            title={t('storages.config.removeBlockedByBackups')}
+          />
         )}
         {!storage && error === undefined ? (
           <div className="mt-10 flex justify-center">
@@ -473,15 +491,23 @@ export const StorageComponent = ({
           <p>{t('storages.cleanup.warning')}</p>
           {error !== undefined && (
             <Alert
+              className="mb-4 max-w-2xl"
               color="danger"
               icon={
                 <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
               }
               title={translateApiError(error, t)}
-            />
+            >
+              {isDatabasusBackupDestination && onOpenDatabasusBackups && (
+                <Button size="xs" variant="outline" onClick={onOpenDatabasusBackups}>
+                  {t('storages.config.openDatabasusBackups')}
+                </Button>
+              )}
+            </Alert>
           )}
           {isDeleteBlocked && (
             <Alert
+              className="mb-4 max-w-2xl"
               color="danger"
               icon={
                 <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />

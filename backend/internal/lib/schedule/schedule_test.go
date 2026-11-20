@@ -1171,3 +1171,57 @@ func TestValidate(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestGetNextOccurrence(t *testing.T) {
+	t.Parallel()
+
+	after := time.Date(2026, time.November, 14, 12, 12, 0, 0, time.UTC)
+
+	for _, testCase := range []struct {
+		name               string
+		schedule           Schedule
+		expectedOccurrence time.Time
+	}{
+		{
+			name:               "returns an hour after the moment for an hourly schedule",
+			schedule:           Schedule{Type: TypeHourly},
+			expectedOccurrence: time.Date(2026, time.November, 14, 13, 12, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns today's slot when it is still ahead for a daily schedule",
+			schedule:           Schedule{Type: TypeDaily, TimeOfDay: new("18:30")},
+			expectedOccurrence: time.Date(2026, time.November, 14, 18, 30, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns tomorrow's slot when today's passed for a daily schedule",
+			schedule:           Schedule{Type: TypeDaily, TimeOfDay: new("04:00")},
+			expectedOccurrence: time.Date(2026, time.November, 15, 4, 0, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns the next matching weekday for a weekly schedule",
+			schedule:           Schedule{Type: TypeWeekly, Weekday: new(1), TimeOfDay: new("09:00")},
+			expectedOccurrence: time.Date(2026, time.November, 16, 9, 0, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns the next month's last day when the day is missing for a monthly schedule",
+			schedule:           Schedule{Type: TypeMonthly, DayOfMonth: new(31), TimeOfDay: new("01:00")},
+			expectedOccurrence: time.Date(2026, time.November, 30, 1, 0, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns the next five-minute slot for a cron schedule",
+			schedule:           Schedule{Type: TypeCron, CronExpression: new("*/5 * * * *")},
+			expectedOccurrence: time.Date(2026, time.November, 14, 12, 15, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns zero for a cron expression without a calendar date",
+			schedule:           Schedule{Type: TypeCron, CronExpression: new("0 0 31 2 *")},
+			expectedOccurrence: time.Time{},
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.expectedOccurrence, testCase.schedule.GetNextOccurrence(after))
+		})
+	}
+}

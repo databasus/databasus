@@ -160,11 +160,11 @@ func (p *Provider) SaveFile(ctx context.Context, file providers.FileAccess, cont
 func (p *Provider) OpenFile(_ context.Context, file providers.FileAccess) (io.ReadCloser, error) {
 	filePath := filepath.Join(p.folders.DataFolder, file.FileName)
 
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("file not found: %s", file.FileName)
+	openedFile, err := os.Open(filePath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("%w: %s", providers.ErrFileNotFound, file.FileName)
 	}
 
-	openedFile, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}

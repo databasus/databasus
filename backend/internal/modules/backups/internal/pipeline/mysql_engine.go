@@ -46,6 +46,11 @@ func (e *mysqlEngine) OpenRestoreTarget(ctx context.Context, spec restoreTargetS
 		return nil, ErrTargetOfAnotherEngine
 	}
 
+	err := target.Settings.Validate()
+	if err != nil {
+		return nil, toInvalidTargetSettingError(err)
+	}
+
 	sourceSettings, err := e.databases.GetMysqlConnectionSettings(ctx, spec.sourceDatabaseID)
 	if err != nil {
 		return nil, err

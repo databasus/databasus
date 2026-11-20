@@ -6,6 +6,8 @@ import (
 	"slices"
 
 	"github.com/jackc/pgx/v5"
+
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // The source server holds the database the previous release backs up, and later the database the
@@ -34,24 +36,24 @@ func getSourceRows() []string {
 const rowAddedAfterBackup = "row added after the backup"
 
 func startSourceServer(ctx context.Context, docker *dockerHost, resources upgradeResources) error {
-	return docker.startContainer(ctx, containerSpec{
-		name:  resources.sourceContainerName,
-		image: sourceImage,
-		entrypoint: []string{
+	return docker.StartContainer(ctx, containers.RunSpec{
+		Name:  resources.sourceContainerName,
+		Image: sourceImage,
+		Entrypoint: []string{
 			"sh",
 			"-ec",
 			`printf '%s\n' '#!/bin/sh' 'echo "host replication all all scram-sha-256" >> "$PGDATA/pg_hba.conf"' > /docker-entrypoint-initdb.d/replication.sh
 exec docker-entrypoint.sh postgres -c summarize_wal=on`,
 		},
-		env: []string{
+		Env: []string{
 			"POSTGRES_USER=" + sourceUsername,
 			"POSTGRES_PASSWORD=" + sourcePassword,
 			"POSTGRES_DB=" + sourceDatabaseName,
 		},
-		volumeMount:   "",
-		networkName:   resources.networkName,
-		networkAlias:  sourceNetworkAlias,
-		publishedPort: sourcePublishedPort,
+		Mount:         "",
+		NetworkName:   resources.networkName,
+		NetworkAlias:  sourceNetworkAlias,
+		PublishedPort: sourcePublishedPort,
 	})
 }
 

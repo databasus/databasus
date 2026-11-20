@@ -15,6 +15,9 @@
   [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)](https://github.com/databasus/databasus)
   [![Self Hosted](https://img.shields.io/badge/self--hosted-yes-brightgreen)](https://github.com/databasus/databasus)
   [![Open Source](https://img.shields.io/badge/open%20source-❤️-red)](https://github.com/databasus/databasus)
+  <br />
+  [![Discord](https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white)](https://databasus.com/discord)
+  [![Telegram](https://img.shields.io/badge/Telegram-join%20us-26A5E4?logo=telegram&logoColor=white)](https://t.me/databasus_community)
 
   <p>
     <a href="../../README.md">English</a> •
@@ -52,7 +55,7 @@
   - **全量**：集群的完整、自包含副本
   - **增量**：只存储自上次全量备份以来的变化，备份因此又小又快
   - **WAL 流式复制**：持续捕获数据库的写入流，支持时间点恢复（PITR）。为灾难恢复而设计，数据丢失接近于零
-  - **高可用性（HA）**：支持 Patroni 和 CloudNativePG（CNPG）集群切换主节点后的时间线变化
+  - **高可用性（HA）**：支持 Patroni 和 CloudNativePG（CNPG）集群切换主节点后的时间线变化，且不留缺口：WAL 和增量备份链在新时间线上继续
 - **逻辑备份**：数据库引擎专用二进制格式的原生转储（已压缩，可用于并行恢复）
 
 ### 🔄 **定时备份**
@@ -288,7 +291,15 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 ### 💾 给 Databasus 自身做备份
 
-装好之后，建议再<a href="https://databasus.com/zh/faq/#backup-databasus">给 Databasus 自身做一次备份</a>，至少也要把用于加密的密钥复制一份（只要 30 秒）。这样即使装有 Databasus 的服务器丢失访问权限或者损坏，你依然能从加密备份中恢复。
+Databasus 的设计目标是：即使自身所在的服务器丢失或损坏，也能恢复。它可以给自己做备份，并帮助你妥善保管密钥：
+
+**开启 Databasus 备份**：在 **Databasus settings → Databasus backups** 中设置。之后 Databasus 每小时会把内部数据库的加密副本保存到你选择的存储中。在你开启之前，一旦添加了第一个数据库或存储，你就会看到一个浮动提醒。
+
+**单独保存主密钥。** Databasus 会在你第一次访问时请你下载它，它也保存在 `./databasus-data/secret.key` 中。没有它，Databasus 备份和你的数据库备份都无法解密。
+
+与其用同一台服务器上的本地磁盘，不如选远程存储。
+
+参见[如何备份和恢复 Databasus](https://databasus.com/zh/faq/#backup-databasus)。
 
 ---
 
@@ -302,7 +313,7 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 - **恢复测试**针对每个受支持的数据库引擎和主要版本，在真实数据库容器中运行完整的备份与恢复流程。
 - **发布条件**要求测试、构建和安全检查全部通过。发布分析中尚未处理的 CodeQL 严重漏洞会阻止发布。
 
-OpenAI 的 Codex Security 还会定期开展审计，补充这些发布检查。如需报告漏洞，请按照 [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme) 私下联系；安全报告会优先处理。
+OpenAI 的 Codex Security 还会定期开展审计，补充这些发布检查。如需报告漏洞，请按照 [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme) 私下联系；安全报告会优先处理。已修复的漏洞会以安全公告的形式发布在[仓库的 Security 页面](https://github.com/databasus/databasus/security)，已分配 CVE 的会附上编号。
 
 ---
 
@@ -312,4 +323,4 @@ OpenAI 的 Codex Security 还会定期开展审计，补充这些发布检查。
 
 ## 💬 社区
 
-欢迎加入我们在 Telegram 上的开发者、DBA 和 DevOps 工程师社群 [@databasus_community](https://t.me/databasus_community)。
+欢迎加入我们的开发者、DBA 和 DevOps 工程师社区。欢迎在 Telegram [@databasus_community](https://t.me/databasus_community) 和 [Discord](https://databasus.com/discord) 与我们交流。

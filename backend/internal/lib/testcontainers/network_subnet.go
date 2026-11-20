@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"context"
 	"fmt"
 	// Random test subnets avoid collisions and contain no secrets.
 	// nosemgrep: go.lang.security.audit.crypto.math_random.math-random-used
@@ -20,7 +21,10 @@ const testNetworkRange = "10.160.0.0/11"
 // WithFreeSubnet calls create with subnets from a range outside Docker's default address pools until
 // one does not overlap another network. Tests that overlap each other hold many networks at once, and
 // taking them from the default pools would leave none for a verification agent, which cannot choose.
-func WithFreeSubnet(create func(ipam *network.IPAM) error) error {
+// The first call in a process also starts removing the test networks killed runs left behind.
+func WithFreeSubnet(ctx context.Context, create func(ipam *network.IPAM) error) error {
+	removeAbandonedNetworksOncePerProcess(ctx)
+
 	var err error
 
 	for range subnetAttempts {

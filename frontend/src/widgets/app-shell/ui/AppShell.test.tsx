@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -79,5 +79,33 @@ describe('AppShell', () => {
       if (previous) Object.defineProperty(window, 'visualViewport', previous);
       else Reflect.deleteProperty(window, 'visualViewport');
     }
+  });
+
+  it('lists the Discord and Telegram chats when community is clicked', async () => {
+    server.use(
+      http.get('https://api.github.com/repos/databasus/databasus', () =>
+        HttpResponse.json({ stargazers_count: 1 }),
+      ),
+    );
+
+    renderScreen(
+      <AppShell
+        workspaceSelector={<div>Workspace selector</div>}
+        sidebar={<nav>Navigation</nav>}
+        isSidebarOpen={false}
+        onOpenSidebar={() => {}}
+      >
+        <div />
+      </AppShell>,
+      { locale: 'ru' },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.ru.app.navigation.community }));
+
+    const discordLink = await screen.findByRole('menuitem', { name: 'Discord' });
+    const telegramLink = screen.getByRole('menuitem', { name: 'Telegram' });
+
+    expect(discordLink.getAttribute('href')).toBe('https://databasus.com/discord/');
+    expect(telegramLink.getAttribute('href')).toBe('https://t.me/databasus_community');
   });
 });

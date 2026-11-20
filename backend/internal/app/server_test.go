@@ -67,7 +67,10 @@ func TestServe(t *testing.T) {
 		serveCtx, stopServing := context.WithCancel(t.Context())
 		serveErrors := make(chan error, 1)
 
-		go func() { serveErrors <- testApp.Serve(serveCtx, "127.0.0.1:0") }()
+		go func() {
+			_, err := testApp.Serve(serveCtx, "127.0.0.1:0")
+			serveErrors <- err
+		}()
 
 		testwait.Until(t, "the job pass to start", func(context.Context) error {
 			if !isPassStarted.Load() {
@@ -119,7 +122,7 @@ func TestServe(t *testing.T) {
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = busyListener.Close() })
 
-		err = testApp.Serve(t.Context(), busyListener.Addr().String())
+		_, err = testApp.Serve(t.Context(), busyListener.Addr().String())
 
 		require.Error(t, err)
 		assert.Nil(t, testApp.backgroundGroup)

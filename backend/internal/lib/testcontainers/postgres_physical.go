@@ -33,6 +33,7 @@ const physicalDataDirTmpfsOptions = "rw,size=2g"
 
 type physicalPostgresOptions struct {
 	shouldSummarizeWal            bool
+	shouldSummarizeStandbyWal     bool
 	shouldEnableFullPageWrites    bool
 	shouldCreateTablespace        bool
 	shouldOmitReplicationHbaEntry bool
@@ -52,6 +53,13 @@ type PhysicalPostgresOption func(*physicalPostgresOptions)
 // the SUMMARIZER_OFF fallback deterministically.
 func WithoutSummarizer() PhysicalPostgresOption {
 	return func(o *physicalPostgresOptions) { o.shouldSummarizeWal = false }
+}
+
+// WithoutStandbySummarizer keeps summarize_wal on for the primary and turns it off for the standby
+// of a replication pair, the way a node set up without WAL summaries is promoted. It is written to
+// the standby's postgresql.auto.conf, so ALTER SYSTEM can turn it on later.
+func WithoutStandbySummarizer() PhysicalPostgresOption {
+	return func(o *physicalPostgresOptions) { o.shouldSummarizeStandbyWal = false }
 }
 
 // WithTablespace pre-creates a custom tablespace at first boot so the pre-flight rejects the cluster
@@ -239,7 +247,7 @@ func StartPhysicalPostgresBehindSSHBastion(
 }
 
 func resolvePhysicalPostgresOptions(opts []PhysicalPostgresOption) physicalPostgresOptions {
-	options := physicalPostgresOptions{shouldSummarizeWal: true, walKeepSizeMB: 512}
+	options := physicalPostgresOptions{shouldSummarizeWal: true, shouldSummarizeStandbyWal: true, walKeepSizeMB: 512}
 	for _, apply := range opts {
 		apply(&options)
 	}
@@ -284,6 +292,26 @@ func StartPhysicalPrimaryWithStandby(
 ) (Endpoint, Endpoint) {
 	t.Helper()
 
+	pair := StartPhysicalReplicationPair(t, image, opts...)
+
+	return pair.Primary.Endpoint, pair.Standby.Endpoint
+}
+
+// PhysicalReplicationPair is a primary and its streaming standby with their containers, for
+// scenarios that stop a node to prove a later step needs nothing from it.
+type PhysicalReplicationPair struct {
+	Primary ContainerHandle
+	Standby ContainerHandle
+}
+
+// StartPhysicalReplicationPair boots the pair StartPhysicalPrimaryWithStandby describes.
+func StartPhysicalReplicationPair(
+	t *testing.T,
+	image string,
+	opts ...PhysicalPostgresOption,
+) PhysicalReplicationPair {
+	t.Helper()
+
 	options := resolvePhysicalPostgresOptions(opts)
 
 	// A base backup taken on the standby requires full_page_writes — force it on for both nodes.
@@ -295,8 +323,8 @@ func StartPhysicalPrimaryWithStandby(
 	}
 	t.Cleanup(func() { _ = replicationNetwork.Remove(context.WithoutCancel(t.Context())) })
 
-	primary := startPhysicalPrimaryOnNetwork(t, image, options, replicationNetwork.Name)
-	standby := startPhysicalStandbyOnNetwork(
+	primary := startPhysicalPrimaryContainerOnNetwork(t, image, options, replicationNetwork.Name)
+	standby := startPhysicalStandbyContainerOnNetwork(
 		t,
 		physicalStandbySpec{
 			Image:         image,
@@ -306,7 +334,7 @@ func StartPhysicalPrimaryWithStandby(
 		},
 	)
 
-	return primary, standby
+	return PhysicalReplicationPair{Primary: primary, Standby: standby}
 }
 
 func StartPhysicalCascadingStandbys(t *testing.T, image string) (Endpoint, Endpoint, Endpoint) {
@@ -353,11 +381,22 @@ func startPhysicalPrimaryOnNetwork(
 ) Endpoint {
 	t.Helper()
 
+	return startPhysicalPrimaryContainerOnNetwork(t, image, options, networkName).Endpoint
+}
+
+func startPhysicalPrimaryContainerOnNetwork(
+	t *testing.T,
+	image string,
+	options physicalPostgresOptions,
+	networkName string,
+) ContainerHandle {
+	t.Helper()
+
 	req := physicalPostgresRequest(image, options)
 	req.Networks = []string{networkName}
 	req.NetworkAliases = map[string][]string{networkName: {physicalPrimaryAlias}}
 
-	return start(t, req, postgresPort)
+	return startContainer(t, req, postgresPort)
 }
 
 type physicalStandbySpec struct {
@@ -376,6 +415,12 @@ type physicalStandbySpec struct {
 func startPhysicalStandbyOnNetwork(t *testing.T, spec physicalStandbySpec) Endpoint {
 	t.Helper()
 
+	return startPhysicalStandbyContainerOnNetwork(t, spec).Endpoint
+}
+
+func startPhysicalStandbyContainerOnNetwork(t *testing.T, spec physicalStandbySpec) ContainerHandle {
+	t.Helper()
+
 	req := testcontainers.ContainerRequest{
 		Image:        spec.Image,
 		ExposedPorts: []string{postgresPort},
@@ -383,7 +428,9 @@ func startPhysicalStandbyOnNetwork(t *testing.T, spec physicalStandbySpec) Endpo
 		Entrypoint:   []string{"/usr/local/bin/databasus-standby-entrypoint.sh"},
 		Cmd:          physicalPostgresCmd(spec.Options),
 		Files: []testcontainers.ContainerFile{{
-			Reader:            strings.NewReader(standbyEntrypointScript(spec.UpstreamAlias)),
+			Reader: strings.NewReader(
+				standbyEntrypointScript(spec.UpstreamAlias, spec.Options.shouldSummarizeStandbyWal),
+			),
 			ContainerFilePath: "/usr/local/bin/databasus-standby-entrypoint.sh",
 			FileMode:          0o755,
 		}},
@@ -396,7 +443,7 @@ func startPhysicalStandbyOnNetwork(t *testing.T, spec physicalStandbySpec) Endpo
 		req.NetworkAliases = map[string][]string{spec.NetworkName: {spec.Alias}}
 	}
 
-	return start(t, req, postgresPort)
+	return startContainer(t, req, postgresPort)
 }
 
 // standbyEntrypointScript clones the primary into an empty PGDATA and writes the standby recovery
@@ -404,7 +451,12 @@ func startPhysicalStandbyOnNetwork(t *testing.T, spec physicalStandbySpec) Endpo
 // root (the image default) and drops to postgres for the clone so the cluster files are owned by
 // the server uid, then exec's the image entrypoint to serve it. The final "$@" forwards the WAL
 // flags passed as the container command.
-func standbyEntrypointScript(upstreamAlias string) string {
+func standbyEntrypointScript(upstreamAlias string, shouldSummarizeWal bool) string {
+	summarizerSetting := ""
+	if !shouldSummarizeWal {
+		summarizerSetting = `echo "summarize_wal = 'off'" >> "$PGDATA/postgresql.auto.conf"` + "\n"
+	}
+
 	return `#!/bin/bash
 set -euo pipefail
 mkdir -p "$PGDATA"
@@ -415,7 +467,7 @@ echo "databasus-standby: cloning primary via pg_basebackup"
 gosu postgres pg_basebackup -D "$PGDATA" -R -X stream -c fast -C -S ` + physicalStandbySlotName + ` -w \
   -d "host=` + upstreamAlias + ` port=5432 user=` + PostgresUsername +
 		` password=` + PostgresPassword + ` dbname=postgres"
-echo "databasus-standby: starting as a streaming standby"
+` + summarizerSetting + `echo "databasus-standby: starting as a streaming standby"
 exec docker-entrypoint.sh postgres "$@"
 `
 }
@@ -588,4 +640,14 @@ func (rt RestoreTarget) exec(ctx context.Context, args []string, user string) ([
 	out, _ := io.ReadAll(reader)
 
 	return out, code
+}
+
+// StopContainer stops a node the way an operator shutting its host down would, and fails the test
+// when the container does not stop.
+func (handle ContainerHandle) StopContainer(t *testing.T) {
+	t.Helper()
+
+	if err := handle.Container.Stop(t.Context(), nil); err != nil {
+		t.Fatalf("stop container at %s:%d: %v", handle.Host, handle.Port, err)
+	}
 }

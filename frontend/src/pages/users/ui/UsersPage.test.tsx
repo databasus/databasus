@@ -17,6 +17,7 @@ const buildUser = (email: string): ApiComponents['schemas']['User'] => ({
   name: email,
   role: 'MEMBER',
   status: 'ACTIVE',
+  isRootAdmin: false,
   createdAt: '2026-10-01T10:00:00Z',
 });
 

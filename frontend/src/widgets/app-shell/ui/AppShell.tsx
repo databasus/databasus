@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useIsMobile, useScreenHeight } from '@/shared/hooks';
 import { getWebsitePageUrl, useLocale } from '@/shared/i18n';
 import { LanguageThemeControlComponent } from '@/shared/ui';
+import { CommunityMenuComponent } from '@/shared/ui/CommunityMenuComponent';
 import { StarButtonComponent } from '@/shared/ui/StarButtonComponent';
 
 interface Props {
@@ -54,14 +55,7 @@ export const AppShell = ({
             >
               {t('app.navigation.docs')}
             </a>
-            <a
-              className="font-normal !text-content"
-              href="https://t.me/databasus_community"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {t('app.navigation.community')}
-            </a>
+            <CommunityMenuComponent targetClassName="font-normal !text-content" />
             {auxiliary}
             <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
               <StarButtonComponent />

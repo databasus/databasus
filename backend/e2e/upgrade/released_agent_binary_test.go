@@ -19,7 +19,7 @@ const releasedAgentImage = "databasus/databasus@sha256:a4bbf8b285c54f76c61a997d6
 func extractReleasedAgent(t *testing.T, docker *dockerHost) string {
 	t.Helper()
 
-	require.NoError(t, docker.ensureImage(t.Context(), releasedAgentImage))
+	require.NoError(t, docker.EnsureImage(t.Context(), releasedAgentImage))
 
 	fixture, err := docker.client.ContainerCreate(t.Context(), client.ContainerCreateOptions{
 		Config: &container.Config{Image: releasedAgentImage, Labels: docker.labels},

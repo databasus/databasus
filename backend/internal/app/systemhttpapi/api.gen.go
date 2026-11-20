@@ -151,14 +151,18 @@ const (
 	ProblemCodeAdminEmailMissing          ProblemCode = "admin_email_missing"
 	ProblemCodeAlreadyMember              ProblemCode = "already_member"
 	ProblemCodeAlreadyRunning             ProblemCode = "already_running"
+	ProblemCodeArchiveTooLarge            ProblemCode = "archive_too_large"
 	ProblemCodeBackupNotCompleted         ProblemCode = "backup_not_completed"
 	ProblemCodeCannotChangeOwnRole        ProblemCode = "cannot_change_own_role"
 	ProblemCodeCleanupPending             ProblemCode = "cleanup_pending"
 	ProblemCodeDatabaseConnectionFailed   ProblemCode = "database_connection_failed"
+	ProblemCodeDatabasusBackupInUse       ProblemCode = "databasus_backup_in_use"
 	ProblemCodeEmailNotConfigured         ProblemCode = "email_not_configured"
 	ProblemCodeEmailNotFound              ProblemCode = "email_not_found"
 	ProblemCodeEmailTaken                 ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed    ProblemCode = "human_verification_failed"
+	ProblemCodeIdentityProofInvalid       ProblemCode = "identity_proof_invalid"
+	ProblemCodeIdentityProofUnavailable   ProblemCode = "identity_proof_unavailable"
 	ProblemCodeInUse                      ProblemCode = "in_use"
 	ProblemCodeInstanceUnhealthy          ProblemCode = "instance_unhealthy"
 	ProblemCodeInsufficientDiskSpace      ProblemCode = "insufficient_disk_space"
@@ -180,11 +184,14 @@ const (
 	ProblemCodePendingSignInNotUsable     ProblemCode = "pending_sign_in_not_usable"
 	ProblemCodePermissionDenied           ProblemCode = "permission_denied"
 	ProblemCodeRateLimited                ProblemCode = "rate_limited"
+	ProblemCodeRecoveryIncompatible       ProblemCode = "recovery_incompatible"
+	ProblemCodeRecoveryNotReady           ProblemCode = "recovery_not_ready"
 	ProblemCodeRegistrationClosed         ProblemCode = "registration_closed"
 	ProblemCodeRegistrationIncomplete     ProblemCode = "registration_incomplete"
 	ProblemCodeSignInCodeIncorrect        ProblemCode = "sign_in_code_incorrect"
 	ProblemCodeSignInCodeNotSent          ProblemCode = "sign_in_code_not_sent"
 	ProblemCodeSignInCodeResentTooSoon    ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeStorageUnavailable         ProblemCode = "storage_unavailable"
 	ProblemCodeTargetTimeUnreachable      ProblemCode = "target_time_unreachable"
 	ProblemCodeTooManySignInCodes         ProblemCode = "too_many_sign_in_codes"
 	ProblemCodeUnauthenticated            ProblemCode = "unauthenticated"
@@ -201,6 +208,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeAlreadyRunning:
 		return true
+	case ProblemCodeArchiveTooLarge:
+		return true
 	case ProblemCodeBackupNotCompleted:
 		return true
 	case ProblemCodeCannotChangeOwnRole:
@@ -209,6 +218,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeDatabaseConnectionFailed:
 		return true
+	case ProblemCodeDatabasusBackupInUse:
+		return true
 	case ProblemCodeEmailNotConfigured:
 		return true
 	case ProblemCodeEmailNotFound:
@@ -216,6 +227,10 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeEmailTaken:
 		return true
 	case ProblemCodeHumanVerificationFailed:
+		return true
+	case ProblemCodeIdentityProofInvalid:
+		return true
+	case ProblemCodeIdentityProofUnavailable:
 		return true
 	case ProblemCodeInUse:
 		return true
@@ -259,6 +274,10 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeRateLimited:
 		return true
+	case ProblemCodeRecoveryIncompatible:
+		return true
+	case ProblemCodeRecoveryNotReady:
+		return true
 	case ProblemCodeRegistrationClosed:
 		return true
 	case ProblemCodeRegistrationIncomplete:
@@ -268,6 +287,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeSignInCodeNotSent:
 		return true
 	case ProblemCodeSignInCodeResentTooSoon:
+		return true
+	case ProblemCodeStorageUnavailable:
 		return true
 	case ProblemCodeTargetTimeUnreachable:
 		return true
@@ -445,6 +466,12 @@ type BackupId = openapi_types.UUID
 
 // DatabaseId defines model for DatabaseId.
 type DatabaseId = openapi_types.UUID
+
+// InstanceBackupId defines model for InstanceBackupId.
+type InstanceBackupId = openapi_types.UUID
+
+// InstanceRecoveryId defines model for InstanceRecoveryId.
+type InstanceRecoveryId = openapi_types.UUID
 
 // MemberId defines model for MemberId.
 type MemberId = openapi_types.UUID

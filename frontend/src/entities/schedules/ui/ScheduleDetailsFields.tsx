@@ -21,9 +21,10 @@ import { WrappingSelect } from '@/shared/ui';
 interface Props {
   schedule: Schedule;
   onChange: (schedule: Schedule) => void;
+  size?: 'xs' | 'sm';
 }
 
-export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
+export const ScheduleDetailsFields = ({ schedule, onChange, size = 'xs' }: Props) => {
   const { t } = useTranslation();
   const weekdayControlId = useId();
   const dayOfMonthControlId = useId();
@@ -51,7 +52,7 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
             id={weekdayControlId}
             value={weekday}
             onChange={(localWeekday) => onChange(withLocalWeekday(schedule, localWeekday))}
-            size="xs"
+            size={size}
             className="w-full max-w-[200px] grow"
             data={weekdayOptions}
           />
@@ -76,7 +77,7 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
 
               onChange(withLocalDayOfMonth(schedule, localDayOfMonth));
             }}
-            size="xs"
+            size={size}
             className="w-full max-w-[200px] grow"
             role="spinbutton"
             aria-valuenow={typeof dayOfMonth === 'number' ? dayOfMonth : undefined}
@@ -90,6 +91,7 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
         <CronExpressionField
           cronExpression={schedule.cronExpression ?? ''}
           onChange={(cronExpression) => onChange({ ...schedule, cronExpression })}
+          size={size}
         />
       )}
 
@@ -128,7 +130,7 @@ export const ScheduleDetailsFields = ({ schedule, onChange }: Props) => {
                     : null,
               };
             }}
-            size="xs"
+            size={size}
             className="w-full grow sm:max-w-[200px]"
             onChange={(pickedTime) => {
               if (!pickedTime) return;

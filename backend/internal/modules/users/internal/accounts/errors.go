@@ -29,6 +29,11 @@ var (
 		Detail: "a user can change only their own profile and password",
 		Errors: nil,
 	}
+	ErrNotRootAdmin = &apierror.Problem{
+		Code:   apierror.CodePermissionDenied,
+		Detail: "only the server administrator can do this",
+		Errors: nil,
+	}
 	ErrNotAdmin = &apierror.Problem{
 		Code:   apierror.CodePermissionDenied,
 		Detail: "the operation is for instance admins",

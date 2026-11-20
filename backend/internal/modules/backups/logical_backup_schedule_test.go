@@ -51,6 +51,20 @@ func TestLogicalBackupScheduler(t *testing.T) {
 		waitForRestorableBackupStatus(t, tm.owner, listedBackupIDs[0], apiclient.LogicalBackupStatusCOMPLETED)
 	})
 
+	t.Run("starts a due backup without any confirmation after a recovery", func(t *testing.T) {
+		tm := newTeam(t, apptest.WithPublishedRecovery())
+		source := newBackupSourceDatabase(t, tm, server)
+		saveLogicalBackupSettings(t, tm.owner, source.databaseID, source.storageID, newDailyBackupSettings(),
+			apiclient.BackupEncryptionNONE)
+		tm.app.Clock.Set(getNextDailySlot().Add(30 * time.Second))
+
+		tm.app.RunJobPass(t, logicalBackupSchedulerJobName)
+
+		listedBackupIDs := listLogicalBackupIDs(t, tm.owner, source.databaseID)
+		require.Len(t, listedBackupIDs, 1)
+		waitForRestorableBackupStatus(t, tm.owner, listedBackupIDs[0], apiclient.LogicalBackupStatusCOMPLETED)
+	})
+
 	t.Run("starts no backup when a stored cron expression has no date to run on", func(t *testing.T) {
 		tm := newTeam(t)
 		source := newBackupSourceDatabase(t, tm, server)

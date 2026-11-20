@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // upgradeResources are the unique names of everything one upgrade flow creates in Docker.
@@ -40,13 +42,17 @@ func newUpgradeResources() (upgradeResources, error) {
 	}, nil
 }
 
-func (r upgradeResources) getContainerNames() []string {
-	return []string{
-		r.sourceContainerName,
-		r.mysqlContainerName,
-		r.mariadbContainerName,
-		r.mongodbContainerName,
-		r.previousContainerName,
-		r.currentContainerName,
+func (r upgradeResources) getDockerResources() containers.DockerResources {
+	return containers.DockerResources{
+		ContainerNames: []string{
+			r.sourceContainerName,
+			r.mysqlContainerName,
+			r.mariadbContainerName,
+			r.mongodbContainerName,
+			r.previousContainerName,
+			r.currentContainerName,
+		},
+		NetworkNames: []string{r.networkName},
+		VolumeNames:  []string{r.volumeName},
 	}
 }

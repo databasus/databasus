@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 	"databasus-backend/internal/modules/storages"
 )
@@ -107,23 +108,18 @@ func (s *Service) DeleteOrphanWalSegmentsInSpan(
 			return nil
 		}
 
-		hasAnchoringFull, err := s.backupRepository.HasCompletedFullBackupCoveringWal(ctx,
-			spec.DatabaseID,
-			spec.TimelineID,
-			spec.Span.End,
-		)
+		chainCatalog, err := s.loadChainCatalog(ctx, spec.DatabaseID)
 		if err != nil {
 			return err
 		}
-		if hasAnchoringFull {
+		if !newWalOwnership(chainCatalog, uuid.Nil).isUnreferenced(spec.TimelineID, spec.Span) {
 			return nil
 		}
 
-		rows, mb, _, err := s.deleteWalInSpanBudgeted(
+		rows, mb, _, err := s.deleteWalInSpansBudgeted(
 			ctx,
 			spec.DatabaseID,
-			spec.TimelineID,
-			spec.Span,
+			[]catalog.TimelineSpan{{TimelineID: spec.TimelineID, Span: spec.Span}},
 			spec.WalByteBudgetMB,
 			true,
 		)
@@ -219,38 +215,16 @@ func (s *Service) cascadeDelete(
 			return nil
 		}
 
-		var span catalog.LSNRange
-		var hasDeletableWal bool
-
-		var hasRunningFull bool
-		if keepFull {
-			hasRunningFull, err = s.backupRepository.HasRunningFullBackup(ctx, lockedFull.DatabaseID)
-			if err != nil {
-				return err
-			}
-			if !hasRunningFull {
-				span, err = s.backupRepository.GetOwnershipSpan(ctx, lockedFull)
-				hasDeletableWal = true
-			}
-		} else {
-			walPlan, planErr := s.getFullRemovalWalPlan(ctx, lockedFull)
-			if planErr != nil {
-				return planErr
-			}
-			span = walPlan.span
-			hasDeletableWal = walPlan.hasDeletableWal
-			hasRunningFull = walPlan.hasRunningFull
-		}
+		walPlan, err := s.getWalRemovalPlan(ctx, lockedFull, keepFull)
 		if err != nil {
 			return err
 		}
 
-		if hasDeletableWal {
-			walRows, walBytes, budgetHit, err := s.deleteWalInSpanBudgeted(
+		if len(walPlan.spans) > 0 {
+			walRows, walBytes, budgetHit, err := s.deleteWalInSpansBudgeted(
 				ctx,
 				lockedFull.DatabaseID,
-				lockedFull.TimelineID,
-				span,
+				walPlan.spans,
 				walByteBudgetMB,
 				false,
 			)
@@ -277,7 +251,7 @@ func (s *Service) cascadeDelete(
 			return nil
 		}
 
-		if !hasRunningFull {
+		if !walPlan.hasRunningFull {
 			historyCount, err := s.deleteOrphanedHistoryFiles(ctx, lockedFull)
 			summary.HistoryFiles = historyCount
 			if err != nil {
@@ -300,42 +274,69 @@ func (s *Service) cascadeDelete(
 	return summary, nil
 }
 
-type fullRemovalWalPlan struct {
-	span            catalog.LSNRange
-	hasDeletableWal bool
-	hasRunningFull  bool
+type walRemovalPlan struct {
+	spans          []catalog.TimelineSpan
+	hasRunningFull bool
 }
 
-func (s *Service) getFullRemovalWalPlan(
-	ctx context.Context,
-	full *catalog.Backup,
-) (fullRemovalWalPlan, error) {
+// getWalRemovalPlan returns the WAL a chain's removal may delete: the chain's ownership span along
+// its line. A running FULL may anchor any archived WAL, so nothing is deleted while one runs.
+// Removing the FULL itself keeps its WAL when an older completed FULL's line still replays it; a
+// FULL_BACKUPS cleanup that keeps the FULL sheds the owned WAL regardless.
+func (s *Service) getWalRemovalPlan(ctx context.Context, full *catalog.Backup, keepFull bool) (walRemovalPlan, error) {
 	hasRunningFull, err := s.backupRepository.HasRunningFullBackup(ctx, full.DatabaseID)
 	if err != nil {
-		return fullRemovalWalPlan{}, err
+		return walRemovalPlan{}, err
 	}
 	if hasRunningFull {
-		return fullRemovalWalPlan{hasRunningFull: true}, nil
+		return walRemovalPlan{hasRunningFull: true}, nil
 	}
 
 	if full.StartLSN == nil {
-		return fullRemovalWalPlan{}, nil
+		return walRemovalPlan{}, nil
 	}
 
-	hasPredecessor, err := s.backupRepository.HasCompletedFullBefore(ctx, full)
+	chainCatalog, err := s.loadChainCatalog(ctx, full.DatabaseID)
 	if err != nil {
-		return fullRemovalWalPlan{}, err
-	}
-	if hasPredecessor {
-		return fullRemovalWalPlan{}, nil
+		return walRemovalPlan{}, err
 	}
 
-	span, err := s.backupRepository.GetOwnershipSpan(ctx, full)
+	if !keepFull && hasPredecessorOnLine(chainCatalog, full) {
+		return walRemovalPlan{}, nil
+	}
+
+	spans, err := getOwnedWalSpans(chainCatalog, full)
 	if err != nil {
-		return fullRemovalWalPlan{}, err
+		return walRemovalPlan{}, err
 	}
 
-	return fullRemovalWalPlan{span: span, hasDeletableWal: true}, nil
+	return walRemovalPlan{spans: spans}, nil
+}
+
+// deleteWalInSpansBudgeted deletes the WAL fully inside each span in turn, sharing one budget.
+func (s *Service) deleteWalInSpansBudgeted(
+	ctx context.Context,
+	databaseID uuid.UUID,
+	spans []catalog.TimelineSpan,
+	walByteBudgetMB float64,
+	lockRows bool,
+) (deletedRows int, deletedMB float64, budgetHit bool, err error) {
+	for _, span := range spans {
+		spanRows, spanMB, isBudgetHit, spanErr := s.deleteWalInSpanBudgeted(
+			ctx,
+			databaseID,
+			span,
+			walByteBudgetMB-deletedMB,
+			lockRows,
+		)
+		deletedRows += spanRows
+		deletedMB += spanMB
+		if spanErr != nil || isBudgetHit {
+			return deletedRows, deletedMB, isBudgetHit, spanErr
+		}
+	}
+
+	return deletedRows, deletedMB, false, nil
 }
 
 // deleteWalInSpanBudgeted removes only WAL rows lying fully inside the span. The
@@ -351,8 +352,7 @@ func (s *Service) getFullRemovalWalPlan(
 func (s *Service) deleteWalInSpanBudgeted(
 	ctx context.Context,
 	databaseID uuid.UUID,
-	timelineID int,
-	span catalog.LSNRange,
+	span catalog.TimelineSpan,
 	walByteBudgetMB float64,
 	lockRows bool,
 ) (deletedRows int, deletedMB float64, budgetHit bool, err error) {
@@ -361,8 +361,8 @@ func (s *Service) deleteWalInSpanBudgeted(
 			ctx,
 			catalog.ContainedWalQuery{
 				DatabaseID: databaseID,
-				TimelineID: timelineID,
-				Span:       span,
+				TimelineID: span.TimelineID,
+				Span:       span.Span,
 				Limit:      maxWalDeleteBatchRows,
 				ShouldLock: lockRows,
 			},
@@ -376,15 +376,7 @@ func (s *Service) deleteWalInSpanBudgeted(
 		}
 
 		for _, segment := range segments {
-			if segment.FileName != nil {
-				if delErr := s.requestFileDeletions(ctx, segment.StorageID,
-					*segment.FileName, *segment.FileName+metadataSuffix,
-				); delErr != nil {
-					return deletedRows, deletedMB, false, delErr
-				}
-			}
-
-			if err = s.walSegmentRepository.DeleteByID(ctx, segment.ID); err != nil {
+			if err = s.deleteWalSegment(ctx, segment); err != nil {
 				return deletedRows, deletedMB, false, err
 			}
 
@@ -495,25 +487,33 @@ func collectIncrementalSubtree(
 	return subtree
 }
 
-// deleteOrphanedHistoryFiles drops the history files of the FULL's timeline only
-// when no other COMPLETED FULL survives on that timeline — otherwise the history
-// still anchors a living chain.
+// deleteOrphanedHistoryFiles drops the history of the FULL's timeline once no other completed FULL
+// has that timeline on its line. WAL of the timeline that no remaining line holds goes with it:
+// without its history such WAL would look like a promoted timeline whose history is still pending,
+// which the orphan sweep never removes.
 func (s *Service) deleteOrphanedHistoryFiles(
 	ctx context.Context,
 	full *catalog.Backup,
 ) (int, error) {
-	hasSurvivingFull, err := s.backupRepository.HasSurvivingCompletedFullOnTimeline(ctx, full)
+	chainCatalog, err := s.loadChainCatalog(ctx, full.DatabaseID)
 	if err != nil {
 		return 0, err
 	}
 
-	if hasSurvivingFull {
+	ownership := newWalOwnership(chainCatalog, full.ID)
+	if ownership.hasTimelineOnAnyLine(full.TimelineID) {
 		return 0, nil
 	}
 
 	historyFiles, err := s.walHistoryRepository.FindAllByDatabaseTimeline(ctx, full.DatabaseID, full.TimelineID)
 	if err != nil {
 		return 0, err
+	}
+
+	if len(historyFiles) > 0 {
+		if err := s.deleteUnreferencedTimelineWal(ctx, full, ownership); err != nil {
+			return 0, err
+		}
 	}
 
 	deleted := 0
@@ -533,6 +533,55 @@ func (s *Service) deleteOrphanedHistoryFiles(
 	}
 
 	return deleted, nil
+}
+
+func (s *Service) deleteUnreferencedTimelineWal(
+	ctx context.Context,
+	full *catalog.Backup,
+	ownership walOwnership,
+) error {
+	cursor := walmath.LSN(0)
+
+	for {
+		segments, err := s.walSegmentRepository.FindContained(ctx, catalog.ContainedWalQuery{
+			DatabaseID: full.DatabaseID,
+			TimelineID: full.TimelineID,
+			Span:       catalog.LSNRange{Start: cursor, End: catalog.LSNMax},
+			Limit:      maxWalDeleteBatchRows,
+			ShouldLock: false,
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, segment := range segments {
+			cursor = segment.StartLSN + 1
+			if !ownership.isTimelineOnAnyLine(
+				segment.TimelineID,
+				catalog.LSNRange{Start: segment.StartLSN, End: segment.EndLSN},
+			) {
+				if err := s.deleteWalSegment(ctx, segment); err != nil {
+					return err
+				}
+			}
+		}
+
+		if len(segments) < maxWalDeleteBatchRows {
+			return nil
+		}
+	}
+}
+
+func (s *Service) deleteWalSegment(ctx context.Context, segment *catalog.WalSegment) error {
+	if segment.FileName != nil {
+		if err := s.requestFileDeletions(ctx, segment.StorageID,
+			*segment.FileName, *segment.FileName+metadataSuffix,
+		); err != nil {
+			return err
+		}
+	}
+
+	return s.walSegmentRepository.DeleteByID(ctx, segment.ID)
 }
 
 func (s *Service) deleteFullArtifactAndRow(

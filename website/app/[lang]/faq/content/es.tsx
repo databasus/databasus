@@ -3,6 +3,7 @@ import { OG_LOCALES, getLanguageAlternates, getLocalizedHref, getLocalizedUrl } 
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
+import { CopyButton } from "@/app/components/CopyButton";
 
 export const metadata: Metadata = {
   title: "FAQ - Preguntas frecuentes | Databasus",
@@ -40,6 +41,15 @@ export const metadata: Metadata = {
 };
 
 export default function FAQPage() {
+  const startupRecoveryCommand = `docker run -d \\
+  --name databasus \\
+  -p 4005:4005 \\
+  -v ./databasus-data:/databasus-data \\
+  -e RECOVERY_DUMP_PATH=/databasus-data/recovery/backup.dbbackup \\
+  -e RECOVERY_MASTER_KEY_PATH=/databasus-data/recovery/master.key \\
+  --restart unless-stopped \\
+  databasus/databasus:<version>`;
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -87,7 +97,7 @@ export default function FAQPage() {
                 name: "¿Cómo respaldar el propio Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Para respaldar Databasus, vaya a /opt/databasus (o la carpeta donde lo instaló) y entre en el directorio databasus-data. Necesita respaldar el archivo secret.key (clave de cifrado de las credenciales) y la carpeta /pgdata (base de datos interna con las configuraciones y los metadatos de las copias). Hay dos escenarios de recuperación: 1) puede recuperar las copias de las bases de datos usando solo secret.key sin la interfaz de Databasus (vea la guía de recuperación manual), 2) para restaurar la interfaz de Databasus con todas las configuraciones y el historial, necesita tanto secret.key como la carpeta /pgdata. Para restaurar, recree esa estructura de carpetas en otro servidor.",
+                  text: "Databasus está pensado para poder recuperarse aunque se pierda o se corrompa su propio servidor. Puede hacer copias de seguridad de su propia base de datos interna: cuentas, ajustes, las credenciales cifradas de bases de datos, almacenamientos y canales de notificación, programaciones y el catálogo de copias. Actívelo en Databasus settings → Databasus backups eligiendo uno o varios almacenamientos existentes; por defecto, la copia de seguridad de Databasus se ejecuta cada hora y se conserva 30 días. El archivo se cifra con la clave maestra y no contiene ni la clave ni los archivos de copia de sus bases de datos, así que guarde la clave maestra por separado: Databasus le pide que la descargue, y también está en . /databasus-data/secret. key en el host. La recuperación necesita el archivo de copia, su clave maestra y exactamente la misma versión de Databasus, incluido el parche. Puede poner ambos archivos en el directorio de datos montado y arrancar Databasus con RECOVERY_DUMP_PATH y RECOVERY_MASTER_KEY_PATH en un servidor sin cuentas ni ajustes cambiados, o bien subir el archivo y pegar la clave en Databasus settings → Databasus backups, lo que reemplaza la instalación actual. Detenga la instalación antigua antes de recuperar. La instalación recuperada inicia de inmediato sus copias de seguridad, notificaciones y escrituras en los almacenamientos, así que dos instalaciones en marcha escribirían en los mismos almacenamientos y bases de datos.",
                 },
               },
               {
@@ -104,6 +114,14 @@ export default function FAQPage() {
                 acceptedAnswer: {
                   "@type": "Answer",
                   text: "La IA nos ayuda a desarrollar Databasus, desde la planificación y la implementación hasta las pruebas y la documentación. Las personas definen el rumbo y toman las decisiones finales. Una persona lee cada línea de código antes de integrar un cambio. Utilizamos desarrollo basado en especificaciones (SDD) con OpenSpec para acordar el comportamiento antes de implementar. Revisión independiente en cada etapa Los hooks automáticos inician sesiones de revisión separadas con acceso de solo lectura al repositorio. Cada agente inspecciona el código pertinente y devuelve sus propios hallazgos. El agente que implementa no puede aprobar su propio trabajo. La revisión empieza antes de implementar. Agentes de planificación separados buscan soluciones más sencillas, comprueban los nombres propuestos y evalúan el diseño. También contrastan los requisitos con las tareas de verificación. Revisor de código: Busca errores, casos límite omitidos, fallos en el manejo de errores, condiciones de carrera, fugas de recursos y problemas de seguridad. Revisor de requisitos: Localiza la implementación y las pruebas de cada requisito. Comprueba que las pruebas demuestren el comportamiento prometido. Revisor de arquitectura: Comprueba los límites entre módulos, la dirección de las dependencias, la propiedad de los datos, las migraciones y las reglas de API. Revisor de estructura del código: Comprueba nombres, responsabilidades de archivos y funciones, comentarios y legibilidad. Revisor de pruebas: Evalúa si las pruebas detectarían un comportamiento ausente o una regresión. También comprueba las esperas por condiciones, la limpieza y las evidencias de verificación. Revisor de documentación y tareas: Contrasta la documentación con el código, comprueba que las tareas estén completas y verifica las evidencias de las comprobaciones declaradas. Las revisiones completas de implementación se ejecutan en paralelo. Cada especificación modificada tiene su propio revisor de requisitos. Arquitectura, pruebas y documentación tienen revisores separados. Un cambio que abarca dos especificaciones recibe, por tanto, cinco agentes de revisión completa. Los hallazgos bloqueantes impiden aceptar el trabajo. El agente que implementa los corrige o explica por qué un hallazgo es incorrecto. Un revisor posterior comprueba esa resolución y los cambios posteriores. Una revisión que no pudo ejecutarse no se considera aprobada. Comprobaciones automáticas y restauraciones reales La revisión independiente se complementa con comprobaciones automáticas estrictas. golangci-lint y nuestro analizador de arquitectura comprueban las dependencias del backend, los límites entre módulos y las reglas de migración. Las comprobaciones de API validan los contratos OpenAPI y el código generado. El frontend comprueba TypeScript, React, importaciones entre capas, estilos y localización. Ruff y ty comprueban el formato, las reglas de código y los tipos de Python. ShellCheck comprueba los scripts de shell y actionlint, los flujos de GitHub Actions. Los hooks previos al commit comprueban los archivos afectados del backend, frontend y Python sin reescribirlos. CI también ejecuta el análisis estático. Las pruebas comprueban comportamientos reales. El backend se prueba mediante la API de la aplicación y los motores, con bases de datos reales en contenedores. Los escenarios de extremo a extremo crean copias de seguridad, las restauran y comprueban los datos restaurados. Otras pruebas cubren actualizaciones, pantallas del frontend y flujos del navegador con comparaciones visuales. Las comprobaciones se eligen según el cambio. Las suites obligatorias de publicación se ejecutan en amd64 y arm64. El agente que implementa ejecuta los analizadores y las pruebas pertinentes antes de la revisión. Los revisores inspeccionan las evidencias sin volver a ejecutar esos comandos. Antes de publicar, CodeQL y Semgrep analizan el código, Gitleaks busca secretos y las dependencias se comprueban para detectar vulnerabilidades. Trivy analiza las imágenes de contenedor y los Dockerfile. Las comprobaciones obligatorias de CI deben superarse antes de publicar una versión.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "¿Existe una comunidad de Databasus?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Sí. La comunidad de Databasus conversa en los chats de Telegram (https://t.me/databasus_community) y Discord (https://databasus.com/discord). Allí puede hacer preguntas, contar cómo usa Databasus, debatir funciones y enterarse antes que nadie de las nuevas versiones. Elija la aplicación que ya usa.",
                 },
               },
             ],
@@ -556,77 +574,128 @@ export default function FAQPage() {
               </h2>
 
               <p>
-                Si quiere respaldar su instancia de Databasus (incluidas todas
-                las configuraciones, bases de datos y credenciales), siga estos
-                pasos:
+                Databasus está pensado para poder recuperarse aunque se pierda o se corrompa su propio servidor.
+                Puede hacer copias de seguridad de su propia base de
+                datos interna: cuentas, ajustes, las credenciales cifradas de
+                sus bases de datos, almacenamientos y canales de notificación,
+                programaciones y el catálogo de copias. Actívelo en{" "}
+                <strong>Databasus settings → Databasus backups</strong>{" "}
+                eligiendo uno o varios almacenamientos existentes. Por defecto,
+                la copia de seguridad de Databasus se ejecuta cada hora y se
+                conserva 30 días. Cada archivo se cifra con la clave maestra.
               </p>
 
-              <ol>
-                <li>
-                  Vaya a <code>/opt/databasus</code> (o la carpeta donde instaló
-                  Databasus)
-                </li>
-                <li>
-                  Entre en el directorio <code>databasus-data</code>
-                </li>
-              </ol>
-
               <p>
-                <strong>Necesita respaldar:</strong>
+                Una copia de seguridad de Databasus no contiene la clave maestra
+                ni los archivos de copia de sus bases de datos, que siguen en
+                sus propios almacenamientos.{" "}
+                <strong>Guarde la clave maestra por separado.</strong> Databasus
+                le pide que la descargue en la primera visita, y la clave es
+                también el archivo <code>./databasus-data/secret.key</code> del
+                host.
               </p>
 
               <ul>
                 <li>
-                  <code>secret.key</code> — clave de cifrado de sus credenciales
+                  <strong>Elija un almacenamiento remoto.</strong> Un
+                  almacenamiento local en el mismo servidor se pierde junto con
+                  ese servidor.
                 </li>
                 <li>
-                  <code>/pgdata</code> — base de datos PostgreSQL interna de
-                  Databasus que contiene todas sus configuraciones y los
-                  metadatos de las copias
-                </li>
-              </ul>
-
-              <p>
-                Si usa almacenamiento local para las copias, también puede
-                respaldar la carpeta <code>backups</code>.
-              </p>
-
-              <p>
-                <strong>Importante:</strong> hay dos escenarios de recuperación
-                distintos:
-              </p>
-
-              <ul>
-                <li>
-                  <strong>
-                    Recuperar copias sin la interfaz de Databasus:
-                  </strong>{" "}
-                  puede recuperar las copias de sus bases de datos usando solo
-                  el archivo <code>secret.key</code>, sin necesitar Databasus ni
-                  sus datos internos. Vea la{" "}
-                  <a href="/es/how-to-recover-without-databasus">
-                    guía de recuperación manual
+                  <strong>Alertas.</strong> Databasus muestra un aviso cuando
+                  una copia de seguridad de Databasus falla, se guarda solo en
+                  algunos almacenamientos, se detiene o se retrasa, es decir,
+                  cuando ninguna copia se ha completado 15 minutos después de
+                  una ejecución programada. Las mismas alertas se envían por
+                  correo a través del{" "}
+                  <a href={`${getLocalizedHref("es", "advanced-config")}#email-smtp`}>
+                  servidor de correo de la instancia
                   </a>{" "}
-                  para instrucciones detalladas.
+                  si está configurado.
+                </li>
+              </ul>
+
+              <h3 id="recover-databasus">
+                ¿Cómo recuperar Databasus desde una copia de seguridad de
+                Databasus?
+              </h3>
+
+              <p>
+                Necesita dos cosas: un archivo de copia de seguridad de
+                Databasus (<code>.dbbackup</code>), descargado del historial o
+                tomado directamente del almacenamiento, y la clave maestra de la
+                instalación que lo creó.{" "}
+                <strong>
+                La recuperación solo funciona en exactamente la misma versión de
+                Databasus, incluido el parche.
+                </strong>{" "}
+                Con cualquier otra versión, Databasus se niega e indica qué
+                versión arrancar: recupere en esa versión y después actualice
+                como de costumbre.
+              </p>
+
+              <p>
+                <strong>Detenga la instalación antigua antes de recuperar.</strong> La
+                instalación recuperada inicia de inmediato sus copias de
+                seguridad, notificaciones y escrituras en los almacenamientos,
+                así que dos instalaciones en marcha escribirían en los mismos
+                almacenamientos y bases de datos.
+              </p>
+
+              <p>
+                <strong>Opción 1: archivos al arrancar.</strong> Úsela en un
+                servidor nuevo. Ponga ambos archivos en el directorio de datos
+                montado, por ejemplo <code>./databasus-data/recovery/</code>, y
+                arranque la imagen de la versión que creó la copia con dos
+                ajustes adicionales. Sustituya <code>&lt;version&gt;</code> por
+                esa versión:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{startupRecoveryCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton lang="es" text={startupRecoveryCommand} />
+                </div>
+              </div>
+
+              <ul>
+                <li>
+                  Si ya arrancó Databasus normalmente en este servidor pero no
+                  creó ninguna cuenta ni cambió ningún ajuste, no hace falta
+                  borrar sus datos. Deténgalo, añada los dos archivos y los dos
+                  ajustes y vuelva a arrancarlo.
                 </li>
                 <li>
-                  <strong>
-                    Restaurar la interfaz de Databasus y todas las
-                    configuraciones:
-                  </strong>{" "}
-                  si quiere restaurar la interfaz de Databasus con todas sus
-                  configuraciones, copias programadas e historial, necesita
-                  respaldar tanto <code>secret.key</code> como la carpeta{" "}
-                  <code>/pgdata</code> (que contiene los metadatos de cifrado y
-                  todas las configuraciones de Databasus).
+                  La recuperación al arrancar nunca reemplaza una instalación
+                  que tenga una cuenta (aunque sea solo una), otros datos de
+                  usuario o ajustes cambiados. En ese caso Databasus no arranca.
+                  En los registros indica que la recuperación no se ejecutó, por
+                  qué, que la instalación actual no ha cambiado y qué hacer a
+                  continuación. Para arrancar la instalación actual, quite los
+                  dos ajustes o use en su lugar la subida desde la interfaz.
+                </li>
+                <li>
+                  Tras una recuperación correcta, los archivos y los ajustes
+                  pueden quedarse donde están. Databasus recuerda el SHA-256 del
+                  archivo aplicado, así que los reinicios y las actualizaciones
+                  posteriores lo omiten y lo indican en los registros, aunque el
+                  archivo se haya renombrado. Un archivo distinto en la misma
+                  ruta no se omite.
                 </li>
               </ul>
 
               <p>
-                <strong>Para restaurar Databasus en otro servidor:</strong>{" "}
-                simplemente recree la estructura de la carpeta{" "}
-                <code>databasus-data</code> con los archivos respaldados y
-                arranque Databasus.
+                <strong>Opción 2: subida desde la interfaz.</strong> Úsela en
+                una instalación que ya está en marcha. En una instalación nueva,
+                regístrese primero. Abra{" "}
+                <strong>Databasus settings → Databasus backups</strong>, elija
+                el archivo de copia y pegue o escriba la clave maestra de la
+                instalación que lo creó.
+                Se reemplaza todo lo que hay en la instalación actual:
+                cuentas, ajustes y el catálogo de copias. Después, inicie
+                sesión con una cuenta de la copia.
               </p>
 
               <h2 id="oss-programs">
@@ -683,6 +752,30 @@ export default function FAQPage() {
                 className="my-6 rounded-lg border border-gray-700 max-w-full sm:max-w-[1000px]"
                 loading="lazy"
               />
+
+              <h2 id="community">¿Existe una comunidad de Databasus?</h2>
+
+              <p>
+                Sí. La comunidad de Databasus conversa en los chats de{" "}
+                <a
+                  href="https://t.me/databasus_community"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>{" "}
+                y{" "}
+                <a
+                  href="/discord"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>
+                . Allí puede hacer preguntas, contar cómo usa Databasus, debatir funciones y enterarse antes que nadie de las nuevas versiones.
+              </p>
+
+              <p>Elija la aplicación que ya usa.</p>
             </article>
           </div>
         </main>

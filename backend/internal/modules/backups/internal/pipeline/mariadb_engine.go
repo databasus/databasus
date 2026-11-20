@@ -46,6 +46,11 @@ func (e *mariadbEngine) OpenRestoreTarget(ctx context.Context, spec restoreTarge
 		return nil, ErrTargetOfAnotherEngine
 	}
 
+	err := target.Settings.Validate()
+	if err != nil {
+		return nil, toInvalidTargetSettingError(err)
+	}
+
 	sourceSettings, err := e.databases.GetMariadbConnectionSettings(ctx, spec.sourceDatabaseID)
 	if err != nil {
 		return nil, err

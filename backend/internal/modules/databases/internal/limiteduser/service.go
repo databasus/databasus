@@ -36,7 +36,11 @@ type Service struct {
 }
 
 func NewService(deps Deps) *Service {
-	return &Service{databases: deps.Databases, registry: deps.Registry, logger: deps.Logger}
+	return &Service{
+		databases: deps.Databases,
+		registry:  deps.Registry,
+		logger:    deps.Logger,
+	}
 }
 
 func (s *Service) CheckLimitedUser(

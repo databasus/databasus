@@ -5,6 +5,7 @@ export const ru: typeof en = {
     nativeName: 'Русский',
   },
   common: {
+    dateTimeWithRelativeTime: '{{time}} ({{relativeTime}})',
     calendar: {
       monthLevelControl: 'Выбрать месяц',
       yearLevelControl: 'Выбрать год',
@@ -84,6 +85,8 @@ export const ru: typeof en = {
       docs: 'Документация',
       documentation: 'Документация',
       community: 'Сообщество',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: 'Доступна новая версия',
     },
     diskUsage: {
@@ -133,6 +136,16 @@ export const ru: typeof en = {
     targetTimeUnreachable:
       'Доступных бэкапов и WAL недостаточно для восстановления на выбранный момент.',
     notRunning: 'Это уже не выполняется, отменять нечего.',
+    databasusBackupInUse:
+      'Это хранилище используется для резервных копий Databasus. Сначала уберите его из настроек резервных копий Databasus или попросите администратора сервера сделать это.',
+    storageUnavailable: 'Хранилище не может отдать этот файл.',
+    recoveryIncompatible:
+      'Эта версия Databasus не может восстановить этот файл резервной копии Databasus.',
+    recoveryNotReady: 'В текущем состоянии восстановления это действие невозможно.',
+    identityProofInvalid: 'Код подтверждения неверен, истёк или уже использован.',
+    identityProofUnavailable:
+      'Код подтверждения не отправить: нет почтового сервера или адреса, на который он может прийти.',
+    archiveTooLarge: 'Файл больше настроенного лимита загрузки.',
     instanceUnhealthy: 'Экземпляр Databasus работает с ошибками.',
     insufficientDiskSpace: 'На сервере Databasus не хватает свободного места на диске: {{detail}}',
     unknown: 'Что-то пошло не так. Попробуйте еще раз.',
@@ -254,6 +267,7 @@ export const ru: typeof en = {
   },
   auditLogs: {
     title: 'Журнал аудита',
+    open: 'Открыть',
     columns: {
       user: 'Пользователь',
       message: 'Событие',
@@ -2020,6 +2034,218 @@ export const ru: typeof en = {
       },
     },
   },
+  instanceBackups: {
+    title: 'Бекапы Databasus',
+    description:
+      'Сохраняет сам Databasus: пользователей, настройки, подключения к базам и список бекапов. Если этот сервер сломается, вы сможете восстановить Databasus из этих бекапов на другом сервере.',
+    retainSeparately:
+      'Для восстановления нужны файл бекапа Databasus и мастер-ключ, которым он зашифрован. Храните ключ и доступ хотя бы к одному из выбранных хранилищ вне этого сервера.',
+    health: {
+      notConfigured: 'Не настроено',
+      initializing: 'Ждет первой копии',
+      healthy: 'Защищено',
+      partial: 'Защищено частично',
+      failed: 'Ошибка',
+      overdue: 'Просрочено',
+      stopped: 'Остановлено',
+      resuming: 'Возобновляется',
+    },
+    status: {
+      titles: {
+        notConfigured: 'Бекапы Databasus не настроены',
+        initializing: 'Ждем первый бекап Databasus',
+        healthy: 'Бекапы Databasus создаются',
+        partial: 'В некоторых хранилищах нет свежего бекапа Databasus',
+        failed: 'Бекапы Databasus завершаются с ошибкой',
+        overdue: 'Бекап Databasus просрочен',
+        stopped: 'Бекапы Databasus остановлены',
+        resuming: 'Бекапы Databasus возобновляются',
+      },
+      lastBackup: 'Последний бекап <time/>',
+      noSuccessfulBackup: 'Успешных бекапов пока нет.',
+      storageError: '{{storage}}: {{error}}',
+      refreshFailed: 'Не удалось обновить статус, поэтому он может быть устаревшим: {{reason}}',
+    },
+    incidents: {
+      failed: 'Бекапы Databasus завершаются с ошибкой',
+      partial: 'В некоторых хранилищах нет свежей копии бекапа Databasus',
+      overdue: 'Бекап Databasus просрочен',
+      stopped: 'Бекапы Databasus остановлены: не выбрано ни одного хранилища',
+      since: 'Начиная с {{time}}',
+      mailFailed: 'Не удалось отправить письмо об этой проблеме: {{error}}',
+    },
+    setup: {
+      description: 'Выберите хранилище, чтобы начать делать бекапы Databasus.',
+      start: 'Настроить бекапы',
+    },
+    smtp: {
+      missingTitle: 'Почтовый сервер не настроен',
+      missingDescription:
+        'Чтобы отправлять письма о неудачных и просроченных бекапах Databasus, нужен системный почтовый сервер.',
+      configure: 'Настроить SMTP',
+      addressMissing:
+        'У вашей учетной записи нет адреса почты, на который можно отправлять уведомления. Добавьте его в профиле.',
+    },
+    destinations: {
+      description:
+        'Выберите существующие хранилища из любых рабочих пространств. Каждый бекап Databasus копируется во все выбранные хранилища.',
+      picker: 'Хранилища для копий',
+      pickerPlaceholder: 'Выберите хранилища',
+      choice: '{{storage}} ({{workspace}}, {{provider}})',
+      none: 'Не выбрано ни одного хранилища, поэтому бекапы Databasus не делаются.',
+      unknownStorage: 'Неизвестное хранилище',
+      storageInWorkspace: '<storage/> <details>(рабочее пространство: <workspace/>)</details>',
+      lastSuccess: 'Последняя успешная копия: {{time}}',
+      remove: 'Убрать {{storage}}',
+      create: 'Создать хранилище',
+      localWarning:
+        'Локальное хранилище находится на этом же сервере, поэтому не спасет, если сервер будет потерян.',
+    },
+    createDestination: {
+      title: 'Создать хранилище для копий',
+      workspace: 'Рабочее пространство нового хранилища',
+      newWorkspace: 'Создать новое рабочее пространство',
+      createWorkspace: 'Создать рабочее пространство',
+      continue: 'Продолжить',
+      storageStep:
+        'Хранилище будет создано в рабочем пространстве {{workspace}} и сразу выбрано для копий.',
+    },
+    settings: {
+      title: 'Настройки',
+      storages: 'Хранилища',
+      schedule: 'Расписание бекапов',
+      retentionDays: 'Хранить копии, дней',
+      save: 'Сохранить',
+      saved: 'Настройки бекапов Databasus сохранены',
+      firstBackupRequested: 'Настройки сохранены. Первый бекап Databasus запущен.',
+      stopped: 'Настройки сохранены. Бекапы Databasus остановлены: не выбрано ни одного хранилища.',
+    },
+    history: {
+      title: 'Последние бекапы',
+      start: 'Сделать бекап',
+      started: 'Бекап Databasus запущен',
+      startNeedsDestination: 'Чтобы запустить бекап, выберите и сохраните хранилище.',
+      empty: 'Бекапов Databasus пока нет.',
+      copy: '{{storage}} ({{workspace}}): {{status}}',
+      showAll: 'Показать все',
+      downloadBackup: 'Скачать бекап от {{time}}',
+      showMore: 'Показать еще',
+    },
+    backupStatuses: {
+      inProgress: 'Выполняется',
+      completed: 'Успешно',
+      partial: 'Частично успешно',
+      failed: 'Ошибка',
+      interrupted: 'Прервано',
+    },
+    copyStatuses: {
+      pending: 'ожидает',
+      uploading: 'загружается',
+      retrying: 'повторная попытка',
+      stored: 'сохранена',
+      failed: 'ошибка',
+      interrupted: 'прервана',
+      deleted: 'удалена',
+    },
+  },
+  instanceRecovery: {
+    open: 'Восстановить из бекапа',
+    form: {
+      title: 'Восстановление из файла бекапа Databasus',
+      description: 'Заменяет эту установку состоянием, сохраненным в бекапе Databasus.',
+      archive: 'Файл бекапа Databasus',
+      archivePlaceholder: 'Выберите или перетащите файл',
+      archiveHint: 'Скачайте его из последних бекапов или возьмите из хранилища.',
+      archiveClear: 'Убрать файл',
+      archiveMissing: 'Выберите файл бекапа Databasus.',
+      masterKey: 'Мастер-ключ исходной установки',
+      masterKeyDescription:
+        'Вставьте ключ точно в том виде, в каком его сохранили. Ключ этой установки открывает только ее собственные бекапы.',
+      masterKeyMissing: 'Введите мастер-ключ.',
+      upload: 'Загрузить и проверить',
+      uploading: 'Файл загружается...',
+      preparing: 'Бекап Databasus проверяется и готовится...',
+      ready: 'Бекап Databasus готов заменить эту установку.',
+      snapshot: 'Снимок от {{time}}, сделан в Databasus {{version}}.',
+      releaseMismatch:
+        'Этот файл создан в Databasus {{sourceRelease}}, а здесь работает {{runningRelease}}. Восстановите его с помощью Databasus {{sourceRelease}}.',
+      correctAndRetry:
+        'Эта установка не изменилась. Выберите другой файл или исправьте ключ и попробуйте снова.',
+      applying:
+        'Databasus восстанавливает бекап и может ненадолго стать недоступен. Эта страница не означает, что восстановление закончилось.',
+      signInWithRestored:
+        'Когда появится страница входа, войдите с учетной записью и паролем из бекапа Databasus.',
+    },
+    apply: {
+      title: 'Заменить эту установку',
+      description:
+        'Текущие учетные записи, настройки и история бекапов будут заменены снимком. Ваш сеанс завершится, и войти нужно будет с учетной записью из бекапа Databasus.',
+      confirmReplacement: 'Я понимаю, что текущее состояние этой установки будет заменено',
+      submit: 'Заменить',
+    },
+    discardedCleanup:
+      'Незавершенные записи и удаления файлов старого экземпляра отброшены, а не повторены: {{count}}. Их файлы, возможно, придется убрать вручную.',
+    restoredSignIn:
+      'Databasus восстановлен из бекапа. Войдите с учетной записью и паролем из этого бекапа.',
+    failures: {
+      archiveInvalid:
+        'Файл не является корректным бекапом Databasus, или мастер-ключ к нему не подходит.',
+      archiveIncomplete: 'Файл бекапа Databasus неполный.',
+      masterKeyInvalid: 'Мастер-ключ не расшифровывает этот файл бекапа Databasus.',
+      releaseMismatch: 'Бекап Databasus сделан другой версией Databasus.',
+      schemaIncompatible: 'Бекап Databasus не соответствует схеме базы данных этой версии.',
+      insufficientDiskSpace:
+        'На сервере не хватает свободного места на диске, чтобы подготовить восстановление.',
+      importFailed: 'Не удалось импортировать бекап Databasus.',
+      expired: 'Срок подготовленного восстановления истек до того, как его применили.',
+      quiescenceFailed:
+        'Databasus не удалось приостановить работу, чтобы применить восстановление.',
+      interrupted: 'Восстановление прервано.',
+    },
+  },
+  masterKey: {
+    title: 'Мастер-ключ',
+    open: 'Скачать мастер-ключ',
+    description:
+      'Этим ключом Databasus шифрует бекапы. Если вы потеряете этот сервер, ключ понадобится, чтобы расшифровать бекапы, в том числе бекап самого Databasus',
+    loading: 'Получаем ключ…',
+    copy: 'Скопировать',
+    copied: 'Скопировано',
+    copyFailed: 'Браузер не разрешил скопировать ключ. Скачайте его файлом.',
+    download: 'Скачать',
+    downloaded: 'Скачано',
+    codeRequired:
+      'На этой установке включен двухфакторный вход, поэтому подтвердите доступ к ключу кодом из письма.',
+    codeFailed: 'Если код так и не приходит, скопируйте ключ с сервера вручную.',
+    proof: {
+      sendCode: 'Отправить код подтверждения на почту',
+      resendCode: 'Отправить новый код',
+      code: 'Код подтверждения',
+      confirm: 'Продолжить',
+      wrongCode: 'Код неверный или устарел. Отправьте новый.',
+    },
+    host: {
+      toggle: 'Скопировать ключ с сервера вручную',
+      location:
+        'Файл ключа можно скопировать и прямо с сервера: это <code>databasus-data/secret.key</code> в папке, где установлен Databasus.',
+    },
+    onboarding: {
+      title: 'Сохраните мастер-ключ',
+      close: 'Я сохранил его в надежном месте',
+      closeIn: 'Я сохранил его в надежном месте ({{seconds}})',
+    },
+  },
+  instanceBackupNotices: {
+    label: 'Уведомление о бекапах Databasus',
+    resuming:
+      'Бекапы Databasus возобновляются. Защиты нет, пока не будет успешно сделана новая копия.',
+    setup: 'Бекапы самого Databasus не делаются',
+    setupDescription:
+      'Выберите хранилище для бекапов Databasus, чтобы этот экземпляр можно было восстановить после потери сервера',
+    configure: 'Настроить',
+    open: 'Открыть бекапы Databasus',
+    stale: 'Не удалось обновить статус.',
+  },
   storages: {
     usageUnavailable: 'Не удалось обновить объём бекапов.',
     cleanup: {
@@ -2078,6 +2304,7 @@ export const ru: typeof en = {
       removeConfirmation: 'Удалить это хранилище? Это действие нельзя отменить.',
       removeBlockedByBackups:
         'Хранилище указано в настройках бэкапов или в нём ещё лежат бэкапы. Сначала переключите эти настройки на другое хранилище и удалите его бэкапы.',
+      openDatabasusBackups: 'Открыть бэкапы Databasus',
     },
     actions: {
       testConnection: 'Проверить подключение',

@@ -38,3 +38,22 @@ type Switches struct {
 	IsMemberAllowedToCreateWorkspaces bool
 	IsTwoFactorAuthRequired           bool
 }
+
+// DefaultSwitches are the settings a new instance starts with.
+func DefaultSwitches() Switches {
+	return Switches{
+		IsAllowExternalRegistrations:      true,
+		IsAllowMemberInvitations:          true,
+		IsMemberAllowedToCreateWorkspaces: true,
+		IsTwoFactorAuthRequired:           false,
+	}
+}
+
+func (s Settings) GetSwitches() Switches {
+	return Switches{
+		IsAllowExternalRegistrations:      s.IsAllowExternalRegistrations,
+		IsAllowMemberInvitations:          s.IsAllowMemberInvitations,
+		IsMemberAllowedToCreateWorkspaces: s.IsMemberAllowedToCreateWorkspaces,
+		IsTwoFactorAuthRequired:           s.IsTwoFactorAuthRequired,
+	}
+}

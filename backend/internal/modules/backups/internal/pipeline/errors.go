@@ -37,16 +37,18 @@ func (e *TargetConnectionError) Unwrap() error {
 	return e.Err
 }
 
-// InvalidTargetTLSError is a PostgreSQL restore target whose SSL settings do not fit together.
-type InvalidTargetTLSError struct {
-	Err error
+// InvalidTargetSettingError is a restore target setting the engine refuses before it connects.
+// Setting is the setting's name in the API.
+type InvalidTargetSettingError struct {
+	Setting string
+	Err     error
 }
 
-func (e *InvalidTargetTLSError) Error() string {
-	return "the SSL settings of the restore target are invalid: " + e.Err.Error()
+func (e *InvalidTargetSettingError) Error() string {
+	return "the restore target's " + e.Setting + " setting is invalid: " + e.Err.Error()
 }
 
-func (e *InvalidTargetTLSError) Unwrap() error {
+func (e *InvalidTargetSettingError) Unwrap() error {
 	return e.Err
 }
 

@@ -31,7 +31,11 @@ type ConnectionTestService struct {
 }
 
 func NewConnectionTestService(deps ConnectionTestServiceDeps) *ConnectionTestService {
-	return &ConnectionTestService{storages: deps.Storages, registry: deps.Registry, workspaces: deps.Workspaces}
+	return &ConnectionTestService{
+		storages:   deps.Storages,
+		registry:   deps.Registry,
+		workspaces: deps.Workspaces,
+	}
 }
 
 // TestStorage tests the stored settings. A viewer may test, as the settings never leave the backend
@@ -51,7 +55,14 @@ func (s *ConnectionTestService) TestStorage(
 		return TestResult{}, err
 	}
 
-	return s.testConnection(ctx, providers.Location{StorageID: storageID, Settings: testedStorageWithSettings.Settings})
+	location := providers.Location{StorageID: storageID, Settings: testedStorageWithSettings.Settings}
+
+	provider, err := s.registry.GetProvider(location.Settings.GetType())
+	if err != nil {
+		return TestResult{}, err
+	}
+
+	return newTestResult(provider.TestConnection(ctx, location)), nil
 }
 
 // TestSettings needs the right to change the workspace's content, because the test connects wherever
@@ -72,7 +83,12 @@ func (s *ConnectionTestService) TestSettings(
 		return TestResult{}, err
 	}
 
-	return s.testConnection(ctx, location)
+	provider, err := s.registry.GetProvider(location.Settings.GetType())
+	if err != nil {
+		return TestResult{}, err
+	}
+
+	return newTestResult(provider.TestConnection(ctx, location)), nil
 }
 
 // prepareLocation refuses a named storage of another workspace as a missing one, and settings that a
@@ -110,15 +126,4 @@ func (s *ConnectionTestService) prepareLocation(
 	}
 
 	return providers.Location{StorageID: storedStorage.ID, Settings: mergedSettings}, nil
-}
-
-// testConnection answers the provider's refusal as the outcome of the test; each provider bounds its
-// own test with a deadline.
-func (s *ConnectionTestService) testConnection(ctx context.Context, location providers.Location) (TestResult, error) {
-	provider, err := s.registry.GetProvider(location.Settings.GetType())
-	if err != nil {
-		return TestResult{}, err
-	}
-
-	return newTestResult(provider.TestConnection(ctx, location)), nil
 }

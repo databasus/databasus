@@ -257,7 +257,7 @@ func (s *Service) openTarget(
 
 	var connectionError *pipeline.TargetConnectionError
 
-	var tlsError *pipeline.InvalidTargetTLSError
+	var invalidSettingError *pipeline.InvalidTargetSettingError
 
 	switch {
 	case err == nil:
@@ -267,8 +267,8 @@ func (s *Service) openTarget(
 		return nil, newTargetVersionTooOldError(err)
 	case errors.As(err, &connectionError):
 		return nil, newTargetConnectionError(connectionError.Err)
-	case errors.As(err, &tlsError):
-		return nil, newInvalidTargetTLSError(tlsError.Err)
+	case errors.As(err, &invalidSettingError):
+		return nil, newInvalidTargetSettingError(invalidSettingError.Setting, invalidSettingError.Err)
 	default:
 		return nil, err
 	}

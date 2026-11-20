@@ -1,11 +1,14 @@
 import { ActionIcon, Alert, Button, Loader, Switch } from '@mantine/core';
 import { CircleAlert, Copy } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { type InstanceSettings, type InstanceSettingsUpdate, settingsApi } from '@/entities/users';
+import type { Workspace } from '@/entities/workspaces';
+import { focusSettingsHeading } from '@/pages/instance-settings/lib/focusSettingsHeading';
+import { InstanceBackupsSection } from '@/pages/instance-settings/ui/instance-backups/InstanceBackupsSection';
 import { InstanceAuditLogs } from '@/pages/instance-settings/ui/InstanceAuditLogs';
-import { MailServer } from '@/pages/instance-settings/ui/MailServer';
+import { MAIL_SERVER_HEADING_ID, MailServer } from '@/pages/instance-settings/ui/MailServer';
 import { VerificationAgentsComponent } from '@/pages/instance-settings/ui/verification-agents/VerificationAgentsComponent';
 import { useSessionMutation } from '@/shared/api';
 import { useSessionQuery } from '@/shared/api';
@@ -17,6 +20,9 @@ import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
+  isRootAdmin: boolean;
+  workspaces?: Workspace[];
+  onWorkspaceCreated?: (workspace: Workspace) => void;
   onSettingsChanged?: (settings: InstanceSettings) => void;
 }
 
@@ -29,7 +35,12 @@ const toFormSettings = (settings: InstanceSettings): InstanceSettingsUpdate => (
   isTwoFactorAuthRequired: settings.isTwoFactorAuthRequired,
 });
 
-export function InstanceSettingsPage({ onSettingsChanged }: Props) {
+export function InstanceSettingsPage({
+  isRootAdmin,
+  workspaces = [],
+  onWorkspaceCreated,
+  onSettingsChanged,
+}: Props) {
   const updateSettingsMutation = useSessionMutation({
     mutationFn: (parameters: Parameters<typeof settingsApi.updateSettings>) =>
       settingsApi.updateSettings(...parameters),
@@ -103,8 +114,6 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
   const notify = useFeedback();
   const isCurrent = useSessionGuard();
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
   const hasChanges =
     !!settings &&
     (Object.keys(formSettings) as (keyof InstanceSettingsUpdate)[]).some(
@@ -114,10 +123,7 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
       <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-        <div
-          ref={scrollContainerRef}
-          className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded bg-surface p-4 wrap-anywhere shadow sm:p-5"
-        >
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded bg-surface p-4 wrap-anywhere shadow sm:p-5">
           <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
 
           {failure !== undefined &&
@@ -341,11 +347,19 @@ export function InstanceSettingsPage({ onSettingsChanged }: Props) {
             </div>
           </div>
 
+          {isRootAdmin && (
+            <InstanceBackupsSection
+              workspaces={workspaces}
+              onWorkspaceCreated={(workspace) => onWorkspaceCreated?.(workspace)}
+              onConfigureSmtp={() => focusSettingsHeading(MAIL_SERVER_HEADING_ID)}
+            />
+          )}
+
           <VerificationAgentsComponent />
 
           {settings && <MailServer isEmailConfigured={settings.isEmailConfigured} />}
 
-          <InstanceAuditLogs scrollContainerRef={scrollContainerRef} />
+          <InstanceAuditLogs />
         </div>
       </div>
     </div>

@@ -35,12 +35,13 @@ func NewHandler(deps Deps) *Handler {
 
 func toUserBody(user identity.User) User {
 	return User{
-		Id:        user.ID,
-		Email:     user.Email,
-		Name:      user.Name,
-		Role:      UserRole(user.Role),
-		Status:    UserStatus(user.Status),
-		CreatedAt: user.CreatedAt,
+		Id:          user.ID,
+		Email:       user.Email,
+		Name:        user.Name,
+		Role:        UserRole(user.Role),
+		Status:      UserStatus(user.Status),
+		IsRootAdmin: user.IsRootAdmin,
+		CreatedAt:   user.CreatedAt,
 	}
 }
 

@@ -199,10 +199,10 @@ export default function Index() {
               },
               {
                 "@type": "Question",
-                name: "Seberapa luas Databasus digunakan?",
+                name: "Seberapa besar adopsi Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus saat ini merupakan alat backup PostgreSQL open source yang paling banyak digunakan. Per 17 Juni 2026, image Docker-nya telah ditarik lebih dari 1.800.000 kali oleh DBA, engineer DevOps, developer, dan tim di seluruh dunia. Dengan 8.500+ GitHub stars, Databasus melampaui pgBackRest (~4.200 stars, tersedia sejak 2014) dan WAL-G (~4.100 stars, tersedia sejak 2017). Databasus diluncurkan pada 2025 dan melampaui keduanya dalam tahun pertamanya. Tingkat adopsi ini mencerminkan kepercayaan dan pilihan komunitas profesional database.",
+                  text: "Databasus memiliki lebih dari 2,6 juta Docker pulls dan 9,2k GitHub stars. Sebagai perbandingan, pgBackRest memiliki sekitar 4,5k stars, WAL-G sekitar 4,3k dan Barman sekitar 3,3k. Ini menjadikan Databasus alat backup database terpopuler di GitHub.",
                 },
               },
               {
@@ -210,7 +210,7 @@ export default function Index() {
                 name: "Jenis backup apa saja yang didukung Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus mendukung backup fisik, penuh, inkremental, WAL, dan logis. Backup fisik menyalin seluruh cluster database pada tingkat file, lebih cepat untuk backup dan restore dataset besar dibanding dump logis, serta dibangun di atas mekanisme backup native PostgreSQL 17. Dengan begitu, kami mengandalkan alat PostgreSQL yang telah teruji, bukan membuatnya ulang. Backup penuh adalah salinan cluster lengkap yang mandiri dan menjadi dasar setiap rantai backup. Backup inkremental hanya menyimpan perubahan sejak backup sebelumnya, sehingga ukurannya kecil dan prosesnya cepat. WAL streaming menangkap aliran penulisan database secara terus-menerus untuk Point-in-time recovery (PITR), pemulihan bencana, dan kehilangan data mendekati nol. Ketersediaan tinggi (HA): mendukung perubahan timeline setelah pergantian primary pada cluster Patroni dan CloudNativePG (CNPG). Backup logis berupa dump native database dalam format biner khusus engine-nya, dikompresi dan dialirkan langsung ke penyimpanan tanpa file perantara. Semua jenis backup ini bisa berjalan melalui SSH tunnel jika koneksi harus tetap privat, sehingga database tidak perlu dibuka ke publik. SSH tunneling sudah tersedia secara bawaan.",
+                  text: "Databasus mendukung backup fisik, penuh, inkremental, WAL, dan logis. Backup fisik menyalin seluruh cluster database pada tingkat file, lebih cepat untuk backup dan restore dataset besar dibanding dump logis, serta dibangun di atas mekanisme backup native PostgreSQL 17. Dengan begitu, kami mengandalkan alat PostgreSQL yang telah teruji, bukan membuatnya ulang. Backup penuh adalah salinan cluster lengkap yang mandiri dan menjadi dasar setiap rantai backup. Backup inkremental hanya menyimpan perubahan sejak backup sebelumnya, sehingga ukurannya kecil dan prosesnya cepat. WAL streaming menangkap aliran penulisan database secara terus-menerus untuk Point-in-time recovery (PITR), pemulihan bencana, dan kehilangan data mendekati nol. Ketersediaan tinggi (HA): mendukung perubahan timeline setelah pergantian primary pada cluster Patroni dan CloudNativePG (CNPG) tanpa celah: WAL dan rantai backup inkremental berlanjut di timeline baru. Backup logis berupa dump native database dalam format biner khusus engine-nya, dikompresi dan dialirkan langsung ke penyimpanan tanpa file perantara. Semua jenis backup ini bisa berjalan melalui SSH tunnel jika koneksi harus tetap privat, sehingga database tidak perlu dibuka ke publik. SSH tunneling sudah tersedia secara bawaan.",
                 },
               },
               {
@@ -1074,8 +1074,31 @@ export default function Index() {
             />
             <FaqItem
               number="6"
-              question="Seberapa luas Databasus digunakan?"
-              answer="Databasus saat ini merupakan alat backup PostgreSQL open source yang paling banyak digunakan. Per 17 Juni 2026, image Docker-nya telah ditarik lebih dari 1.800.000 kali oleh DBA, engineer DevOps, developer, dan tim di seluruh dunia. Dengan 8.500+ GitHub stars, Databasus melampaui pgBackRest (~4.200 stars, tersedia sejak 2014) dan WAL-G (~4.100 stars, tersedia sejak 2017). Databasus diluncurkan pada 2025 dan melampaui keduanya dalam tahun pertamanya. Tingkat adopsi ini mencerminkan kepercayaan dan pilihan komunitas profesional database."
+              question="Seberapa besar adopsi Databasus?"
+              answer={
+                <>
+                  Databasus memiliki lebih dari 2,6 juta Docker pulls dan 9,2k GitHub stars. Sebagai perbandingan, pgBackRest memiliki sekitar 4,5k stars, WAL-G sekitar 4,3k dan Barman sekitar 3,3k. Ini menjadikan Databasus alat backup database terpopuler di GitHub.
+                  <br />
+                  <br />
+                  Databasus diterima dalam program open source Anthropic dan OpenAI sebagai proyek
+                  yang penting dan kritis. Kini Databasus digunakan oleh perusahaan, tim, dan
+                  engineer DevOps, dengan dukungan komunitas yang besar dan aktif.
+                  <br />
+                  <br />
+                  Databasus telah dikembangkan dan digunakan sejak 2023, serta digunakan luas
+                  sebagai open source sejak awal 2025. Databasus sudah cukup lama digunakan dalam
+                  production sungguhan, sehingga teruji dalam berbagai kasus khusus. Yang
+                  terpenting, Databasus tidak menciptakan cara sendiri untuk melakukan backup data.
+                  Databasus mengandalkan implementasi native PostgreSQL yang telah teruji, bukan
+                  membuat penanganan khusus sendiri untuk setiap kasus.
+                  <br />
+                  <br />
+                  Tujuan kami adalah menjadi alat backup standar untuk PostgreSQL mulai versi 17.
+                  Databasus adalah alat backup pertama yang dibangun di atas protokol backup native
+                  PostgreSQL yang efisien dan kini menjadi standar, bukan menulis implementasinya
+                  sendiri.
+                </>
+              }
             />
             <FaqItem
               number="7"
@@ -1236,7 +1259,8 @@ export default function Index() {
                     <li>
                       <strong>Ketersediaan tinggi (HA)</strong>: mendukung
                       perubahan timeline setelah pergantian primary pada cluster
-                      Patroni dan CloudNativePG (CNPG)
+                      Patroni dan CloudNativePG (CNPG) tanpa celah: WAL dan
+                      rantai backup inkremental berlanjut di timeline baru
                     </li>
                     <li>
                       <strong>Logis</strong>: dump native database dalam format biner khusus
@@ -1290,14 +1314,23 @@ export default function Index() {
               answer={
                 <>
                   Kamu bisa bergabung dengan komunitas besar developer, DBA, dan engineer DevOps
-                  kami di{" "}
+                  kami di obrolan{" "}
                   <a
                     href="https://t.me/databasus_community"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    t.me/databasus_community
+                    Telegram
+                  </a>{" "}
+                  dan{" "}
+                  <a
+                    href="/discord"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Discord
                   </a>
                   . Komunitas adalah tempat untuk bertanya, berbagi pengalaman, mendapatkan bantuan
                   konfigurasi, dan mengikuti fitur serta rilis terbaru.
@@ -1306,37 +1339,6 @@ export default function Index() {
             />
             <FaqItem
               number="14"
-              question="Seberapa besar adopsi Databasus?"
-              answer={
-                <>
-                  Databasus memiliki lebih dari 1,8 juta Docker pulls dan 8,5k GitHub stars. Sebagai
-                  perbandingan, pgBackRest dan WAL-G masing-masing memiliki sekitar 4,2k stars,
-                  sedangkan Barman sekitar 3,1k. Ini menjadikan Databasus alat backup database
-                  terpopuler di GitHub.
-                  <br />
-                  <br />
-                  Databasus diterima dalam program open source Anthropic dan OpenAI sebagai proyek
-                  yang penting dan kritis. Kini Databasus digunakan oleh perusahaan, tim, dan
-                  engineer DevOps, dengan dukungan komunitas yang besar dan aktif.
-                  <br />
-                  <br />
-                  Databasus telah dikembangkan dan digunakan sejak 2023, serta digunakan luas
-                  sebagai open source sejak awal 2025. Databasus sudah cukup lama digunakan dalam
-                  production sungguhan, sehingga teruji dalam berbagai kasus khusus. Yang
-                  terpenting, Databasus tidak menciptakan cara sendiri untuk melakukan backup data.
-                  Databasus mengandalkan implementasi native PostgreSQL yang telah teruji, bukan
-                  membuat penanganan khusus sendiri untuk setiap kasus.
-                  <br />
-                  <br />
-                  Tujuan kami adalah menjadi alat backup standar untuk PostgreSQL mulai versi 17.
-                  Databasus adalah alat backup pertama yang dibangun di atas protokol backup native
-                  PostgreSQL yang efisien dan kini menjadi standar, bukan menulis implementasinya
-                  sendiri.
-                </>
-              }
-            />
-            <FaqItem
-              number="15"
               question="Saya lupa email atau password admin"
               answer={
                 <>

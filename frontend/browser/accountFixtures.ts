@@ -7,6 +7,7 @@ const account = {
   email: 'member@example.com',
   role: 'MEMBER' as const,
   status: 'ACTIVE' as const,
+  isRootAdmin: false,
   createdAt: '2026-10-01T00:00:00Z',
 };
 export const accountFixtures = () =>

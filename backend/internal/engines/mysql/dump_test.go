@@ -2,6 +2,8 @@ package mysql
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -10,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/engines/mysqlfamily"
+	"databasus-backend/internal/engines/mysqlfamily/mysqlfamilytest"
 	"databasus-backend/internal/lib/toolstub"
 )
 
@@ -53,7 +57,7 @@ func TestDump(t *testing.T) {
 				"--triggers", "--events",
 				"--ignore-table=orders.audit_log",
 				"--max-allowed-packet=1G", "--ssl-mode=DISABLED",
-				"orders",
+				"--", "orders",
 			}, dumpArgs[1:])
 			assert.NotContains(t, dumpArgs, stubSourcePassword)
 		},
@@ -161,6 +165,66 @@ echo 'mysqldump: Got error: 2066: wrongly configured compression algorithm' >&2;
 			assert.Contains(t, err.Error(), testCase.expectedMessage)
 		})
 	}
+
+	t.Run("refuses a value the tools could read as an option before any tool starts", func(t *testing.T) {
+		t.Parallel()
+
+		for _, testCase := range []struct {
+			name            string
+			withValue       func(source *Source, resultPath string)
+			expectedSetting string
+		}{
+			{
+				name:            "dash-led database name",
+				withValue:       func(source *Source, resultPath string) { source.settings.Database = "--result-file=" + resultPath },
+				expectedSetting: "database",
+			},
+			{
+				name:            "line break in the user name",
+				withValue:       func(source *Source, resultPath string) { source.settings.Username = "x\nresult-file=" + resultPath },
+				expectedSetting: "username",
+			},
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				t.Parallel()
+				resultPath := filepath.Join(t.TempDir(), "result.sql")
+				source := newClosedPortSource(t, getClientTools(t), "orders")
+				testCase.withValue(source, resultPath)
+
+				err := source.Dump(t.Context(), newStubDumpSpec(Version80), io.Discard)
+
+				invalidSettingError, isInvalidSetting := errors.AsType[*mysqlfamily.InvalidSettingError](err)
+				require.True(t, isInvalidSetting, err)
+				assert.Equal(t, testCase.expectedSetting, invalidSettingError.Setting)
+				assert.NoFileExists(t, resultPath)
+			})
+		}
+	})
+
+	t.Run("keeps a dash-led database name out of the options with every shipped mysqldump", func(t *testing.T) {
+		t.Parallel()
+
+		for _, version := range getSupportedVersions() {
+			t.Run("version "+string(version), func(t *testing.T) {
+				t.Parallel()
+				clientTools := getClientTools(t)
+				if clientTools.RequireBundle(version) != nil {
+					t.Skip("this architecture ships no client for the version")
+				}
+				resultPath := filepath.Join(t.TempDir(), "result.sql")
+				source := newClosedPortSource(t, clientTools, "--result-file="+resultPath)
+				mysqldump, err := clientTools.GetExecutable(version, ExecutableMysqldump)
+				require.NoError(t, err)
+
+				toolOutput := mysqlfamilytest.RunClientTool(
+					t, mysqldump, append([]string{"--no-defaults"}, source.buildDumpArgs(newStubDumpSpec(version))...),
+				)
+
+				assert.NoFileExists(t, resultPath)
+				assert.True(t, mysqlfamilytest.IsConnectionFailure(toolOutput), toolOutput)
+			})
+		}
+	})
 }
 
 type stubClientTools struct {
@@ -201,4 +265,20 @@ func newStubDumpSpec(version Version) DumpSpec {
 		Privileges:    nil,
 		Logger:        slog.New(slog.DiscardHandler),
 	}
+}
+
+// newClosedPortSource points at a local port where nothing listens, so a real client tool fails at
+// the connection after it has read every argument.
+func newClosedPortSource(t *testing.T, clientTools ClientTools, databaseName string) *Source {
+	t.Helper()
+
+	return NewSource(Settings{
+		Host:      "127.0.0.1",
+		Port:      mysqlfamilytest.GetClosedPort(t),
+		Username:  "backup_user",
+		Password:  stubSourcePassword,
+		Database:  databaseName,
+		IsHTTPS:   false,
+		SSHTunnel: nil,
+	}, clientTools)
 }

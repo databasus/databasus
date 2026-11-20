@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/lib/background"
@@ -182,6 +183,9 @@ type Streamer struct {
 	lowestQueuedSegmentMutex sync.Mutex
 	lowestQueuedSegment      *walPosition
 
+	// pendingForkRealignment is set and read only by the receiver supervision loop.
+	pendingForkRealignment *pgphysical.WalReceiverFork
+
 	latestProbe             atomic.Pointer[timedSlotProbe]
 	sourceIdentityMu        sync.Mutex
 	sourceIdentityErr       error
@@ -325,6 +329,7 @@ func (s *Streamer) runReceivewalSupervision(ctx context.Context, logger *slog.Lo
 		s.clearRestartRequest()
 		s.removePartials(ctx, logger)
 		s.realignResumePath(ctx, logger)
+		s.applyPendingForkRealignment(ctx, logger)
 
 		isBackpressureStop := s.isBackpressureStopPending.Swap(false)
 
@@ -357,6 +362,16 @@ func (s *Streamer) runReceivewalSupervision(ctx context.Context, logger *slog.Lo
 
 			failureEscalator.reset()
 			mismatchEscalator.reset()
+
+			continue
+
+		case receiverForkRealignment:
+			s.pendingForkRealignment = receiverRun.Fork
+			mismatchEscalator.reset()
+
+			if !sleepCtx(ctx, receivewalRespawnBackoff) {
+				return nil
+			}
 
 			continue
 

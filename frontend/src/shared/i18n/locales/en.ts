@@ -5,6 +5,7 @@ export const en = {
     nativeName: 'English',
   },
   common: {
+    dateTimeWithRelativeTime: '{{time}} ({{relativeTime}})',
     calendar: {
       monthLevelControl: 'Choose month',
       yearLevelControl: 'Choose year',
@@ -84,6 +85,8 @@ export const en = {
       docs: 'Docs',
       documentation: 'Documentation',
       community: 'Community',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: 'New version available',
     },
     diskUsage: {
@@ -132,6 +135,16 @@ export const en = {
     targetTimeUnreachable:
       'The requested time cannot be reached with the available backups and WAL.',
     notRunning: 'It is no longer running, so there is nothing to cancel.',
+    databasusBackupInUse:
+      'This storage is used for Databasus backups. Remove it from the Databasus backup settings first, or ask the server administrator to do it.',
+    storageUnavailable: 'The storage cannot provide this file.',
+    recoveryIncompatible:
+      'This Databasus backup file cannot be recovered by this Databasus release.',
+    recoveryNotReady: 'This recovery cannot do that in its current state.',
+    identityProofInvalid: 'The confirmation code is wrong, expired or already used.',
+    identityProofUnavailable:
+      'A confirmation code cannot be sent: no mail server or email address can receive it.',
+    archiveTooLarge: 'The file is larger than the configured upload limit.',
     instanceUnhealthy: 'The instance is unhealthy.',
     insufficientDiskSpace: 'The Databasus server does not have enough free disk space: {{detail}}',
     unknown: 'Something went wrong. Please try again.',
@@ -251,6 +264,7 @@ export const en = {
   },
   auditLogs: {
     title: 'Audit Logs',
+    open: 'Open',
     columns: {
       user: 'User',
       message: 'Message',
@@ -2008,6 +2022,217 @@ export const en = {
       },
     },
   },
+  instanceBackups: {
+    title: 'Databasus backups',
+    description:
+      'Saves Databasus itself: users, settings, database connections and the list of backups. If this server breaks, you can recover Databasus from these backups on another server.',
+    retainSeparately:
+      'To recover, you need a Databasus backup file and the master key that encrypted it. Keep the key and access to at least one destination storage outside this server.',
+    health: {
+      notConfigured: 'Not configured',
+      initializing: 'Waiting for the first copy',
+      healthy: 'Protected',
+      partial: 'Partially protected',
+      failed: 'Failed',
+      overdue: 'Overdue',
+      stopped: 'Stopped',
+      resuming: 'Resuming',
+    },
+    status: {
+      titles: {
+        notConfigured: 'Databasus is not backed up',
+        initializing: 'Waiting for the first Databasus backup',
+        healthy: 'Databasus is backed up',
+        partial: 'Some storages have no fresh Databasus backup',
+        failed: 'Databasus backups are failing',
+        overdue: 'A Databasus backup is overdue',
+        stopped: 'Databasus backups are stopped',
+        resuming: 'Databasus backups are resuming',
+      },
+      lastBackup: 'Last backup <time/>',
+      noSuccessfulBackup: 'There is no successful backup yet.',
+      storageError: '{{storage}}: {{error}}',
+      refreshFailed: 'The status could not be refreshed, so it may be out of date: {{reason}}',
+    },
+    incidents: {
+      failed: 'Databasus backups are failing',
+      partial: 'Some Databasus backup destinations have no fresh copy',
+      overdue: 'A Databasus backup is overdue',
+      stopped: 'Databasus backups are stopped because no destination is selected',
+      since: 'Since {{time}}',
+      mailFailed: 'The email about this problem could not be sent: {{error}}',
+    },
+    setup: {
+      description: 'Choose a storage to start backing up Databasus.',
+      start: 'Set up backups',
+    },
+    smtp: {
+      missingTitle: 'The mail server is not configured',
+      missingDescription:
+        'Emails about failed and overdue Databasus backups need the system mail server.',
+      configure: 'Configure SMTP',
+      addressMissing:
+        'Your account has no email address that can receive alerts. Add one in your profile.',
+    },
+    destinations: {
+      description:
+        'Choose existing storages from any workspace. Each Databasus backup is copied to every selected storage.',
+      picker: 'Destination storages',
+      pickerPlaceholder: 'Select storages',
+      choice: '{{storage}} ({{workspace}}, {{provider}})',
+      none: 'No destination is selected, so Databasus is not backed up.',
+      unknownStorage: 'Unknown storage',
+      storageInWorkspace: '<storage/> <details>(workspace: <workspace/>)</details>',
+      lastSuccess: 'Last successful copy: {{time}}',
+      remove: 'Remove {{storage}}',
+      create: 'Create a storage',
+      localWarning:
+        'A local storage is on the same server, so it does not protect against losing this server.',
+    },
+    createDestination: {
+      title: 'Create a destination storage',
+      workspace: 'Workspace of the new storage',
+      newWorkspace: 'Create a new workspace',
+      createWorkspace: 'Create workspace',
+      continue: 'Continue',
+      storageStep:
+        'The storage is created in the {{workspace}} workspace and selected as a destination.',
+    },
+    settings: {
+      title: 'Settings',
+      storages: 'Storages',
+      schedule: 'Backup schedule',
+      retentionDays: 'Keep copies, days',
+      save: 'Save',
+      saved: 'Databasus backup settings saved',
+      firstBackupRequested: 'Settings saved. The first Databasus backup has started.',
+      stopped: 'Settings saved. Databasus backups are stopped because no destination is selected.',
+    },
+    history: {
+      title: 'Recent backups',
+      start: 'Back up now',
+      started: 'Databasus backup started',
+      startNeedsDestination: 'Select and save a destination before starting a backup.',
+      empty: 'There are no Databasus backups yet.',
+      copy: '{{storage}} ({{workspace}}): {{status}}',
+      showAll: 'Show all',
+      downloadBackup: 'Download the backup of {{time}}',
+      showMore: 'Show more',
+    },
+    backupStatuses: {
+      inProgress: 'In progress',
+      completed: 'Successful',
+      partial: 'Partially successful',
+      failed: 'Failed',
+      interrupted: 'Interrupted',
+    },
+    copyStatuses: {
+      pending: 'waiting',
+      uploading: 'uploading',
+      retrying: 'retrying',
+      stored: 'stored',
+      failed: 'failed',
+      interrupted: 'interrupted',
+      deleted: 'deleted',
+    },
+  },
+  instanceRecovery: {
+    open: 'Recover from backup',
+    form: {
+      title: 'Recover from a Databasus backup file',
+      description: 'Replaces this installation with the state saved in a Databasus backup.',
+      archive: 'Databasus backup file',
+      archivePlaceholder: 'Choose or drop a file',
+      archiveHint: 'Download it from Recent backups or take it from a storage.',
+      archiveClear: 'Remove the file',
+      archiveMissing: 'Choose a Databasus backup file.',
+      masterKey: 'Master key of the source installation',
+      masterKeyDescription:
+        'Paste it exactly as it was saved. The key of this installation opens only its own backups.',
+      masterKeyMissing: 'Enter the master key.',
+      upload: 'Upload and check',
+      uploading: 'Uploading the file...',
+      preparing: 'Checking and preparing the Databasus backup...',
+      ready: 'The Databasus backup is ready to replace this installation.',
+      snapshot: 'Snapshot of {{time}}, made by Databasus {{version}}.',
+      releaseMismatch:
+        'This file was made by Databasus {{sourceRelease}}, and this installation runs {{runningRelease}}. Recover it with Databasus {{sourceRelease}}.',
+      correctAndRetry:
+        'This installation was not changed. Choose another file or correct the key and try again.',
+      applying:
+        'Databasus is restoring the backup and may be unavailable for a moment. This page does not mean the recovery has finished.',
+      signInWithRestored:
+        'When the sign-in page appears, sign in with an account and password from the Databasus backup.',
+    },
+    apply: {
+      title: 'Replace this installation',
+      description:
+        'Current accounts, settings and backup history are replaced by the snapshot. Your current session ends, and you sign in with an account from the Databasus backup.',
+      confirmReplacement: 'I understand that the current state of this installation is replaced',
+      submit: 'Replace',
+    },
+    discardedCleanup:
+      'Unfinished file writes and deletions of the old instance were discarded instead of repeated: {{count}}. Their files may need manual cleanup.',
+    restoredSignIn:
+      'Databasus was recovered from a backup. Sign in with an account and password from that backup.',
+    failures: {
+      archiveInvalid:
+        'The file is not a valid Databasus backup or the master key does not match it.',
+      archiveIncomplete: 'The Databasus backup file is incomplete.',
+      masterKeyInvalid: 'The master key does not decrypt this Databasus backup file.',
+      releaseMismatch: 'The Databasus backup was made by another Databasus release.',
+      schemaIncompatible:
+        'The Databasus backup does not match the database schema of this release.',
+      insufficientDiskSpace:
+        'The server does not have enough free disk space to prepare the recovery.',
+      importFailed: 'The Databasus backup could not be imported.',
+      expired: 'The prepared recovery expired before it was applied.',
+      quiescenceFailed: 'Databasus could not stop its work to publish the recovery.',
+      interrupted: 'The recovery was interrupted.',
+    },
+  },
+  masterKey: {
+    title: 'Master key',
+    open: 'Download master key',
+    description:
+      'Databasus encrypts backups with this key. If you lose this server, you will need the key to decrypt your backups, including the backup of Databasus itself',
+    loading: 'Getting the key…',
+    copy: 'Copy',
+    copied: 'Copied',
+    copyFailed: 'The browser did not allow copying. Download the key instead.',
+    download: 'Download',
+    downloaded: 'Downloaded',
+    codeRequired:
+      'This instance requires two-factor sign-in, so confirm access to the key with a code sent to your email.',
+    codeFailed: 'If the code keeps failing to arrive, copy the key from the server by hand.',
+    proof: {
+      sendCode: 'Email me a confirmation code',
+      resendCode: 'Send a new code',
+      code: 'Confirmation code',
+      confirm: 'Continue',
+      wrongCode: 'The code is wrong or has expired. Send a new one.',
+    },
+    host: {
+      toggle: 'Copy the key from the server instead',
+      location:
+        'You can also copy the key file from the server: it is <code>databasus-data/secret.key</code> in the folder where Databasus is installed.',
+    },
+    onboarding: {
+      title: 'Save the master key',
+      close: "I've saved it in a safe place",
+      closeIn: "I've saved it in a safe place ({{seconds}})",
+    },
+  },
+  instanceBackupNotices: {
+    label: 'Databasus backup notice',
+    resuming: 'Databasus backups are resuming. They are not protected until a new copy succeeds.',
+    setup: 'Databasus itself is not backed up',
+    setupDescription:
+      'Choose a storage for Databasus backups, so the instance can be recovered after losing this server',
+    configure: 'Configure',
+    open: 'Open Databasus backups',
+    stale: 'The status could not be refreshed.',
+  },
   storages: {
     usageUnavailable: 'Could not refresh backup usage.',
     cleanup: {
@@ -2067,6 +2292,7 @@ export const en = {
         'Are you sure you want to remove this storage? This action cannot be undone.',
       removeBlockedByBackups:
         'A backup config uses this storage or it still holds backups. Point those backup configs at another storage and delete its backups first.',
+      openDatabasusBackups: 'Open Databasus backups',
     },
     actions: {
       testConnection: 'Test connection',

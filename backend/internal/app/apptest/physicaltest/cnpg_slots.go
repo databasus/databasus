@@ -44,21 +44,24 @@ func RunCNPGSynchronizedSlot(t *testing.T, spec CNPGManagerSpec) {
 	source.Proxy.SetReplicationBlocked(false)
 	source.Team.waitForArchivedSegment(t, unarchivedSegment)
 
-	source.Team.triggerIncremental(t)
-	source.Team.waitForReanchoredFull(t, chain[0].ID, promoted.Timeline)
-	replacement := source.waitForNewFull(t, chain[0].ID)
 	source.Team.waitForTimelineHistory(t, promoted.Timeline)
-	point := source.captureRecoveryPoint(t, []backupRow{replacement}, "after-synchronized-slot-switch")
+	point := source.markReplayablePoint(t, connection, "after-synchronized-slot-switch")
 	source.restoreRecoveryPoint(t, point)
+	chain = source.Team.buildIncremental(
+		t,
+		connection,
+		incrementalSpec{ParentStopLSN: chainTipStopLSN(t, chain), Count: 1},
+	)
+	require.Equal(t, promoted.Timeline, chain[len(chain)-1].TimelineID)
 }
 
 // RunCNPGExcludedSlot promotes a standby that never held Databasus's slot.
 func RunCNPGExcludedSlot(t *testing.T, spec CNPGManagerSpec) {
 	t.Helper()
 
-	source, connection, chain := startCNPGSlotSource(t, spec, containers.CNPGSlotExcluded)
+	source, connection, _ := startCNPGSlotSource(t, spec, containers.CNPGSlotExcluded)
 	source.Fixture.WaitForSlotManagement(t)
-	source.requirePromotionWithoutSlot(t, connection, chain)
+	source.requirePromotionWithoutSlot(t, connection)
 }
 
 // RunCNPGUnsynchronizedSlot promotes a standby whose copy of Databasus's slot CloudNativePG removed
@@ -66,12 +69,12 @@ func RunCNPGExcludedSlot(t *testing.T, spec CNPGManagerSpec) {
 func RunCNPGUnsynchronizedSlot(t *testing.T, spec CNPGManagerSpec) {
 	t.Helper()
 
-	source, connection, chain := startCNPGSlotSource(t, spec, containers.CNPGSlotSynchronized)
+	source, connection, _ := startCNPGSlotSource(t, spec, containers.CNPGSlotSynchronized)
 	source.Fixture.WaitForSlotManagement(t)
 	standby := source.Fixture.GetReplica(source.Fixture.GetIdentity(t).Node)
 	require.True(t, source.Fixture.GetSlotState(t, containers.SlotOnNode{Node: standby, Slot: source.SlotName}).HasSlot)
 	source.Fixture.StopSlotSynchronization(t, source.SlotName)
-	source.requirePromotionWithoutSlot(t, connection, chain)
+	source.requirePromotionWithoutSlot(t, connection)
 }
 
 // RunCNPGLostSlot lets the promoted node recycle a segment Databasus needed and never received, then
@@ -124,12 +127,11 @@ func startCNPGSlotSource(
 
 // Resuming a new slot does not establish continuity of the earlier interval. Databasus must either
 // refuse that target or provide a recovery set that reproduces its recorded state.
-func (source cnpgSource) requirePromotionWithoutSlot(t *testing.T, connection *pgx.Conn, chain []backupRow) {
+func (source cnpgSource) requirePromotionWithoutSlot(t *testing.T, connection *pgx.Conn) {
 	t.Helper()
 
 	source.blockReception(t, connection)
 	point := source.markRecoveryPoint(t, connection, "unarchived-before-promotion")
-	point.Timeline = chain[0].TimelineID
 	pendingSegment := getCurrentSegment(t, connection)
 	forceWalRotation(t, connection)
 	require.False(t, source.Team.hasArchivedSegment(t, pendingSegment))

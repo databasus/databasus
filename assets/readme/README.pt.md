@@ -15,6 +15,9 @@
   [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)](https://github.com/databasus/databasus)
   [![Self Hosted](https://img.shields.io/badge/self--hosted-yes-brightgreen)](https://github.com/databasus/databasus)
   [![Open Source](https://img.shields.io/badge/open%20source-❤️-red)](https://github.com/databasus/databasus)
+  <br />
+  [![Discord](https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white)](https://databasus.com/discord)
+  [![Telegram](https://img.shields.io/badge/Telegram-join%20us-26A5E4?logo=telegram&logoColor=white)](https://t.me/databasus_community)
 
   <p>
     <a href="../../README.md">English</a> •
@@ -52,7 +55,7 @@
   - **Completo**: uma cópia integral e autossuficiente do cluster
   - **Incremental**: guarda apenas o que mudou desde o backup completo anterior, então os backups continuam pequenos e rápidos
   - **Streaming de WAL**: captura continuamente o fluxo de escrita da base, o que permite Point-in-time recovery (PITR). Feito para recuperação de desastres e perda de dados próxima de zero
-  - **Alta disponibilidade (HA)**: suporta mudanças de timeline após a troca do primário em clusters Patroni e CloudNativePG (CNPG)
+  - **Alta disponibilidade (HA)**: suporta mudanças de timeline após a troca do primário em clusters Patroni e CloudNativePG (CNPG) sem lacunas: o WAL e as cadeias incrementais continuam na nova timeline
 - **Lógico**: dump nativo da base no formato binário do próprio motor (comprimido, adequado para restauração em paralelo)
 
 ### 🔄 **Backups agendados**
@@ -288,7 +291,15 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 ### 💾 Fazer backup do próprio Databasus
 
-Depois de instalar, também é recomendável <a href="https://databasus.com/pt/faq/#backup-databasus">fazer backup do próprio Databasus</a> ou, no mínimo, copiar a chave secreta usada na criptografia (leva 30 segundos). Assim você consegue restaurar a partir dos seus backups criptografados se perder o acesso ao servidor com o Databasus ou se ele for corrompido.
+O Databasus foi feito para continuar recuperável mesmo que o próprio servidor seja perdido ou corrompido. Ele pode fazer backup de si mesmo e ajuda você a guardar a chave em segurança:
+
+**Ligue os backups do Databasus** em **Databasus settings → Databasus backups**. A partir daí, o Databasus salva a cada hora uma cópia criptografada da base de dados interna nos armazenamentos que você escolher. Enquanto você não os ligar, vai ver um lembrete flutuante assim que o primeiro banco de dados ou armazenamento for adicionado.
+
+**Guarde a chave mestra à parte.** O Databasus pede que você a baixe no primeiro acesso, e ela também fica no arquivo `./databasus-data/secret.key`. Sem ela, não dá para descriptografar nem os backups do Databasus nem os backups das suas bases de dados.
+
+Prefira um armazenamento remoto a um disco local no mesmo servidor.
+
+Veja [como fazer backup do Databasus e recuperá-lo](https://databasus.com/pt/faq/#backup-databasus).
 
 ---
 
@@ -302,7 +313,7 @@ Antes de cada versão, o Databasus executa verificações automáticas para redu
 - **Testes de restauração** executam ciclos completos de backup e restauração em contêineres reais para cada mecanismo e versão principal compatíveis.
 - **Requisitos de publicação** exigem que testes, builds e verificações de segurança passem. Alertas críticos do CodeQL abertos na análise da versão bloqueiam a publicação.
 
-Auditorias periódicas do Codex Security da OpenAI complementam essas verificações. Relate vulnerabilidades de forma privada seguindo [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); esses relatos têm prioridade.
+Auditorias periódicas do Codex Security da OpenAI complementam essas verificações. Relate vulnerabilidades de forma privada seguindo [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); esses relatos têm prioridade. As vulnerabilidades corrigidas são publicadas como advisories, com CVE quando atribuído, na [página Security do repositório](https://github.com/databasus/databasus/security).
 
 ---
 
@@ -312,4 +323,4 @@ Este projeto está sob a licença Apache 2.0 - veja o arquivo [LICENSE](../../LI
 
 ## 💬 Comunidade
 
-Entre na nossa grande comunidade de desenvolvedores, DBAs e engenheiros de DevOps no Telegram [@databasus_community](https://t.me/databasus_community).
+Entre na nossa grande comunidade de desenvolvedores, DBAs e engenheiros de DevOps. Converse com a gente no Telegram [@databasus_community](https://t.me/databasus_community) e no [Discord](https://databasus.com/discord).

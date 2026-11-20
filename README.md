@@ -15,6 +15,9 @@
   [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)](https://github.com/databasus/databasus)
   [![Self Hosted](https://img.shields.io/badge/self--hosted-yes-brightgreen)](https://github.com/databasus/databasus)
   [![Open Source](https://img.shields.io/badge/open%20source-❤️-red)](https://github.com/databasus/databasus)
+  <br />
+  [![Discord](https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white)](https://databasus.com/discord)
+  [![Telegram](https://img.shields.io/badge/Telegram-join%20us-26A5E4?logo=telegram&logoColor=white)](https://t.me/databasus_community)
 
   <p>
     <b>English</b> •
@@ -52,7 +55,7 @@
   - **Full**: a complete, self-contained copy of the cluster
   - **Incremental**: stores only what changed since the previous full backup, so backups stay small and fast
   - **WAL streaming**: continuously captures the database write stream, enabling Point-in-time recovery (PITR). Designed for disaster recovery and near-zero data loss
-  - **High availability (HA)**: supports timeline changes after primary switches in Patroni and CloudNativePG (CNPG) clusters
+  - **High availability (HA)**: supports timeline changes after primary switches in Patroni and CloudNativePG (CNPG) clusters without gaps: WAL and incremental chains continue on the new timeline
 - **Logical**: native dump of the database in its engine-specific binary format (compressed, suitable for parallel restore)
 
 ### 🔄 **Scheduled backups**
@@ -286,9 +289,17 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 `--role` is `admin` or `member`, the password needs at least 8 characters, and `--name` optionally sets the display name. On an instance that holds no account yet, the first account must use `--role=admin` and administers the instance. Running the command again for the same account changes nothing, so a deployment can run it on every rollout; rotate the password with `--new-password`.
 
-### 💾 Backuping Databasus itself
+### 💾 Backing up Databasus itself
 
-After installation, it is also recommended to <a href="https://databasus.com/faq#backup-databasus">backup your Databasus itself</a> or, at least, to copy secret key used for encryption (30 seconds is needed). So you are able to restore from your encrypted backups if you lose access to the server with Databasus or it is corrupted.
+Databasus is built to stay recoverable even if its own server is lost or corrupted. It can back itself up and helps you keep the key safe:
+
+**Turn on Databasus backups** in **Databasus settings → Databasus backups**. Databasus then saves an encrypted copy of its internal database every hour to the storages you select. Until you turn them on, you will see a floating reminder once the first database or storage is added.
+
+**Save the master key separately.** Databasus asks you to download it on your first visit, and it is also stored in `./databasus-data/secret.key`. Without it, neither Databasus backups nor your database backups can be decrypted.
+
+Prefer a remote storage over a local disk on the same server.
+
+See [how to back up and recover Databasus](https://databasus.com/faq/#backup-databasus).
 
 ---
 
@@ -302,7 +313,7 @@ Before each release, Databasus runs automated checks to reduce the risk of vulne
 - **Restore tests** run full backup-and-restore cycles against real database containers for every supported engine and major version.
 - **Release gates** require tests, builds and security checks to pass. Open critical CodeQL findings in the release analysis block publication.
 
-Regular Codex Security audits from OpenAI complement these release checks. Report vulnerabilities privately using [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); security reports take priority.
+Regular Codex Security audits from OpenAI complement these release checks. Report vulnerabilities privately using [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); security reports take priority. Fixed vulnerabilities are published as advisories, with CVEs where assigned, on the [repository's Security page](https://github.com/databasus/databasus/security).
 
 ---
 
@@ -312,4 +323,4 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
 
 ## 💬 Community
 
-Join our large community of developers, DBAs and DevOps engineers on Telegram [@databasus_community](https://t.me/databasus_community).
+Join our large community of developers, DBAs and DevOps engineers. Chat with us on Telegram [@databasus_community](https://t.me/databasus_community) and [Discord](https://databasus.com/discord).

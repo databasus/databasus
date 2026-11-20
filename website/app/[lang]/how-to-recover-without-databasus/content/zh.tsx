@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl } from "@/app/i18n";
+import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl, getLocalizedHref } from "@/app/i18n";
 import { CopyButton } from "@/app/components/CopyButton";
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
@@ -282,6 +282,22 @@ mongorestore --host hostname:27017 --username username --password password \\
         <main className="flex-1 min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-12">
           <div className="mx-auto max-w-4xl">
             <article className="prose prose-blue max-w-none">
+              <div
+                role="note"
+                className="my-6 rounded-lg border border-red-500/40 bg-red-500/10 px-5 py-4"
+              >
+                <div className="font-semibold text-red-300">本指南已过时</div>
+                <div className="mt-1 text-sm leading-relaxed text-red-100/80">
+                  Databasus 现在可以给自己做备份，并从这些备份恢复，你不再需要手动解密和恢复文件。
+                </div>
+                <a
+                  href={`${getLocalizedHref("zh", "faq")}#backup-databasus`}
+                  className="mt-3 inline-block text-sm font-medium text-red-300! underline! underline-offset-4 hover:text-red-200!"
+                >
+                  如何备份 Databasus →
+                </a>
+              </div>
+
               <h1 id="manual-recovery">
                 不使用 Databasus 从备份恢复 PostgreSQL
               </h1>

@@ -201,6 +201,19 @@ func TestDecidePhysicalBackup(t *testing.T) {
 			shouldReplaceImmediately: true,
 		},
 		{
+			name: "schedules nothing immediately when failover interrupted an incremental",
+			change: func(state *schedulingState, _ *config.PhysicalBackupConfig, now time.Time) {
+				state.lastFull.CreatedAt = now
+				state.lastIncremental = &catalog.Backup{
+					ID:          uuid.New(),
+					Status:      catalog.BackupStatusError,
+					ErrorReason: new(catalog.BackupErrorFailoverDuringBackup),
+					CreatedAt:   now,
+					CompletedAt: new(now),
+				}
+			},
+		},
+		{
 			name: "honors a forced full when the source identifier mismatches",
 			change: func(state *schedulingState, config *config.PhysicalBackupConfig, now time.Time) {
 				state.hasUnresolvedMismatch = true

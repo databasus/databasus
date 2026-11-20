@@ -88,10 +88,24 @@ func TestPhysicalBackupAfterPromotion(t *testing.T) {
 		},
 	)
 	t.Run(
-		"starts a full backup on the new timeline after the standby is promoted",
+		"continues the chain on the new timeline and restores across the promotion",
 		func(t *testing.T) {
 			t.Parallel()
-			physicaltest.RunPromotionReanchorsChain(t, "postgres:17")
+			physicaltest.RunPromotionContinuesChain(t, "postgres:17")
+		},
+	)
+	t.Run(
+		"resumes reception at the fork point when the standby missed the former primary's tail",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunPromotionAfterLostTail(t, "postgres:17")
+		},
+	)
+	t.Run(
+		"replaces the chain once when the promoted standby has no wal summaries",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunPromotionWithoutSummaries(t, "postgres:17")
 		},
 	)
 }

@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/process"
@@ -27,6 +30,10 @@ const (
 	WalReceiverFatal
 	WalReceiverResumeMismatch
 	WalReceiverIdentityMismatch
+	// WalReceiverForkRealignment means the server refused to resume beyond the fork point at which
+	// its history left the requested timeline, as after a failover that lost the former primary's
+	// last writes. Reception restarts from the segment holding the fork point's LSN.
+	WalReceiverForkRealignment
 )
 
 type WalReceiverSpec struct {
@@ -45,6 +52,13 @@ type WalReceiverExit struct {
 	Disposition WalReceiverDisposition
 	RanFor      time.Duration
 	FatalErr    error
+	Fork        *WalReceiverFork
+}
+
+// WalReceiverFork is where the server's history left the timeline reception asked for.
+type WalReceiverFork struct {
+	LeftTimelineID int
+	ForkLSN        walmath.LSN
 }
 
 func (s *Source) ReceiveWal(ctx context.Context, spec WalReceiverSpec) WalReceiverExit {
@@ -184,6 +198,10 @@ func (s *Source) runWalReceiver(ctx context.Context, processSpec walReceiverProc
 
 	exitErr := getClientExitError(waitErr)
 	stderrBytes := stderr.Bytes()
+	if leftTimelineID, isForkRefusal := getForkRefusalTimeline(stderrBytes); isForkRefusal {
+		return s.getForkRealignmentExit(ctx, spec, leftTimelineID, ranFor)
+	}
+
 	if isResumeMismatchError(stderrBytes) {
 		spec.Logger.WarnContext(
 			ctx,
@@ -211,6 +229,38 @@ func (s *Source) runWalReceiver(ctx context.Context, processSpec walReceiverProc
 	)
 
 	return WalReceiverExit{Disposition: WalReceiverRetryable, RanFor: ranFor}
+}
+
+func (s *Source) getForkRealignmentExit(
+	ctx context.Context,
+	spec WalReceiverSpec,
+	leftTimelineID int,
+	ranFor time.Duration,
+) WalReceiverExit {
+	forkLSN, err := s.getLiveForkLSN(ctx, spec.ExpectedSystemIdentifier, leftTimelineID)
+	if err != nil {
+		spec.Logger.WarnContext(
+			ctx,
+			"pg_receivewal resumed beyond the server's history and its fork point could not be read",
+			slog.Int("timeline_id", leftTimelineID),
+			slog.Any("error", err),
+		)
+
+		return WalReceiverExit{Disposition: WalReceiverRetryable, RanFor: ranFor}
+	}
+
+	spec.Logger.WarnContext(
+		ctx,
+		"pg_receivewal resumed beyond the fork point of the server's history; realigning to the fork point",
+		slog.Int("timeline_id", leftTimelineID),
+		slog.String("fork_lsn", forkLSN.String()),
+	)
+
+	return WalReceiverExit{
+		Disposition: WalReceiverForkRealignment,
+		RanFor:      ranFor,
+		Fork:        &WalReceiverFork{LeftTimelineID: leftTimelineID, ForkLSN: forkLSN},
+	}
 }
 
 // A full / unwritable local disk, rejected credentials or a slot held by another
@@ -242,4 +292,27 @@ func isFatalReceivewalError(stderr []byte) bool {
 // own disposition: the supervision loop realigns the queue and tries again.
 func isResumeMismatchError(stderr []byte) bool {
 	return strings.Contains(strings.ToLower(string(stderr)), "has already been removed")
+}
+
+// The verbatim refusal from PostgreSQL's walsender.c when the requested start lies on a timeline the
+// server left at a fork point before that position, as after a failover that lost the former
+// primary's last writes.
+var forkRefusalPattern = regexp.MustCompile(
+	`requested starting point [0-9A-F]+/[0-9A-F]+ on timeline (\d+) is not in this server's history`,
+)
+
+// getForkRefusalTimeline returns the timeline pg_receivewal asked for when the server refused the
+// start position as outside its history.
+func getForkRefusalTimeline(stderr []byte) (int, bool) {
+	match := forkRefusalPattern.FindSubmatch(stderr)
+	if match == nil {
+		return 0, false
+	}
+
+	timelineID, err := strconv.Atoi(string(match[1]))
+	if err != nil {
+		return 0, false
+	}
+
+	return timelineID, true
 }

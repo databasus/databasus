@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 )
 
@@ -79,48 +80,48 @@ func prepareEngineSources(t *testing.T, docker *dockerHost, resources upgradeRes
 }
 
 func startEngineSources(ctx context.Context, docker *dockerHost, resources upgradeResources) error {
-	for _, spec := range []containerSpec{
+	for _, spec := range []containers.RunSpec{
 		{
-			name:       resources.mysqlContainerName,
-			image:      mysqlSourceImage,
-			entrypoint: nil,
-			env: []string{
+			Name:       resources.mysqlContainerName,
+			Image:      mysqlSourceImage,
+			Entrypoint: nil,
+			Env: []string{
 				"MYSQL_ROOT_PASSWORD=" + engineSourcePassword,
 				"MYSQL_DATABASE=" + engineSourceDatabaseName,
 			},
-			volumeMount:   "",
-			networkName:   resources.networkName,
-			networkAlias:  mysqlSourceNetworkAlias,
-			publishedPort: mysqlSourcePublishedPort,
+			Mount:         "",
+			NetworkName:   resources.networkName,
+			NetworkAlias:  mysqlSourceNetworkAlias,
+			PublishedPort: mysqlSourcePublishedPort,
 		},
 		{
-			name:       resources.mariadbContainerName,
-			image:      mariadbSourceImage,
-			entrypoint: nil,
-			env: []string{
+			Name:       resources.mariadbContainerName,
+			Image:      mariadbSourceImage,
+			Entrypoint: nil,
+			Env: []string{
 				"MARIADB_ROOT_PASSWORD=" + engineSourcePassword,
 				"MARIADB_DATABASE=" + engineSourceDatabaseName,
 			},
-			volumeMount:   "",
-			networkName:   resources.networkName,
-			networkAlias:  mariadbSourceNetworkAlias,
-			publishedPort: mysqlSourcePublishedPort,
+			Mount:         "",
+			NetworkName:   resources.networkName,
+			NetworkAlias:  mariadbSourceNetworkAlias,
+			PublishedPort: mysqlSourcePublishedPort,
 		},
 		{
-			name:       resources.mongodbContainerName,
-			image:      mongodbSourceImage,
-			entrypoint: nil,
-			env: []string{
+			Name:       resources.mongodbContainerName,
+			Image:      mongodbSourceImage,
+			Entrypoint: nil,
+			Env: []string{
 				"MONGO_INITDB_ROOT_USERNAME=" + engineSourceUsername,
 				"MONGO_INITDB_ROOT_PASSWORD=" + engineSourcePassword,
 			},
-			volumeMount:   "",
-			networkName:   resources.networkName,
-			networkAlias:  mongodbSourceNetworkAlias,
-			publishedPort: mongodbSourcePublishedPort,
+			Mount:         "",
+			NetworkName:   resources.networkName,
+			NetworkAlias:  mongodbSourceNetworkAlias,
+			PublishedPort: mongodbSourcePublishedPort,
 		},
 	} {
-		err := docker.startContainer(ctx, spec)
+		err := docker.StartContainer(ctx, spec)
 		if err != nil {
 			return err
 		}
@@ -145,19 +146,19 @@ func prepareEngineSource(t *testing.T, docker *dockerHost, spec engineSourceSpec
 	t.Helper()
 
 	err := testwait.Within(startupLimit).Poll(t, spec.label+" to accept connections", func(ctx context.Context) error {
-		state, stateErr := docker.getContainerState(ctx, spec.containerName, spec.publishedPort)
+		state, stateErr := docker.GetContainerState(ctx, spec.containerName, spec.publishedPort)
 		if stateErr != nil {
 			return stateErr
 		}
 
-		if !state.isRunning {
+		if !state.IsRunning {
 			return fmt.Errorf("container %s is not running", spec.containerName)
 		}
 
-		return spec.createObject(ctx, state.hostPort)
+		return spec.createObject(ctx, state.HostPort)
 	})
 	if err != nil {
-		return docker.withLogTail(t.Context(), spec.containerName, err)
+		return docker.WithLogTail(t.Context(), spec.containerName, err)
 	}
 
 	return nil

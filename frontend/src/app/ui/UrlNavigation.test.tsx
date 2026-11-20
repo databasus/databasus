@@ -48,6 +48,7 @@ const prepareNavigation = (databases: Database[] = [database]) => {
       email: 'owner@example.com',
       role: 'MEMBER',
       status: 'ACTIVE',
+      isRootAdmin: false,
       createdAt: workspace.createdAt,
     }),
     mockApi.get('/instance-settings', 200, {

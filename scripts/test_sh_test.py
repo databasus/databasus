@@ -46,6 +46,9 @@ FULL_ONLY_CALLS = (
 BROWSER_RUN_CALLS = (BROWSER_SUITE_CALL, *LIFECYCLE_SHARD_CALLS)
 FULL_RUN_LOCK_NAME = "databasus-full-test.lock"
 WAIT_TIMEOUT_SECONDS = 30
+# A run started in the background, such as a suite of the full test run, ignores SIGINT, and bash
+# cannot trap a signal ignored when it starts, so the interrupted command gets the default back.
+DEFAULT_INTERRUPT_COMMAND = ("env", "--default-signal=INT")
 RUN_LABEL_FILTER = "label=databasus.test-run="
 ROOT_RUN_LABEL_FILTER = "label=databasus.test-root-run="
 
@@ -108,6 +111,7 @@ STUB_SOURCES = {
                 echo "databasus-backend/internal/modules/backups/e2e/mysql"
                 echo "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/patroni"
                 echo "databasus-backend/internal/modules/backups/e2e/postgresqlphysical/cnpg"
+                echo "databasus-backend/internal/modules/instancebackups/e2e"
             fi
             exit "${STUB_GO_LIST_EXIT_STATUS:-0}"
         else
@@ -239,7 +243,12 @@ class TestScriptTestCase(unittest.TestCase):
         self, extra_environment: dict[str, str] | None = None, arguments: Sequence[str] = ()
     ) -> subprocess.Popen[str]:
         script = subprocess.Popen(
-            ["bash", str(self.checkout / "scripts" / "test.sh"), *arguments],
+            [
+                *DEFAULT_INTERRUPT_COMMAND,
+                "bash",
+                str(self.checkout / "scripts" / "test.sh"),
+                *arguments,
+            ],
             env={**self.environment, **(extra_environment or {})},
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -550,6 +559,9 @@ class TestScriptTestCase(unittest.TestCase):
         selected_packages = self.get_selected_packages()
         self.assertNotIn("databasus-backend/internal/agent/e2e", selected_packages)
         self.assertNotIn("databasus-backend/internal/modules/backups/e2e/mysql", selected_packages)
+        self.assertNotIn(
+            "databasus-backend/internal/modules/instancebackups/e2e", selected_packages
+        )
 
     def test_the_full_run_selects_the_end_to_end_packages_but_not_the_upgrade_test(self) -> None:
         exit_status, _, stderr = self.finish_script(self.start_full_script())
@@ -558,6 +570,7 @@ class TestScriptTestCase(unittest.TestCase):
         selected_packages = self.get_selected_packages()
         self.assertIn("databasus-backend/internal/agent/e2e", selected_packages)
         self.assertIn("databasus-backend/internal/modules/backups/e2e/mysql", selected_packages)
+        self.assertIn("databasus-backend/internal/modules/instancebackups/e2e", selected_packages)
         self.assertNotIn("databasus-backend/e2e/upgrade", selected_packages)
 
     def test_the_full_run_fails_when_the_browser_suite_fails(self) -> None:
@@ -650,7 +663,9 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertEqual(slow_selection[slow_selection.index("-timeout") + 1], "15m")
         self.assertEqual(other_selection[other_selection.index("-timeout") + 1], "15m")
 
-    def test_full_run_selects_each_cluster_suite_once_with_the_common_timeout(self) -> None:
+    def test_full_run_selects_each_cluster_suite_once_with_the_slow_group_timeout(
+        self,
+    ) -> None:
         exit_status, _, stderr = self.finish_script(self.start_full_script())
 
         self.assertEqual(exit_status, 0, stderr)
@@ -664,7 +679,14 @@ class TestScriptTestCase(unittest.TestCase):
 
                 self.assertEqual(self.get_selected_packages().count(package), 1)
                 self.assertIn("databasus-backend/internal/lib/slow", selection)
-                self.assertEqual(selection[selection.index("-timeout") + 1], "15m")
+                self.assertEqual(selection[selection.index("-timeout") + 1], "30m")
+
+    def test_full_run_keeps_15_minutes_for_the_other_packages(self) -> None:
+        exit_status, _, stderr = self.finish_script(self.start_full_script())
+        self.assertEqual(exit_status, 0, stderr)
+
+        other_selection = self.get_selection_of("databasus-backend/internal/lib/ordinary")
+        self.assertEqual(other_selection[other_selection.index("-timeout") + 1], "15m")
 
     def test_the_upgrade_test_has_a_timeout_of_15_minutes_and_30_in_ci(self) -> None:
         upgrade_task = (REPOSITORY_ROOT / "mise-tasks/backend/test-upgrade").read_text()

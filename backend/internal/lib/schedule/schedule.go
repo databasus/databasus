@@ -114,6 +114,30 @@ func (s Schedule) IsDue(now time.Time, lastRun *time.Time) bool {
 	}
 }
 
+// GetNextOccurrence is the first run time strictly after the moment, or zero for a schedule that never
+// runs. An hourly schedule and a weekly or monthly one without its day run a period after the moment,
+// as IsDue measures them from the last run.
+func (s Schedule) GetNextOccurrence(after time.Time) time.Time {
+	if s.isCronWithoutRunDate() {
+		return time.Time{}
+	}
+
+	switch s.Type {
+	case TypeHourly:
+		return after.Add(time.Hour)
+	case TypeDaily:
+		return s.getNextDailyOccurrence(after)
+	case TypeWeekly:
+		return s.getNextWeeklyOccurrence(after)
+	case TypeMonthly:
+		return s.getNextMonthlyOccurrence(after)
+	case TypeCron:
+		return s.getNextCronOccurrence(after)
+	default:
+		return time.Time{}
+	}
+}
+
 // GetApproxPeriod is a coarse cadence for sizing a wait as a fraction of it, where the exact next run
 // does not matter. A cron or unknown schedule returns 0, so the caller falls back to its own cap instead
 // of guessing a period from an arbitrary expression.
@@ -132,6 +156,68 @@ func (s Schedule) GetApproxPeriod() time.Duration {
 	default:
 		return 0
 	}
+}
+
+func (s Schedule) getNextDailyOccurrence(after time.Time) time.Time {
+	if s.TimeOfDay == nil {
+		return time.Date(after.Year(), after.Month(), after.Day()+1, 0, 0, 0, 0, after.Location())
+	}
+
+	slot := s.atTimeOfDay(after)
+	if !slot.After(after) {
+		slot = s.atTimeOfDay(after.AddDate(0, 0, 1))
+	}
+
+	return slot
+}
+
+func (s Schedule) getNextWeeklyOccurrence(after time.Time) time.Time {
+	if s.Weekday == nil {
+		return after.Add(7 * 24 * time.Hour)
+	}
+
+	for daysAhead := range 8 {
+		day := after.AddDate(0, 0, daysAhead)
+		if day.Weekday() != time.Weekday(*s.Weekday%7) {
+			continue
+		}
+
+		if slot := s.atTimeOfDay(day); slot.After(after) {
+			return slot
+		}
+	}
+
+	return time.Time{}
+}
+
+func (s Schedule) getNextMonthlyOccurrence(after time.Time) time.Time {
+	if s.DayOfMonth == nil {
+		return getStartOfMonth(after).AddDate(0, 1, 0)
+	}
+
+	for monthsAhead := range 2 {
+		month := getStartOfMonth(after).AddDate(0, monthsAhead, 0)
+		slotDay := min(*s.DayOfMonth, getDaysInMonth(month))
+
+		if slot := s.atTimeOfDay(month.AddDate(0, 0, slotDay-1)); slot.After(after) {
+			return slot
+		}
+	}
+
+	return time.Time{}
+}
+
+func (s Schedule) getNextCronOccurrence(after time.Time) time.Time {
+	if s.CronExpression == nil || *s.CronExpression == "" {
+		return time.Time{}
+	}
+
+	cronSchedule, err := parseCron(*s.CronExpression)
+	if err != nil {
+		return time.Time{}
+	}
+
+	return cronSchedule.Next(after.UTC())
 }
 
 func (s Schedule) isDailyDue(now, lastRun time.Time) bool {

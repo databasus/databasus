@@ -3,6 +3,7 @@ import type { en } from '@/shared/i18n/locales/en';
 export const id: typeof en = {
   language: { nativeName: 'Bahasa Indonesia' },
   common: {
+    dateTimeWithRelativeTime: '{{time}} ({{relativeTime}})',
     calendar: {
       monthLevelControl: 'Pilih bulan',
       yearLevelControl: 'Pilih tahun',
@@ -66,6 +67,8 @@ export const id: typeof en = {
       docs: 'Dokumentasi',
       documentation: 'Dokumentasi',
       community: 'Komunitas',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: 'Versi baru tersedia',
     },
     diskUsage: {
@@ -114,6 +117,16 @@ export const id: typeof en = {
     targetTimeUnreachable:
       'Waktu yang diminta tidak dapat dicapai dengan backup dan WAL yang tersedia.',
     notRunning: 'Proses sudah berhenti sehingga tidak ada yang bisa dibatalkan.',
+    databasusBackupInUse:
+      'Penyimpanan ini dipakai untuk cadangan Databasus. Hapus dulu dari pengaturan cadangan Databasus, atau minta administrator server untuk melakukannya.',
+    storageUnavailable: 'Penyimpanan tidak dapat menyediakan file ini.',
+    recoveryIncompatible: 'Rilis Databasus ini tidak dapat memulihkan file cadangan Databasus ini.',
+    recoveryNotReady:
+      'Pemulihan ini tidak mengizinkan tindakan tersebut dalam keadaannya sekarang.',
+    identityProofInvalid: 'Kode konfirmasi salah, kedaluwarsa, atau sudah dipakai.',
+    identityProofUnavailable:
+      'Kode konfirmasi tidak dapat dikirim: tidak ada server email atau alamat email yang dapat menerimanya.',
+    archiveTooLarge: 'File melebihi batas unggahan yang dikonfigurasi.',
     instanceUnhealthy: 'Instance sedang bermasalah.',
     insufficientDiskSpace: 'Ruang disk kosong di server Databasus tidak cukup: {{detail}}',
     unknown: 'Terjadi kesalahan. Coba lagi.',
@@ -231,6 +244,7 @@ export const id: typeof en = {
   },
   auditLogs: {
     title: 'Log audit',
+    open: 'Buka',
     columns: { user: 'Pengguna', message: 'Pesan', workspace: 'Ruang kerja', created: 'Dibuat' },
     systemUser: 'Sistem',
     empty: 'Log audit tidak ditemukan.',
@@ -1910,6 +1924,217 @@ export const id: typeof en = {
       },
     },
   },
+  instanceBackups: {
+    title: 'Backup Databasus',
+    description:
+      'Menyimpan Databasus itu sendiri: pengguna, pengaturan, koneksi database, dan daftar backup. Jika server ini rusak, Anda dapat memulihkan Databasus dari backup ini di server lain.',
+    retainSeparately:
+      'Untuk memulihkan Databasus, diperlukan file backup Databasus dan kunci master yang mengenkripsinya. Simpan kunci tersebut dan akses ke setidaknya satu penyimpanan tujuan di luar server ini.',
+    health: {
+      notConfigured: 'Belum dikonfigurasi',
+      initializing: 'Menunggu salinan pertama',
+      healthy: 'Terlindungi',
+      partial: 'Terlindungi sebagian',
+      failed: 'Gagal',
+      overdue: 'Terlambat',
+      stopped: 'Dihentikan',
+      resuming: 'Sedang dilanjutkan',
+    },
+    status: {
+      titles: {
+        notConfigured: 'Databasus belum di-backup',
+        initializing: 'Menunggu backup Databasus pertama',
+        healthy: 'Databasus sudah di-backup',
+        partial: 'Beberapa penyimpanan tidak memiliki backup Databasus terbaru',
+        failed: 'Backup Databasus terus gagal',
+        overdue: 'Backup Databasus terlambat',
+        stopped: 'Backup Databasus dihentikan',
+        resuming: 'Backup Databasus sedang dilanjutkan',
+      },
+      lastBackup: 'Backup terakhir <time/>',
+      noSuccessfulBackup: 'Belum ada backup yang berhasil.',
+      storageError: '{{storage}}: {{error}}',
+      refreshFailed: 'Status tidak dapat diperbarui, jadi mungkin sudah tidak terkini: {{reason}}',
+    },
+    incidents: {
+      failed: 'Backup Databasus terus gagal',
+      partial: 'Beberapa tujuan backup Databasus tidak memiliki salinan terbaru',
+      overdue: 'Backup Databasus terlambat',
+      stopped: 'Backup Databasus dihentikan karena tidak ada tujuan yang dipilih',
+      since: 'Sejak {{time}}',
+      mailFailed: 'Email tentang masalah ini tidak dapat dikirim: {{error}}',
+    },
+    setup: {
+      description: 'Pilih penyimpanan untuk mulai mem-backup Databasus.',
+      start: 'Atur backup',
+    },
+    smtp: {
+      missingTitle: 'Server email belum dikonfigurasi',
+      missingDescription:
+        'Email tentang backup Databasus yang gagal atau terlambat membutuhkan server email sistem.',
+      configure: 'Konfigurasikan SMTP',
+      addressMissing:
+        'Akun ini tidak memiliki alamat email yang bisa menerima peringatan. Tambahkan alamat email di profil.',
+    },
+    destinations: {
+      description:
+        'Pilih penyimpanan yang sudah ada dari ruang kerja mana pun. Setiap backup Databasus disalin ke semua penyimpanan yang dipilih.',
+      picker: 'Penyimpanan tujuan',
+      pickerPlaceholder: 'Pilih penyimpanan',
+      choice: '{{storage}} ({{workspace}}, {{provider}})',
+      none: 'Tidak ada tujuan yang dipilih, jadi Databasus tidak di-backup.',
+      unknownStorage: 'Penyimpanan tidak dikenal',
+      storageInWorkspace: '<storage/> <details>(ruang kerja: <workspace/>)</details>',
+      lastSuccess: 'Salinan terakhir yang berhasil: {{time}}',
+      remove: 'Hapus {{storage}}',
+      create: 'Buat penyimpanan',
+      localWarning:
+        'Penyimpanan lokal berada di server yang sama, jadi tidak melindungi jika server ini hilang.',
+    },
+    createDestination: {
+      title: 'Buat penyimpanan tujuan',
+      workspace: 'Ruang kerja untuk penyimpanan baru',
+      newWorkspace: 'Buat ruang kerja baru',
+      createWorkspace: 'Buat ruang kerja',
+      continue: 'Lanjut',
+      storageStep: 'Penyimpanan dibuat di ruang kerja {{workspace}} dan dipilih sebagai tujuan.',
+    },
+    settings: {
+      title: 'Pengaturan',
+      storages: 'Penyimpanan',
+      schedule: 'Jadwal backup',
+      retentionDays: 'Simpan salinan, hari',
+      save: 'Simpan',
+      saved: 'Pengaturan backup Databasus disimpan',
+      firstBackupRequested: 'Pengaturan disimpan. Backup Databasus pertama sudah dimulai.',
+      stopped:
+        'Pengaturan disimpan. Backup Databasus dihentikan karena tidak ada tujuan yang dipilih.',
+    },
+    history: {
+      title: 'Backup terbaru',
+      start: 'Backup sekarang',
+      started: 'Backup Databasus dimulai',
+      startNeedsDestination: 'Pilih dan simpan tujuan sebelum memulai backup.',
+      empty: 'Belum ada backup Databasus.',
+      copy: '{{storage}} ({{workspace}}): {{status}}',
+      showAll: 'Tampilkan semua',
+      downloadBackup: 'Unduh backup {{time}}',
+      showMore: 'Tampilkan lebih banyak',
+    },
+    backupStatuses: {
+      inProgress: 'Sedang berjalan',
+      completed: 'Berhasil',
+      partial: 'Berhasil sebagian',
+      failed: 'Gagal',
+      interrupted: 'Terhenti',
+    },
+    copyStatuses: {
+      pending: 'menunggu',
+      uploading: 'mengunggah',
+      retrying: 'mencoba lagi',
+      stored: 'tersimpan',
+      failed: 'gagal',
+      interrupted: 'terhenti',
+      deleted: 'dihapus',
+    },
+  },
+  instanceRecovery: {
+    open: 'Pulihkan dari backup',
+    form: {
+      title: 'Pulihkan dari file backup Databasus',
+      description: 'Mengganti instalasi ini dengan status yang tersimpan di backup Databasus.',
+      archive: 'File backup Databasus',
+      archivePlaceholder: 'Pilih atau seret file',
+      archiveHint: 'Unduh dari backup terbaru atau ambil dari penyimpanan.',
+      archiveClear: 'Hapus file',
+      archiveMissing: 'Pilih file backup Databasus.',
+      masterKey: 'Kunci master instalasi sumber',
+      masterKeyDescription:
+        'Tempel kunci persis seperti saat disimpan. Kunci instalasi ini hanya membuka backup miliknya sendiri.',
+      masterKeyMissing: 'Masukkan kunci master.',
+      upload: 'Unggah dan periksa',
+      uploading: 'Mengunggah file...',
+      preparing: 'Memeriksa dan menyiapkan backup Databasus...',
+      ready: 'Backup Databasus siap menggantikan instalasi ini.',
+      snapshot: 'Snapshot {{time}}, dibuat oleh Databasus {{version}}.',
+      releaseMismatch:
+        'File ini dibuat oleh Databasus {{sourceRelease}}, sedangkan instalasi ini menjalankan {{runningRelease}}. Pulihkan dengan Databasus {{sourceRelease}}.',
+      correctAndRetry:
+        'Instalasi ini tidak diubah. Pilih file lain atau perbaiki kunci, lalu coba lagi.',
+      applying:
+        'Databasus sedang memulihkan backup dan mungkin tidak tersedia sebentar. Halaman ini tidak berarti pemulihan sudah selesai.',
+      signInWithRestored:
+        'Saat halaman masuk muncul, masuk dengan akun dan kata sandi dari backup Databasus.',
+    },
+    apply: {
+      title: 'Ganti instalasi ini',
+      description:
+        'Akun, pengaturan, dan riwayat backup saat ini diganti dengan isi snapshot. Sesi saat ini berakhir, lalu masuk kembali dengan akun dari backup Databasus.',
+      confirmReplacement: 'Saya paham bahwa kondisi instalasi ini saat ini akan diganti',
+      submit: 'Ganti',
+    },
+    discardedCleanup:
+      'Penulisan dan penghapusan file yang belum selesai dari instance lama dibuang, bukan diulang: {{count}}. File-file tersebut mungkin perlu dibersihkan secara manual.',
+    restoredSignIn:
+      'Databasus dipulihkan dari backup. Masuk dengan akun dan kata sandi dari backup tersebut.',
+    failures: {
+      archiveInvalid: 'File ini bukan backup Databasus yang valid, atau kunci master tidak cocok.',
+      archiveIncomplete: 'File backup Databasus tidak lengkap.',
+      masterKeyInvalid: 'Kunci master tidak dapat mendekripsi file backup Databasus ini.',
+      releaseMismatch: 'Backup Databasus dibuat oleh rilis Databasus yang lain.',
+      schemaIncompatible: 'Backup Databasus tidak cocok dengan skema database rilis ini.',
+      insufficientDiskSpace:
+        'Server tidak memiliki cukup ruang disk kosong untuk menyiapkan pemulihan.',
+      importFailed: 'Backup Databasus tidak dapat diimpor.',
+      expired: 'Pemulihan yang sudah disiapkan kedaluwarsa sebelum diterapkan.',
+      quiescenceFailed:
+        'Databasus tidak dapat menghentikan pekerjaannya untuk menerapkan pemulihan.',
+      interrupted: 'Pemulihan terhenti.',
+    },
+  },
+  masterKey: {
+    title: 'Kunci master',
+    open: 'Unduh kunci master',
+    description:
+      'Databasus mengenkripsi backup dengan kunci ini. Jika server ini hilang, Anda memerlukan kunci ini untuk mendekripsi backup, termasuk backup Databasus sendiri',
+    loading: 'Mengambil kunci…',
+    copy: 'Salin',
+    copied: 'Tersalin',
+    copyFailed: 'Browser tidak mengizinkan penyalinan. Unduh kuncinya saja.',
+    download: 'Unduh',
+    downloaded: 'Terunduh',
+    codeRequired:
+      'Instalasi ini mewajibkan autentikasi dua faktor saat masuk, jadi konfirmasi akses ke kunci dengan kode yang dikirim ke email Anda.',
+    codeFailed: 'Jika kode tetap tidak masuk, salin kunci dari server secara manual.',
+    proof: {
+      sendCode: 'Kirim kode konfirmasi ke email saya',
+      resendCode: 'Kirim kode baru',
+      code: 'Kode konfirmasi',
+      confirm: 'Lanjutkan',
+      wrongCode: 'Kode salah atau sudah kedaluwarsa. Kirim kode baru.',
+    },
+    host: {
+      toggle: 'Salin kunci langsung dari server',
+      location:
+        'File kunci juga bisa disalin langsung dari server: yaitu <code>databasus-data/secret.key</code> di folder tempat Databasus dipasang.',
+    },
+    onboarding: {
+      title: 'Simpan kunci master',
+      close: 'Sudah saya simpan di tempat aman',
+      closeIn: 'Sudah saya simpan di tempat aman ({{seconds}})',
+    },
+  },
+  instanceBackupNotices: {
+    label: 'Pemberitahuan backup Databasus',
+    resuming:
+      'Backup Databasus sedang dilanjutkan. Databasus belum terlindungi sampai salinan baru berhasil dibuat.',
+    setup: 'Databasus sendiri belum di-backup',
+    setupDescription:
+      'Pilih penyimpanan untuk backup Databasus agar instance ini bisa dipulihkan jika server ini hilang',
+    configure: 'Konfigurasikan',
+    open: 'Buka backup Databasus',
+    stale: 'Status tidak dapat diperbarui.',
+  },
   storages: {
     usageUnavailable: 'Penggunaan ruang cadangan tidak dapat diperbarui.',
     cleanup: {
@@ -1966,6 +2191,7 @@ export const id: typeof en = {
         'Yakin ingin menghapus penyimpanan ini? Tindakan ini tidak bisa dibatalkan.',
       removeBlockedByBackups:
         'Konfigurasi backup menggunakan penyimpanan ini atau masih ada backup di dalamnya. Arahkan konfigurasi backup tersebut ke penyimpanan lain dan hapus backup di penyimpanan ini terlebih dahulu.',
+      openDatabasusBackups: 'Buka backup Databasus',
     },
     actions: { testConnection: 'Uji koneksi' },
     connectionTestFailed: 'Penyimpanan tidak dapat dijangkau: {{error}}',

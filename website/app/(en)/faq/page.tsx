@@ -3,6 +3,7 @@ import { getLanguageAlternates, getLocalizedHref } from "@/app/i18n";
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
+import { CopyButton } from "@/app/components/CopyButton";
 
 export const metadata: Metadata = {
   title: "FAQ - Frequently Asked Questions | Databasus",
@@ -40,6 +41,15 @@ export const metadata: Metadata = {
 };
 
 export default function FAQPage() {
+  const startupRecoveryCommand = `docker run -d \\
+  --name databasus \\
+  -p 4005:4005 \\
+  -v ./databasus-data:/databasus-data \\
+  -e RECOVERY_DUMP_PATH=/databasus-data/recovery/backup.dbbackup \\
+  -e RECOVERY_MASTER_KEY_PATH=/databasus-data/recovery/master.key \\
+  --restart unless-stopped \\
+  databasus/databasus:<version>`;
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -87,7 +97,7 @@ export default function FAQPage() {
                 name: "How to backup Databasus itself?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "To backup Databasus, go to /opt/databasus (or the folder where you installed it), then navigate to the databasus-data directory. You need to backup the secret.key file (encryption key for credentials) and the /pgdata folder (internal database containing configurations and backup metadata). There are two recovery scenarios: 1) You can recover database backups using only secret.key without Databasus UI (see manual recovery guide), 2) To restore Databasus UI with all configurations and history, you need both secret.key and /pgdata folder. To restore, recreate this folder structure on another server.",
+                  text: "Databasus is built to stay recoverable even if its own server is lost or corrupted. It can back up its own internal database: accounts, settings, the encrypted credentials of databases, storages and notifiers, schedules and the backup catalog. Turn it on in Databasus settings → Databasus backups by selecting one or more existing storages; by default a Databasus backup runs every hour and is kept for 30 days. The file is encrypted with the master key and contains neither the key nor the backup files of your databases, so save the master key separately: Databasus asks you to download it, and it is also . /databasus-data/secret. key on the host. Recovery needs the backup file, its master key and exactly the same Databasus version, patch included. Either put both files into the mounted data directory and start Databasus with RECOVERY_DUMP_PATH and RECOVERY_MASTER_KEY_PATH on a server without accounts or changed settings, or upload the file and paste the key in Databasus settings → Databasus backups, which replaces the current installation. Stop the old installation before you recover. A recovered installation starts its backups, notifications and storage writes at once, so two running installations would write to the same storages and databases.",
                 },
               },
               {
@@ -104,6 +114,14 @@ export default function FAQPage() {
                 acceptedAnswer: {
                   "@type": "Answer",
                   text: "AI helps us develop Databasus, from planning and implementation to tests and documentation. People set the direction and make the final decision. A human reads every line before a change is merged. We use spec-driven development (SDD) with OpenSpec to agree on behavior before implementation. Independent review at each stage Automatic hooks start separate reviewer sessions with read-only access to the repository. Each agent inspects the relevant code and returns its own findings. The implementing agent cannot approve its own work. Review starts before implementation. Separate planning agents look for simpler solutions, check proposed names and assess the design. They also check that requirements and verification tasks agree. Code reviewer: Looks for bugs, missed edge cases, broken error handling, races, resource leaks and security problems. Requirements reviewer: Traces each requirement to its implementation and tests. Checks that the tests actually prove the promised behavior. Architecture reviewer: Checks module boundaries, dependency direction, data ownership, migrations and API rules. Code structure reviewer: Checks names, file and function responsibilities, comments and readability. Test reviewer: Checks whether tests would catch missing behavior or a regression. Also checks condition waits, cleanup and verification evidence. Documentation and task reviewer: Checks that documentation matches the code, tasks are complete and verification claims have evidence. Full implementation reviews run in parallel. Each changed specification gets its own requirements reviewer, alongside separate architecture, test and documentation reviewers. A change covering two specifications therefore gets five full-review agents. Blocking findings stop acceptance. The implementing agent fixes them or explains why a finding is incorrect. A follow-up reviewer checks that resolution and the subsequent edits. A review that could not run does not count as passed. Automated checks and real restores Independent review works alongside strict automated checks. golangci-lint and our architecture linter check backend dependencies, module boundaries and migration rules. API checks validate OpenAPI contracts and generated code. Frontend checks cover TypeScript, React, layer imports, styles and localization. Ruff and ty check Python formatting, lint rules and types. ShellCheck checks shell scripts. actionlint checks GitHub Actions workflows. Pre-commit hooks check affected backend, frontend and Python files without rewriting them. CI also runs linting. Tests exercise real behavior. Backend tests use the application API and check engines against real database containers. End-to-end scenarios create backups, restore them and inspect the restored data. Other tests cover upgrades, frontend screens and browser workflows with visual comparisons. Checks are chosen for each change. Required release suites run on amd64 and arm64. The implementing agent runs the relevant linters and tests before review; review agents inspect the evidence without rerunning those commands. Before publication, CodeQL and Semgrep analyze code, Gitleaks scans for secrets and dependency checks look for vulnerabilities. Trivy scans container images and Dockerfiles. Required CI checks must pass before release.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Is there a Databasus community?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Yes. The Databasus community talks in chats on Telegram (https://t.me/databasus_community) and Discord (https://databasus.com/discord). There you can ask questions, share how you run Databasus, discuss features and hear about new releases first. Pick the app you already use.",
                 },
               },
             ],
@@ -524,70 +542,119 @@ export default function FAQPage() {
               <h2 id="backup-databasus">How to backup Databasus itself?</h2>
 
               <p>
-                If you want to backup your Databasus instance (including all
-                configurations, databases and credentials), follow these steps:
+                Databasus is built to stay recoverable even if its own server is lost or corrupted.
+                It can back up its own internal database: accounts,
+                settings, the encrypted credentials of your databases, storages
+                and notifiers, schedules and the backup catalog. Turn it on in{" "}
+                <strong>Databasus settings → Databasus backups</strong> by
+                selecting one or more existing storages. By default a Databasus
+                backup runs every hour and is kept for 30 days. Each file is
+                encrypted with the master key.
               </p>
 
-              <ol>
-                <li>
-                  Go to <code>/opt/databasus</code> (or the folder where you
-                  installed Databasus)
-                </li>
-                <li>
-                  Navigate to the <code>databasus-data</code> directory
-                </li>
-              </ol>
-
               <p>
-                <strong>You need to backup:</strong>
+                A Databasus backup does not contain the master key or the
+                backup files of your databases, which stay in their own
+                storages. <strong>Save the master key separately.</strong>{" "}
+                Databasus asks you to download it on the first visit,
+                and the key is also
+                the <code>./databasus-data/secret.key</code>{" "}
+                file on the host.
               </p>
 
               <ul>
                 <li>
-                  <code>secret.key</code> — encryption key for your credentials
+                  <strong>Choose a remote storage.</strong> A local storage on
+                  the same server is lost together with that server.
                 </li>
                 <li>
-                  <code>/pgdata</code> — internal PostgreSQL database of
-                  Databasus that contains all your configurations and backup
-                  metadata
-                </li>
-              </ul>
-
-              <p>
-                If you use local storage for backups, you can also backup the{" "}
-                <code>backups</code> folder.
-              </p>
-
-              <p>
-                <strong>Important:</strong> There are two different scenarios
-                for recovery:
-              </p>
-
-              <ul>
-                <li>
-                  <strong>Recover backups without Databasus UI:</strong> You can
-                  recover your database backups using only the{" "}
-                  <code>secret.key</code> file, without needing Databasus or its
-                  internal data. See the{" "}
-                  <a href="/how-to-recover-without-databasus">
-                    manual recovery guide
+                  <strong>Alerts.</strong> Databasus shows a notice when a
+                  Databasus backup fails, saves to only some storages, stops or
+                  is overdue, meaning no copy succeeded 15 minutes after a
+                  scheduled run. The same alerts are emailed through the{" "}
+                  <a href={`${getLocalizedHref("en", "advanced-config")}#email-smtp`}>
+                  instance mail server
                   </a>{" "}
-                  for detailed instructions.
+                  when it is configured.
+                </li>
+              </ul>
+
+              <h3 id="recover-databasus">
+                How to recover Databasus from a Databasus backup?
+              </h3>
+
+              <p>
+                You need two things: a Databasus backup file with the{" "}
+                <code>.dbbackup</code> extension, downloaded from the history or
+                taken directly from the storage, and the master key of the
+                installation that made it.{" "}
+                <strong>
+                Recovery works only on exactly the same Databasus version, patch
+                included.
+                </strong>{" "}
+                For any other version Databasus refuses and names the version to
+                start: recover on that version, then upgrade as usual.
+              </p>
+
+              <p>
+                <strong>Stop the old installation before you recover.</strong> A
+                recovered installation starts its backups, notifications and
+                storage writes at once, so two running installations would write
+                to the same storages and databases.
+              </p>
+
+              <p>
+                <strong>Option 1: files at startup.</strong> Use it for a new
+                server. Put both files into the mounted data directory, for
+                example <code>./databasus-data/recovery/</code>, and start the
+                image of the version that made the backup with two extra
+                settings. Replace <code>&lt;version&gt;</code> with that
+                version:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{startupRecoveryCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={startupRecoveryCommand} />
+                </div>
+              </div>
+
+              <ul>
+                <li>
+                  If you already started Databasus normally on this server but
+                  created no account and changed no settings, you do not have to
+                  delete its data. Stop it, add the two files and the two
+                  settings, then start it again.
                 </li>
                 <li>
-                  <strong>Restore Databasus UI and all configurations:</strong>{" "}
-                  If you want to restore the Databasus interface with all your
-                  configurations, scheduled backups and backup history, you need
-                  to backup both <code>secret.key</code> and the{" "}
-                  <code>/pgdata</code> folder (which contains the encryption
-                  metadata and all Databasus configurations).
+                  Startup recovery never replaces an installation with an
+                  account, even a single one, with other user data or with
+                  changed settings. In that case Databasus does not start. Its
+                  log says that recovery did not run, why, that the current
+                  installation is unchanged and what to do next. To start the
+                  current installation, remove the two settings, or use the
+                  upload in the interface instead.
+                </li>
+                <li>
+                  After a successful recovery, the files and settings may stay.
+                  Databasus remembers the SHA-256 of the applied file, so
+                  restarts and later upgrades skip it and say so in the log,
+                  even if the file was renamed. A different file at the same
+                  path is not skipped.
                 </li>
               </ul>
 
               <p>
-                <strong>To restore Databasus on another server:</strong> simply
-                recreate the <code>databasus-data</code> folder structure with
-                the backed up files and start Databasus.
+                <strong>Option 2: upload in the interface.</strong> Use it on an
+                installation that is already running. On a new installation,
+                first sign up. Open <strong>Databasus settings → Databasus
+                backups</strong>, choose the backup file and paste or type the
+                master key of the installation that made it.
+                Everything in the current installation is replaced: accounts,
+                settings and the backup catalog. Afterwards, sign in with an
+                account from the backup.
               </p>
 
               <h2 id="oss-programs">
@@ -645,6 +712,30 @@ export default function FAQPage() {
                 className="my-6 rounded-lg border border-gray-700 max-w-full sm:max-w-[1000px]"
                 loading="lazy"
               />
+
+              <h2 id="community">Is there a Databasus community?</h2>
+
+              <p>
+                Yes. The Databasus community talks in chats on{" "}
+                <a
+                  href="https://t.me/databasus_community"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/discord"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>
+                . There you can ask questions, share how you run Databasus, discuss features and hear about new releases first.
+              </p>
+
+              <p>Pick the app you already use.</p>
             </article>
           </div>
         </main>

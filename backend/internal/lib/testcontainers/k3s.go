@@ -261,7 +261,7 @@ func (fixture *K3s) start(ctx context.Context, spec K3sSpec) error {
 }
 
 func (fixture *K3s) createNetwork(ctx context.Context, labels map[string]string) error {
-	return WithFreeSubnet(func(ipam *dockernetwork.IPAM) error {
+	return WithFreeSubnet(ctx, func(ipam *dockernetwork.IPAM) error {
 		createdNetwork, err := network.New(ctx, network.WithLabels(labels), network.WithIPAM(ipam))
 		if err != nil {
 			return err

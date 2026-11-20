@@ -9,7 +9,7 @@ The standard for this review is `docs/architecture.md` and the architecture rule
 
 Check all backend files belonging to the change against the architecture rules, including every command and code outside the former migration layout. Frontend architecture rules remain applicable.
 
-When a plan adds or changes an HTTP operation, or a finished change edits a file under `backend/api/`, also read `.agents/skills/api-design/SKILL.md` and check the operation or the edit against it. Name the rule of the `api-design` skill that is broken.
+When a plan adds or changes an HTTP operation, or a finished change edits `backend/api/agent.yaml`, also read `.agents/skills/api-design/SKILL.md` and check the operation or the edit against it. Name the rule of the `api-design` skill that is broken.
 
 If the candidate is a plan, check that the proposed structure follows these rules. If the candidate is a finished change, use `git status`, the full `git diff HEAD` and the untracked files, and check the changed code.
 
@@ -19,7 +19,7 @@ Check only architecture:
 - roles inside a module: handlers call services, services hold the rules and access checks, repositories hold all database access, and files sit in the roles the documents name;
 - data ownership: a module touches only its own tables, foreign keys between modules are `RESTRICT`, invariants live in the schema, and schema changes go through migrations in the required form;
 - frontend FSD layers and slices: import direction, slice placement, no cross-imports between slices of one layer, the public API of a slice;
-- HTTP operations and contract edits against the `api-design` skill;
+- HTTP operations of a plan and edits of `backend/api/agent.yaml` against the `api-design` skill;
 - a decision that contradicts `docs/architecture.md` without changing that document in the same change.
 
 If the change edits `docs/architecture.md` or an architecture section of a module doc, check that the edit agrees with the code and with the latest user request.

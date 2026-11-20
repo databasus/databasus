@@ -97,6 +97,34 @@ func (r *storageRepository) listByIDs(ctx context.Context, storageIDs []uuid.UUI
 	return storages, nil
 }
 
+// listByIDsBlockingChanges locks the rows in ID order, so concurrent selections and deletions of
+// several storages cannot deadlock.
+func (r *storageRepository) listByIDsBlockingChanges(ctx context.Context, storageIDs []uuid.UUID) ([]Storage, error) {
+	var storages []Storage
+
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT "+storageColumns+" FROM storages WHERE id IN ? ORDER BY id"+string(forShareRowLock), storageIDs).
+		Scan(&storages).Error
+	if err != nil {
+		return nil, fmt.Errorf("lock the storages by id: %w", err)
+	}
+
+	return storages, nil
+}
+
+func (r *storageRepository) listAll(ctx context.Context) ([]Storage, error) {
+	var storages []Storage
+
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT " + storageColumns + " FROM storages ORDER BY name, id").
+		Scan(&storages).Error
+	if err != nil {
+		return nil, fmt.Errorf("list every storage: %w", err)
+	}
+
+	return storages, nil
+}
+
 func (r *storageRepository) listByWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]Storage, error) {
 	var storages []Storage
 

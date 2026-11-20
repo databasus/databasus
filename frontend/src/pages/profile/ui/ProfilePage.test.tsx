@@ -22,6 +22,7 @@ const openProfile = async (onUserChanged = vi.fn()) => {
       name: 'Owner',
       role: 'ADMIN',
       status: 'ACTIVE',
+      isRootAdmin: false,
       createdAt: '2026-10-01T00:00:00Z',
     }),
   );
@@ -158,6 +159,7 @@ describe('ProfilePage', () => {
         id: 'owner-id',
         role: 'ADMIN' as const,
         status: 'ACTIVE' as const,
+        isRootAdmin: false,
         createdAt: '2026-10-01T00:00:00Z',
         ...savedProfile,
       };
@@ -260,6 +262,7 @@ describe('ProfilePage', () => {
       name: 'Submitted',
       role: 'ADMIN' as const,
       status: 'ACTIVE' as const,
+      isRootAdmin: false,
       createdAt: '2026-10-01T00:00:00Z',
     };
     const save = mockApi.delayed({
@@ -296,6 +299,7 @@ describe('ProfilePage', () => {
       name: 'Normalized',
       role: 'ADMIN' as const,
       status: 'ACTIVE' as const,
+      isRootAdmin: false,
       createdAt: '2026-10-01T00:00:00Z',
     };
     const save = mockApi.delayed({
@@ -373,6 +377,7 @@ describe('ProfilePage', () => {
                 name: 'Changed',
                 role: 'ADMIN',
                 status: 'ACTIVE',
+                isRootAdmin: false,
                 createdAt: '2026-10-01T00:00:00Z',
               },
             })
@@ -444,6 +449,7 @@ describe('ProfilePage', () => {
         name: 'Owner',
         role: 'ADMIN',
         status: 'ACTIVE',
+        isRootAdmin: false,
         createdAt: '2026-10-01T00:00:00Z',
       }),
     );
@@ -462,6 +468,7 @@ it.each([false, true])(
       name: 'Normalized name',
       role: 'ADMIN' as const,
       status: 'ACTIVE' as const,
+      isRootAdmin: false,
       createdAt: '2026-10-01T00:00:00Z',
     };
     const save = mockApi.delayed({

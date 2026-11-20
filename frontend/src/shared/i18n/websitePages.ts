@@ -34,6 +34,7 @@ export const WEBSITE_PAGES = {
   notifiersSlack: { path: 'notifiers/slack', isTranslated: true },
   notifiersTeams: { path: 'notifiers/teams', isTranslated: true },
   notifiersMattermost: { path: 'notifiers/mattermost', isTranslated: false },
+  discord: { path: 'discord', isTranslated: false },
 } satisfies Record<string, WebsitePage>;
 
 type WebsitePageId = keyof typeof WEBSITE_PAGES;

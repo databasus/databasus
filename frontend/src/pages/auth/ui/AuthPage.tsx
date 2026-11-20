@@ -1,8 +1,9 @@
-import { Loader } from '@mantine/core';
+import { Alert, Loader } from '@mantine/core';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { isRestoredSignInExpected } from '@/entities/instance-backups';
 import { type PendingSignIn, userApi } from '@/entities/users';
-import { AuthNavbarComponent } from '@/pages/auth/ui/AuthNavbarComponent';
 import { RequestResetPasswordComponent } from '@/pages/auth/ui/RequestResetPasswordComponent';
 import { ResetPasswordComponent } from '@/pages/auth/ui/ResetPasswordComponent';
 import { SignInCodeComponent } from '@/pages/auth/ui/SignInCodeComponent';
@@ -11,7 +12,7 @@ import { SignUpComponent } from '@/pages/auth/ui/SignUpComponent';
 import { useSessionQuery } from '@/shared/api';
 import { beginAuthIntent, abandonAuthIntent } from '@/shared/auth';
 import { useScreenHeight } from '@/shared/hooks';
-import { LoadFailure } from '@/shared/ui';
+import { BrandNavbar, LoadFailure } from '@/shared/ui';
 
 export function AuthPage() {
   useEffect(() => {
@@ -38,6 +39,8 @@ export function AuthPage() {
 
   const loadOptions = () => query.refetch();
   const screenHeight = useScreenHeight();
+  const { t } = useTranslation();
+  const [isRestoredSignIn] = useState(isRestoredSignInExpected);
   useEffect(() => {
     if (query.data !== undefined) setAuthMode(query.data ? 'signIn' : 'signUp');
   }, [query.data]);
@@ -56,7 +59,13 @@ export function AuthPage() {
       ) : (
         <div>
           <div>
-            <AuthNavbarComponent />
+            <BrandNavbar />
+
+            {isRestoredSignIn && (
+              <div className="mx-auto mt-6 max-w-md px-4">
+                <Alert color="accent" title={t('instanceRecovery.restoredSignIn')} />
+              </div>
+            )}
 
             <div className="mt-8 flex justify-center px-4 pb-8 sm:mt-[6vh]">
               {authMode === 'signUp' ? (

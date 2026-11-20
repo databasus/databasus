@@ -4,6 +4,7 @@ import (
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/healthcheck"
+	"databasus-backend/internal/modules/instancebackups"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/verification"
@@ -28,6 +29,12 @@ func subscribeToWorkspaceDeleting(
 // outside the target workspace uses.
 func subscribeToNotifierTransferring(notifiersModule notifiers.Module, databasesModule databases.Module) {
 	notifiersModule.SubscribeToNotifierTransferring(databasesModule.OnNotifierTransferring)
+}
+
+// subscribeToStorageDeleting lets the Databasus backup settings refuse to delete a storage selected
+// as a destination before the storages check their backup references and cleanup.
+func subscribeToStorageDeleting(storagesModule storages.Module, instanceBackupsModule instancebackups.Module) {
+	storagesModule.SubscribeToStorageDeleting(instanceBackupsModule.OnStorageDeleting)
 }
 
 // subscribeToStorageTransferring lets the backup configs refuse to move a storage that a database

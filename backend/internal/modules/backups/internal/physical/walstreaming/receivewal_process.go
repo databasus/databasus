@@ -17,12 +17,14 @@ const (
 	receiverFatal                               // non-retryable exit — escalate so the supervisor reclaims it on a later tick
 	receiverResumeMismatch                      // asked for WAL the server no longer has — realign the resume point and retry
 	receiverIdentityMismatch
+	receiverForkRealignment // resumed past the fork point of the server's history — realign to it and retry
 )
 
 type receiverRunResult struct {
 	Exit     receiverExit
 	RanFor   time.Duration
 	FatalErr error
+	Fork     *pgphysical.WalReceiverFork
 }
 
 func (s *Streamer) spawnAndSupervise(ctx context.Context, logger *slog.Logger) receiverRunResult {
@@ -60,6 +62,8 @@ func (s *Streamer) spawnAndSupervise(ctx context.Context, logger *slog.Logger) r
 		return receiverRunResult{Exit: receiverFatal, RanFor: receiver.RanFor, FatalErr: receiver.FatalErr}
 	case pgphysical.WalReceiverResumeMismatch:
 		return receiverRunResult{Exit: receiverResumeMismatch, RanFor: receiver.RanFor}
+	case pgphysical.WalReceiverForkRealignment:
+		return receiverRunResult{Exit: receiverForkRealignment, RanFor: receiver.RanFor, Fork: receiver.Fork}
 	}
 	panic("unknown WAL receiver disposition")
 }

@@ -2,6 +2,7 @@ package download
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/logical"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -186,6 +188,10 @@ func (s *Service) openWithStream(ctx context.Context, downloadToken DownloadToke
 	}
 
 	backupFile, err := s.logicalBackups.OpenBackupFile(ctx, backup)
+	if errors.Is(err, storages.ErrStoredFileNotFound) {
+		return Download{}, fmt.Errorf("%w: %w", ErrBackupFileMissing, err)
+	}
+
 	if err != nil {
 		return Download{}, err
 	}

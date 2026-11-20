@@ -247,7 +247,8 @@
       background-color: var(--app-hover);
     }
 
-    &[data-combobox-selected] {
+    &[data-combobox-selected],
+    &[data-combobox-active] {
       background-color: var(--app-selected);
       color: var(--app-content);
     }

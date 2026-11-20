@@ -252,7 +252,7 @@ func verifyFullTimelineCompatibility(
 
 func timelineRefusalResult(decision *timelines.TimelineDecision, refuseNewerTimeline bool) (Result, bool) {
 	switch decision.Kind {
-	case timelines.TimelineContinue:
+	case timelines.TimelineContinue, timelines.TimelineContinueAcrossPromotion:
 		return Result{}, true
 
 	case timelines.TimelineFailoverDetected:
@@ -266,7 +266,7 @@ func timelineRefusalResult(decision *timelines.TimelineDecision, refuseNewerTime
 			Status:      catalog.BackupStatusChainBroken,
 			ErrorReason: &reason,
 			ErrorMessage: fmt.Sprintf(
-				"timeline switch detected: root FULL TL %d, live TL %d",
+				"timeline switch detected: chain TL %d, live TL %d",
 				decision.ExpectedTimelineID, decision.LiveTimelineID,
 			),
 		}, false
@@ -299,7 +299,11 @@ func timelineRefusalResult(decision *timelines.TimelineDecision, refuseNewerTime
 	return Result{}, true
 }
 
-func recheckFullStreamFailure(
+// recheckStreamFailure compares the live timeline after a failed stream with the timeline captured
+// at preflight. A newer timeline means the source was promoted during the transfer, so the
+// failure is FAILOVER_DURING_BACKUP. Comparing with the preflight timeline rather than the chain's
+// keeps an INCREMENTAL on a chain that crossed a promotion earlier from reading as a new promotion.
+func recheckStreamFailure(
 	ctx context.Context,
 	common CommonBackupSpec,
 	preflightTimelineID int,
@@ -313,17 +317,17 @@ func recheckFullStreamFailure(
 	if err != nil {
 		common.Logger.WarnContext(
 			ctx,
-			"cluster identity recheck failed after full stream failure",
+			"cluster identity recheck failed after stream failure",
 			slog.Any("error", err),
 		)
 
 		return streamResult
 	}
 
-	return classifyFullStreamFailureAfterIdentity(streamResult, preflightTimelineID, decision)
+	return classifyStreamFailureAfterIdentity(streamResult, preflightTimelineID, decision)
 }
 
-func classifyFullStreamFailureAfterIdentity(
+func classifyStreamFailureAfterIdentity(
 	streamResult Result,
 	preflightTimelineID int,
 	decision *timelines.TimelineDecision,
@@ -335,7 +339,7 @@ func classifyFullStreamFailureAfterIdentity(
 			Status:      catalog.BackupStatusError,
 			ErrorReason: &reason,
 			ErrorMessage: fmt.Sprintf(
-				"timeline advanced during FULL: preflight TL %d, live TL %d",
+				"timeline advanced during backup: preflight TL %d, live TL %d",
 				preflightTimelineID,
 				decision.LiveTimelineID,
 			),
@@ -343,42 +347,6 @@ func classifyFullStreamFailureAfterIdentity(
 	}
 
 	refusal, canProceed := timelineRefusalResult(decision, false)
-	if !canProceed {
-		return refusal
-	}
-
-	return streamResult
-}
-
-func recheckIncrementalStreamFailure(
-	ctx context.Context,
-	common CommonBackupSpec,
-	rootFullTimelineID int,
-	streamResult Result,
-) Result {
-	if ctx.Err() != nil || streamResult.Status == catalog.BackupStatusCanceled {
-		return streamResult
-	}
-
-	decision, err := inspectTimelineAgainstExpected(ctx, common, rootFullTimelineID)
-	if err != nil {
-		common.Logger.WarnContext(
-			ctx,
-			"cluster identity recheck failed after incremental stream failure",
-			slog.Any("error", err),
-		)
-
-		return streamResult
-	}
-
-	return classifyIncrementalStreamFailureAfterIdentity(streamResult, decision)
-}
-
-func classifyIncrementalStreamFailureAfterIdentity(
-	streamResult Result,
-	decision *timelines.TimelineDecision,
-) Result {
-	refusal, canProceed := timelineRefusalResult(decision, true)
 	if !canProceed {
 		return refusal
 	}

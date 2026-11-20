@@ -193,7 +193,7 @@ func (tm Team) RequireRestoreVersionCheck(t *testing.T, check RestoreVersionChec
 		requireStatus(t, "start the restore", err, http.StatusInternalServerError, response.StatusCode(), response.Body)
 		assert.Contains(t, string(response.Body), string(apiclient.ProblemCodeInternal))
 		assert.NotContains(t, string(response.Body), "lower than")
-		assert.Zero(t, tm.countRestores(t, check.BackupID))
+		assert.Zero(t, tm.CountRestores(t, check.BackupID))
 	})
 
 	t.Run("returns 400 invalid_request when the target is older", func(t *testing.T) {
@@ -210,7 +210,7 @@ func (tm Team) RequireRestoreVersionCheck(t *testing.T, check RestoreVersionChec
 		assert.Contains(t, string(response.Body), string(apiclient.ProblemCodeInvalidRequest))
 		assert.Contains(t, string(response.Body), newerVersion)
 		assert.Contains(t, string(response.Body), check.TargetVersion)
-		assert.Zero(t, tm.countRestores(t, check.BackupID))
+		assert.Zero(t, tm.CountRestores(t, check.BackupID))
 	})
 }
 
@@ -314,6 +314,16 @@ func (tm Team) GetTimescaledbVersion(t *testing.T, backupID uuid.UUID) string {
 	return timescaledbVersion
 }
 
+// CountRestores reads the rows directly, so a test can show that a refused start stored none.
+func (tm Team) CountRestores(t *testing.T, backupID uuid.UUID) int64 {
+	t.Helper()
+
+	var restoreCount int64
+	tm.App.QuerySQL(t, &restoreCount, "SELECT count(*) FROM backups_restores WHERE backup_id = ?", backupID)
+
+	return restoreCount
+}
+
 func (tm Team) setRecordedVersion(t *testing.T, check RestoreVersionCheck, version string) {
 	t.Helper()
 
@@ -323,15 +333,6 @@ func (tm Team) setRecordedVersion(t *testing.T, check RestoreVersionCheck, versi
 		version,
 		check.DatabaseID,
 	)
-}
-
-func (tm Team) countRestores(t *testing.T, backupID uuid.UUID) int64 {
-	t.Helper()
-
-	var restoreCount int64
-	tm.App.QuerySQL(t, &restoreCount, "SELECT count(*) FROM backups_restores WHERE backup_id = ?", backupID)
-
-	return restoreCount
 }
 
 // createMissingBucketStorage creates an S3 storage on a reachable MinIO whose bucket does not exist,

@@ -9,6 +9,8 @@ Defines how Databasus publishes backup files and eventually removes every file t
 
 The system SHALL record a pending deletion for a unique file name before sending bytes to storage, and SHALL remove that record only as part of the transaction that publishes the file as part of a backup. Every other outcome SHALL leave the record in place, so the file is eventually removed.
 
+The explicit lost-server recovery procedure in `databasus-recovery` is an exception for copied source-instance obligations and interrupted-operation normalization. It SHALL not replay those stale obligations against surviving storages and SHALL explain the resulting manual-cleanup limitation. This exception SHALL NOT apply to an ordinary restart, upgrade or failed live operation; their cleanup obligations remain durable and retryable.
+
 #### Scenario: File and backup are published together
 
 - **WHEN** storage accepts a file and the owning backup catalog change commits
@@ -43,6 +45,8 @@ The system SHALL record a pending deletion for a unique file name before sending
 
 The system SHALL leave the pending deletion in place for every file produced by an unsuccessful logical or physical backup operation, even when storage accepted the file before another stage failed. The owning backup flow SHALL identify the base file and each metadata, manifest, WAL or history sidecar that belongs to that operation.
 
+The explicit lost-server recovery procedure in `databasus-recovery` is an exception for copied source-instance obligations and interrupted-operation normalization. It SHALL not replay those stale obligations against surviving storages and SHALL explain the resulting manual-cleanup limitation. This exception SHALL NOT apply to an ordinary restart, upgrade or failed live operation; their cleanup obligations remain durable and retryable.
+
 #### Scenario: Logical dump fails after producing output
 
 - **WHEN** a logical backup tool produces bytes and then exits with an error
@@ -75,6 +79,8 @@ The system SHALL leave the pending deletion in place for every file produced by 
 ### Requirement: Catalog removal and deletion requests are atomic
 
 The system SHALL commit the removal or terminal failure of catalog records together with durable deletion requests for all files those records own. It SHALL NOT perform remote storage deletion while holding that catalog transaction open.
+
+The explicit lost-server recovery procedure in `databasus-recovery` is an exception for copied source-instance obligations and interrupted-operation normalization. It SHALL not replay those stale obligations against surviving storages and SHALL explain the resulting manual-cleanup limitation. This exception SHALL NOT apply to an ordinary restart, upgrade or failed live operation; their cleanup obligations remain durable and retryable.
 
 #### Scenario: Backup is removed while storage is unavailable
 
@@ -199,6 +205,8 @@ The system SHALL retry failed deletions with exponential delay, a maximum delay 
 
 Every deletion obligation, including one created by a storage change, SHALL remain retryable until the file is confirmed absent or the user explicitly abandons cleanup by deleting its storage. Five failures or 24 hours SHALL NOT stop retries or remove an obligation. A failed attempt SHALL remain pending, not become a terminal successful or unresolved operation result.
 
+The explicit lost-server recovery procedure in `databasus-recovery` is an exception for copied source-instance obligations and interrupted-operation normalization. It SHALL not replay those stale obligations against surviving storages and SHALL explain the resulting manual-cleanup limitation. This exception SHALL NOT apply to an ordinary restart, upgrade or failed live operation; their cleanup obligations remain durable and retryable.
+
 #### Scenario: Storage outage persists
 
 - **WHEN** repeated ordinary deletion attempts fail because storage is unavailable
@@ -236,7 +244,7 @@ Every deletion obligation, including one created by a storage change, SHALL rema
 
 ### Requirement: Deleting a storage reports the files it leaves behind
 
-Deleting a storage referenced by a backup configuration or retained backup SHALL return 409 with code `in_use` and SHALL change nothing, even when the request explicitly abandons cleanup. The stored references SHALL also prevent accidental cascading loss of those configurations and backup records.
+After ordinary authorization, deleting a selected Databasus backup destination SHALL return 409 with code `databasus_backup_in_use` before checking database-backup references or cleanup, including when those blockers also apply. Otherwise a database backup configuration or retained database backup SHALL cause 409 with code `in_use`. Neither refusal SHALL change anything, even when the request explicitly abandons cleanup. The stored references SHALL also prevent accidental cascading loss of those configurations and backup records. Historical Databasus backup copies alone SHALL not prevent deletion after deselection; their storage reference SHALL be detached and marked unavailable without automatically deleting their remote files.
 
 For an otherwise unused storage, the server SHALL check all outstanding file obligations, including delayed, failed and currently claimed work, when processing deletion. Without explicit abandonment, outstanding work SHALL return 409 with code `cleanup_pending`, preserving the storage, credentials and obligations and making no provider deletion calls. A stale earlier read SHALL NOT waive this check.
 
@@ -248,17 +256,17 @@ Queue registration and storage deletion SHALL be ordered so a new obligation is 
 
 #### Scenario: Storage is deleted while backups still reference it
 
-- **WHEN** a user deletes a storage that still has backup records, with or without explicit abandonment
+- **WHEN** a user deletes a storage that still has database backup records but is not a selected Databasus backup destination, with or without explicit abandonment
 - **THEN** the response is 409 with code `in_use`, every record and obligation remains, and no file is removed by the request
 
 #### Scenario: Storage is deleted while a backup configuration uses it
 
-- **WHEN** a user explicitly abandons cleanup while deleting a storage named by a backup configuration
+- **WHEN** a user explicitly abandons cleanup while deleting a storage named by a database backup configuration and not selected as a Databasus backup destination
 - **THEN** the response is 409 with code `in_use`, and the configuration, storage and obligations remain
 
 #### Scenario: Storage row deleted directly in the database
 
-- **WHEN** a storage is removed directly while a backup configuration or retained backup references it
+- **WHEN** a storage is removed directly while a database backup configuration or retained database backup references it
 - **THEN** the stored references refuse the deletion rather than cascading away the records that identify its files
 
 #### Scenario: Storage with reachable pending cleanup is deleted
@@ -310,8 +318,14 @@ Queue registration and storage deletion SHALL be ordered so a new obligation is 
 
 #### Scenario: Workspace containing such a storage is deleted
 
-- **WHEN** a workspace is deleted while one of its storages has outstanding cleanup
+- **WHEN** a workspace without databases, selected Databasus backup destinations or retained database-backup references is deleted while one of its storages has outstanding cleanup
 - **THEN** the whole deletion returns `cleanup_pending` without implicitly abandoning files or exposing a raw constraint error
+
+#### Scenario: Databasus destination and database references both prevent deletion
+
+- **WHEN** an authorized editor deletes a selected Databasus backup destination that also has retained database backups and queued cleanup
+- **THEN** the response is 409 with code `databasus_backup_in_use`, no record changes and no provider deletion is called
+- **AND** after deselection, the database-backup references still cause `in_use` before cleanup is considered
 
 ### Requirement: Cleanup state contains no provider credentials
 

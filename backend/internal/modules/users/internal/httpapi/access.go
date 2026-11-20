@@ -89,7 +89,10 @@ func (a *Access) signInRequest(ginContext *gin.Context) (identity.Actor, bool) {
 	}
 
 	ginContext.Request = ginContext.Request.WithContext(
-		logging.With(identity.WithActor(ctx, actor), slog.String("user_id", actor.UserID.String())),
+		logging.With(
+			identity.WithSession(identity.WithActor(ctx, actor), token),
+			slog.String("user_id", actor.UserID.String()),
+		),
 	)
 
 	return actor, true

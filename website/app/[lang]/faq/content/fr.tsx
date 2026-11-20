@@ -3,6 +3,7 @@ import { OG_LOCALES, getLanguageAlternates, getLocalizedHref, getLocalizedUrl } 
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
+import { CopyButton } from "@/app/components/CopyButton";
 
 export const metadata: Metadata = {
   title: "FAQ - Questions fréquentes | Databasus",
@@ -40,6 +41,15 @@ export const metadata: Metadata = {
 };
 
 export default function FAQPage() {
+  const startupRecoveryCommand = `docker run -d \\
+  --name databasus \\
+  -p 4005:4005 \\
+  -v ./databasus-data:/databasus-data \\
+  -e RECOVERY_DUMP_PATH=/databasus-data/recovery/backup.dbbackup \\
+  -e RECOVERY_MASTER_KEY_PATH=/databasus-data/recovery/master.key \\
+  --restart unless-stopped \\
+  databasus/databasus:<version>`;
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -87,7 +97,7 @@ export default function FAQPage() {
                 name: "Comment sauvegarder Databasus lui-même ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Pour sauvegarder Databasus, allez dans /opt/databasus (ou le dossier où vous l'avez installé), puis dans le répertoire databasus-data. Vous devez sauvegarder le fichier secret.key (clé de chiffrement des identifiants) et le dossier /pgdata (base interne contenant les configurations et les métadonnées des backups). Il y a deux scénarios de récupération : 1) vous pouvez récupérer les backups de bases avec le seul secret.key, sans l'interface Databasus (voir le guide de récupération manuelle) ; 2) pour restaurer l'interface Databasus avec toutes les configurations et l'historique, il faut à la fois secret.key et le dossier /pgdata. Pour restaurer, recréez cette structure de dossiers sur un autre serveur.",
+                  text: "Databasus est conçu pour rester récupérable même si son propre serveur est perdu ou corrompu. Il peut sauvegarder sa propre base interne : comptes, paramètres, identifiants chiffrés des bases de données, stockages et canaux de notification, planifications et catalogue des sauvegardes. Activez cette fonction dans Databasus settings → Databasus backups en sélectionnant un ou plusieurs stockages existants ; par défaut, une sauvegarde Databasus est créée toutes les heures et conservée 30 jours. Le fichier est chiffré avec la clé maîtresse et ne contient ni cette clé ni les fichiers de sauvegarde de vos bases : conservez donc la clé maîtresse séparément. Databasus vous demande de la télécharger, et elle correspond aussi au fichier . /databasus-data/secret. key sur l'hôte. La restauration exige le fichier de sauvegarde, sa clé maîtresse et exactement la même version de Databasus, patch compris. Soit vous placez les deux fichiers dans le répertoire de données monté et démarrez Databasus avec RECOVERY_DUMP_PATH et RECOVERY_MASTER_KEY_PATH sur un serveur sans comptes ni paramètres modifiés, soit vous importez le fichier et collez la clé dans Databasus settings → Databasus backups, ce qui remplace l'installation actuelle. Arrêtez l'ancienne installation avant de restaurer. L'installation restaurée lance aussitôt ses sauvegardes, ses notifications et ses écritures dans les stockages : deux installations en marche écriraient donc dans les mêmes stockages et les mêmes bases.",
                 },
               },
               {
@@ -104,6 +114,14 @@ export default function FAQPage() {
                 acceptedAnswer: {
                   "@type": "Answer",
                   text: "L’IA nous aide à développer Databasus, de la planification et de l’implémentation aux tests et à la documentation. Les personnes définissent l’orientation et prennent les décisions finales. Une personne lit chaque ligne de code avant l’intégration d’un changement. Nous utilisons le développement guidé par les spécifications (SDD) avec OpenSpec pour convenir du comportement avant l’implémentation. Une revue indépendante à chaque étape Les hooks automatiques lancent des sessions de revue séparées avec un accès au dépôt en lecture seule. Chaque agent inspecte le code concerné et rend ses propres conclusions. L’agent chargé de l’implémentation ne peut pas approuver son propre travail. La revue commence avant l’implémentation. Des agents de planification séparés cherchent des solutions plus simples, vérifient les noms proposés et évaluent la conception. Ils vérifient aussi la cohérence entre les exigences et les tâches de vérification. Revue du code : Recherche de bugs, de cas limites oubliés, d’erreurs de gestion des échecs, de conditions de course, de fuites de ressources et de problèmes de sécurité. Revue des exigences : Recherche de l’implémentation et des tests de chaque exigence. Vérification que les tests démontrent le comportement promis. Revue d’architecture : Vérification des frontières entre modules, du sens des dépendances, de la propriété des données, des migrations et des règles d’API. Revue de la structure du code : Vérification des noms, des responsabilités des fichiers et fonctions, des commentaires et de la lisibilité. Revue des tests : Évaluation de leur capacité à détecter un comportement absent ou une régression. Vérification des attentes de conditions, du nettoyage et des preuves de vérification. Revue de la documentation et des tâches : Vérification de la cohérence avec le code, de l’achèvement des tâches et des preuves des contrôles déclarés. Les revues complètes d’implémentation s’exécutent en parallèle. Chaque spécification modifiée a son propre agent de revue des exigences. L’architecture, les tests et la documentation ont des agents séparés. Un changement portant sur deux spécifications reçoit donc cinq agents de revue complète. Les problèmes bloquants empêchent l’acceptation du travail. L’agent chargé de l’implémentation les corrige ou explique pourquoi un signalement est erroné. Un agent de suivi vérifie cette résolution et les modifications suivantes. Une revue qui n’a pas pu s’exécuter ne compte pas comme réussie. Contrôles automatiques et restaurations réelles La revue indépendante s’accompagne de contrôles automatiques stricts. golangci-lint et notre analyseur d’architecture vérifient les dépendances du backend, les frontières entre modules et les règles de migration. Les contrôles d’API valident les contrats OpenAPI et le code généré. Le frontend vérifie TypeScript, React, les imports entre couches, les styles et la localisation. Ruff et ty vérifient le formatage, les règles de code et les types Python. ShellCheck vérifie les scripts shell et actionlint, les workflows GitHub Actions. Les hooks de pré-commit vérifient les fichiers concernés du backend, du frontend et de Python sans les réécrire. L’analyse statique s’exécute aussi dans la CI. Les tests vérifient des comportements réels. Le backend est testé par l’API de l’application et les moteurs, avec de vraies bases de données en conteneurs. Les scénarios de bout en bout créent des sauvegardes, les restaurent et vérifient les données restaurées. D’autres tests couvrent les mises à niveau, les écrans du frontend et les parcours dans le navigateur avec des comparaisons visuelles. Les contrôles sont choisis selon le changement. Les suites obligatoires de publication s’exécutent sur amd64 et arm64. L’agent chargé de l’implémentation exécute les analyseurs et les tests requis avant la revue. Les agents de revue inspectent les preuves sans relancer ces commandes. Avant la publication, CodeQL et Semgrep analysent le code, Gitleaks recherche les secrets et les dépendances sont vérifiées pour détecter les vulnérabilités. Trivy analyse les images de conteneur et les Dockerfiles. Les contrôles CI obligatoires doivent réussir avant la publication.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Existe-t-il une communauté Databasus ?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Oui. La communauté Databasus échange sur Telegram (https://t.me/databasus_community) et Discord (https://databasus.com/discord). Vous pouvez y poser vos questions, raconter comment vous utilisez Databasus, discuter des fonctionnalités et découvrir les nouvelles versions avant tout le monde. Choisissez l'application que vous utilisez déjà.",
                 },
               },
             ],
@@ -566,78 +584,131 @@ export default function FAQPage() {
               </h2>
 
               <p>
-                Si vous voulez sauvegarder votre instance Databasus (avec toutes
-                les configurations, bases de données et identifiants), suivez
-                ces étapes :
+                Databasus est conçu pour rester récupérable même si son propre serveur est perdu ou corrompu.
+                Il peut sauvegarder sa propre base interne : comptes,
+                paramètres, identifiants chiffrés de vos bases de données,
+                stockages et canaux de notification, planifications et catalogue
+                des sauvegardes. Activez cette fonction dans{" "}
+                <strong>Databasus settings → Databasus backups</strong> en
+                sélectionnant un ou plusieurs stockages existants. Par défaut,
+                une sauvegarde Databasus est créée toutes les heures et
+                conservée 30 jours. Chaque fichier est chiffré avec la clé
+                maîtresse.
               </p>
 
-              <ol>
-                <li>
-                  Allez dans <code>/opt/databasus</code> (ou le dossier où vous
-                  avez installé Databasus)
-                </li>
-                <li>
-                  Rendez-vous dans le répertoire <code>databasus-data</code>
-                </li>
-              </ol>
-
               <p>
-                <strong>Vous devez sauvegarder :</strong>
+                Une sauvegarde Databasus ne contient ni la clé maîtresse ni les
+                fichiers de sauvegarde de vos bases, qui restent dans leurs
+                propres stockages. <strong>Conservez la clé maîtresse
+                séparément.</strong>{" "}
+                Databasus vous demande de la télécharger lors de la première
+                visite, et la clé correspond aussi au fichier{" "}
+                <code>./databasus-data/secret.key</code> sur l&apos;hôte.
               </p>
 
               <ul>
                 <li>
-                  <code>secret.key</code> : la clé de chiffrement de vos
-                  identifiants
+                  <strong>Choisissez un stockage distant.</strong> Un stockage
+                  local sur le même serveur disparaît avec ce serveur.
                 </li>
                 <li>
-                  <code>/pgdata</code> : la base PostgreSQL interne de Databasus
-                  qui contient toutes vos configurations et les métadonnées des
-                  backups
-                </li>
-              </ul>
-
-              <p>
-                Si vous utilisez le stockage local pour vos backups, vous pouvez
-                aussi sauvegarder le dossier <code>backups</code>.
-              </p>
-
-              <p>
-                <strong>Important :</strong> il existe deux scénarios de
-                récupération différents :
-              </p>
-
-              <ul>
-                <li>
-                  <strong>
-                    Récupérer les backups sans l&apos;interface Databasus :
-                  </strong>{" "}
-                  vous pouvez récupérer vos backups de bases avec le seul
-                  fichier <code>secret.key</code>, sans avoir besoin de
-                  Databasus ni de ses données internes. Consultez le{" "}
-                  <a href="/fr/how-to-recover-without-databasus">
-                    guide de récupération manuelle
+                  <strong>Alertes.</strong> Databasus affiche un avertissement
+                  lorsqu&apos;une sauvegarde Databasus échoue, n&apos;est
+                  enregistrée que dans une partie des stockages, s&apos;arrête
+                  ou prend du retard, c&apos;est-à-dire qu&apos;aucune copie
+                  n&apos;a réussi 15 minutes après une exécution planifiée. Les
+                  mêmes alertes partent par e-mail via le{" "}
+                  <a href={`${getLocalizedHref("fr", "advanced-config")}#email-smtp`}>
+                  serveur de messagerie de l&apos;instance
                   </a>{" "}
-                  pour des instructions détaillées.
+                  s&apos;il est configuré.
+                </li>
+              </ul>
+
+              <h3 id="recover-databasus">
+                Comment restaurer Databasus depuis une sauvegarde Databasus ?
+              </h3>
+
+              <p>
+                Il vous faut deux choses : un fichier de sauvegarde Databasus (
+                <code>.dbbackup</code>), téléchargé depuis l&apos;historique ou
+                récupéré directement dans le stockage, et la clé maîtresse de
+                l&apos;installation qui l&apos;a créé.{" "}
+                <strong>
+                La restauration ne fonctionne que sur exactement la même version
+                de Databasus, patch compris.
+                </strong>{" "}
+                Pour toute autre version, Databasus refuse et indique la version
+                à démarrer : restaurez sur cette version, puis mettez à niveau
+                comme d&apos;habitude.
+              </p>
+
+              <p>
+                <strong>Arrêtez l&apos;ancienne installation avant de restaurer.</strong>{" "}
+                L&apos;installation restaurée lance aussitôt ses sauvegardes, ses
+                notifications et ses écritures dans les stockages : deux
+                installations en marche écriraient donc dans les mêmes stockages
+                et les mêmes bases.
+              </p>
+
+              <p>
+                <strong>Option 1 : fichiers au démarrage.</strong> Elle convient
+                à un nouveau serveur. Placez les deux fichiers dans le
+                répertoire de données monté, par exemple{" "}
+                <code>./databasus-data/recovery/</code>, et démarrez
+                l&apos;image de la version qui a créé la sauvegarde avec deux
+                paramètres supplémentaires.
+                Remplacez <code>&lt;version&gt;</code> par cette version :
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{startupRecoveryCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton lang="fr" text={startupRecoveryCommand} />
+                </div>
+              </div>
+
+              <ul>
+                <li>
+                  Si vous avez déjà démarré Databasus normalement sur ce serveur
+                  sans créer de compte ni modifier de paramètres, inutile de
+                  supprimer ses données. Arrêtez-le, ajoutez les deux fichiers
+                  et les deux paramètres, puis redémarrez-le.
                 </li>
                 <li>
-                  <strong>
-                    Restaurer l&apos;interface Databasus et toutes les
-                    configurations :
-                  </strong>{" "}
-                  pour restaurer l&apos;interface Databasus avec toutes vos
-                  configurations, sauvegardes planifiées et historique, vous
-                  devez sauvegarder à la fois <code>secret.key</code> et le
-                  dossier <code>/pgdata</code> (qui contient les métadonnées de
-                  chiffrement et toutes les configurations Databasus).
+                  La restauration au démarrage ne remplace jamais une
+                  installation qui a un compte, même un seul, d&apos;autres
+                  données utilisateur ou des paramètres modifiés. Dans ce cas,
+                  Databasus ne démarre pas. Son journal indique que la
+                  restauration n&apos;a pas eu lieu, pourquoi, que
+                  l&apos;installation actuelle est intacte et quoi faire
+                  ensuite. Pour démarrer l&apos;installation actuelle, retirez
+                  les deux paramètres, ou utilisez plutôt l&apos;import dans
+                  l&apos;interface.
+                </li>
+                <li>
+                  Après une restauration réussie, les fichiers et les paramètres
+                  peuvent rester en place. Databasus mémorise le SHA-256 du
+                  fichier appliqué : les redémarrages et les mises à niveau
+                  suivantes l&apos;ignorent et le signalent dans le journal,
+                  même si le fichier a été renommé. Un autre fichier au même
+                  chemin n&apos;est pas ignoré.
                 </li>
               </ul>
 
               <p>
-                <strong>Pour restaurer Databasus sur un autre serveur :</strong>{" "}
-                recréez simplement la structure du dossier{" "}
-                <code>databasus-data</code> avec les fichiers sauvegardés et
-                démarrez Databasus.
+                <strong>Option 2 : import dans l&apos;interface.</strong> Elle
+                convient à une installation déjà en service. Sur une nouvelle
+                installation, inscrivez-vous d&apos;abord. Ouvrez{" "}
+                <strong>Databasus settings → Databasus backups</strong>,
+                choisissez le fichier de sauvegarde, puis collez ou saisissez la
+                clé maîtresse de l&apos;installation qui l&apos;a créé.
+               
+                Tout le contenu de l&apos;installation actuelle est remplacé :
+                comptes, paramètres et catalogue des sauvegardes.
+                Connectez-vous ensuite avec un compte issu de la sauvegarde.
               </p>
 
               <h2 id="oss-programs">
@@ -697,6 +768,30 @@ export default function FAQPage() {
                 className="my-6 rounded-lg border border-gray-700 max-w-full sm:max-w-[1000px]"
                 loading="lazy"
               />
+
+              <h2 id="community">Existe-t-il une communauté Databasus ?</h2>
+
+              <p>
+                Oui. La communauté Databasus échange sur{" "}
+                <a
+                  href="https://t.me/databasus_community"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>{" "}
+                et{" "}
+                <a
+                  href="/discord"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>
+                . Vous pouvez y poser vos questions, raconter comment vous utilisez Databasus, discuter des fonctionnalités et découvrir les nouvelles versions avant tout le monde.
+              </p>
+
+              <p>Choisissez l&apos;application que vous utilisez déjà.</p>
             </article>
           </div>
         </main>

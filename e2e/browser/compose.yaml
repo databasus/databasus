@@ -16,6 +16,22 @@ services:
       start_period: 180s
       start_interval: 1s
 
+  # An independently initialized installation the recovery scenario replaces through the browser.
+  databasus-target:
+    image: ${E2E_IMAGE:?}
+    pull_policy: never
+    environment:
+      IS_DISABLE_ANONYMOUS_TELEMETRY: "true"
+    volumes:
+      - databasus-target-data:/databasus-data
+    healthcheck:
+      test: ["CMD", "databasus", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+      start_interval: 1s
+
   databases:
     image: docker.io/library/postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
     environment:
@@ -103,6 +119,7 @@ networks:
 
 volumes:
   databasus-data:
+  databasus-target-data:
   recovery-socket:
   recovery-engine-data:
   recovery-work:

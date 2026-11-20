@@ -96,7 +96,10 @@ func TestGetTimelineHistory(t *testing.T) {
 				require.Equal(t, "00000002.history", history.Filename)
 				require.Equal(t, sourceHistory, history.Body)
 				assertRoleHasOnlyReplication(t, standbyServer, role.Name)
-				require.NoError(t, validateTimelineHistory(2, history))
+				fork, err := validateTimelineHistory(2, history)
+				require.NoError(t, err)
+				require.Equal(t, 1, fork.ParentTimelineID)
+				require.Equal(t, fork, history.Fork)
 				assertPrivilegesUnchanged(t)
 
 				anotherCluster := startTestServer(t, image)
@@ -199,7 +202,9 @@ func TestGetTimelineHistory(t *testing.T) {
 					},
 				)
 				require.NoError(t, err)
-				require.NoError(t, validateTimelineHistory(3, current))
+				fork, err := validateTimelineHistory(3, current)
+				require.NoError(t, err)
+				require.Equal(t, 2, fork.ParentTimelineID)
 
 				assertRoleHasOnlyReplication(t, cascadingServer, user.Username)
 			})

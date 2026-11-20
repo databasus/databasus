@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl } from "@/app/i18n";
+import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl, getLocalizedHref } from "@/app/i18n";
 import { CopyButton } from "@/app/components/CopyButton";
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
@@ -283,6 +283,22 @@ mongorestore --host hostname:27017 --username username --password password \\
         <main className="flex-1 min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-12">
           <div className="mx-auto max-w-4xl">
             <article className="prose prose-blue max-w-none">
+              <div
+                role="note"
+                className="my-6 rounded-lg border border-red-500/40 bg-red-500/10 px-5 py-4"
+              >
+                <div className="font-semibold text-red-300">Эта инструкция устарела</div>
+                <div className="mt-1 text-sm leading-relaxed text-red-100/80">
+                  Теперь Databasus умеет бекапить сам себя и восстанавливаться из этих бекапов, так что расшифровывать и восстанавливать файлы вручную больше не нужно.
+                </div>
+                <a
+                  href={`${getLocalizedHref("ru", "faq")}#backup-databasus`}
+                  className="mt-3 inline-block text-sm font-medium text-red-300! underline! underline-offset-4 hover:text-red-200!"
+                >
+                  Как забекапить Databasus →
+                </a>
+              </div>
+
               <h1 id="manual-recovery">
                 Восстановление PostgreSQL из бекапа без Databasus
               </h1>

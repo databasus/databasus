@@ -24,6 +24,7 @@ Paths under `internal/` are inside `backend/`. The table distinguishes the test 
 | Module API tests          | the behavior of each module through its HTTP operations, and that every response matches the contract               | `internal/modules/<name>/*_test.go`, package `<name>_test` | the application, the internal database, HTTP; external systems are fakes                                 |
 | Engine tests              | connecting, privileges, dumping and restoring against every supported server version                                | `internal/engines/<engine>/*_test.go`                      | the database servers in containers                                                                       |
 | Backup and restore tests  | a full backup → restore cycle per engine and version, logical and physical, including SSH tunnels, TLS and failover | `internal/modules/backups/e2e/`                            | the application, source and target servers, storages in containers, the recovery script                  |
+| Databasus recovery-cycle tests | a Databasus backup recovered on a fresh server, then user-database restores from it | `internal/modules/instancebackups/e2e/` | the candidate image with its internal database, remote storage, source and target servers in containers |
 | Agent tests               | the verification agent's verification pipeline, and the agent against a real backend                                | `internal/agent/**`, `internal/agent/e2e/`                 | the backend from the test harness, Docker or Podman                                                      |
 | Migration tests           | a migration keeps and converts existing rows, on upgrade and on rollback                                            | `backend/migrations/*_test.go`                             | the internal database, empty or fully migrated as the test asks                                          |
 | Architecture linter tests | each rule of the linter fails on a violation and passes on clean code                                               | `backend/tools/archlint/*_test.go`                         | the linter on fixture modules; no database                                                               |
@@ -69,7 +70,7 @@ Tests from every worktree on a machine share one Docker daemon, so nothing a tes
   - The servers keep data in memory with durability off.
   - Tests sharing a server give a unique name to every database, role, schema and replication slot.
 - **Storages.** Each test uses its own bucket, container or directory.
-- **Docker networks.** Every network a test creates itself takes a random `/24` subnet from the test network range `10.160.0.0/11`, outside Docker's default address pools, and retries on an overlap. This holds for backend tests, the upgrade test and browser end-to-end runs. The verification agent cannot choose a range and allocates its restore networks from the default pools, so those pools stay free for it. The backend [container fixtures](../backend/internal/lib/testcontainers) and the browser suite's [supervisor](../e2e/browser) each follow the convention, because the browser suite imports no backend code.
+- **Docker networks.** Every network a test creates itself takes a random `/24` subnet from the test network range `10.160.0.0/11`, outside Docker's default address pools, and retries on an overlap. This holds for backend tests, the upgrade test and browser end-to-end runs. The verification agent cannot choose a range and allocates its restore networks from the default pools, so those pools stay free for it. The backend [container fixtures](../backend/internal/lib/testcontainers) and the browser suite's [supervisor](../e2e/browser) each follow the convention, because the browser suite imports no backend code. Stale networks are collected automatically: each backend test process removes, once, the networks in the test range that are older than an hour and have no running container, which a killed run or a Docker restart left behind. With Docker on firewalld every network is an interface in the firewall zone, and each one slows network creation further.
 - **Images.** An image a run builds has a tag no concurrent run uses, and the run removes it when it ends. The full run builds `databasus-full-test:local`; full runs take turns through their lock, so the tag cannot collide, and the next full run replaces an image a killed run left. The direct upgrade command builds `databasus-upgrade-test:<run ID>`. An image named through `DATABASUS_IMAGE` is used as given and never removed.
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files from `t.TempDir()`. Containers and processes get unique names and labels, and `t.Cleanup` removes them.
 - **Shared sources.** Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources stay available to `mise run run`, and test cleanup never removes their databases, roles or replication slots.
@@ -100,7 +101,7 @@ Disk space needs a wide margin rather than an exact figure. Durable fixtures wri
 |---|---|
 | Target for one package, or a few packages run together | about 5 minutes |
 | Limit | 10 minutes |
-| Runner timeout per package | 15 minutes, so an overrun fails instead of hiding |
+| Runner timeout per package | 15 minutes, so an overrun fails instead of hiding; 30 minutes for the slow packages in `mise run test-full`, where they share the Docker daemon with every other suite |
 | `mise run test-full`, with test images present and a warm build cache | about 10 minutes; limit 20 minutes |
 
 A test that exists to observe real time may take longer. It runs beside the others, so it does not stretch the critical path.
@@ -122,7 +123,7 @@ Each command adds its own layer on top:
   - the crashed-run probes and then the lifecycle interruption checks run while no other browser run of the command is active. They run one probe after another and no other browser run may overlap them, so they go first, beside the backend packages and the suites that start no browser run;
   - after them, the browser end-to-end scenarios and the other lifecycle probes run together, the probes split into parts that several processes run, because one process runs its probes one after another.
 
-  A failed suite stops no other suite; only a failed image build keeps the suites that run the image from starting. The run ends with a summary of each suite's outcome and duration, the build's duration and the total.
+  A failed suite stops no other suite; only a failed image build keeps the suites that run the image from starting. The run ends with a summary of each suite's outcome and duration, the build's duration and the total. Both commands also copy their output to a new `temp/test-<time>.txt` or `temp/test-full-<time>.txt` file in the checkout.
 - **Browser UI** takes its worker count from its runner: half the host's logical processors rounded up, and at least two, locally, and two per shard in CI.
 - **A direct package run** uses Go's defaults and gets the whole machine.
 
@@ -213,6 +214,10 @@ docker volume ls --filter label=databasus.k3s-fixture
 
 These commands also list fixtures active in other worktrees. Before removing anything, identify the killed run's fixture IDs and filter by `label=databasus.k3s-fixture=<fixture ID>`. Do not remove another run's resources.
 
+## Databasus recovery-cycle tests
+
+These tests prove that a Databasus backup brings back a working instance on a server that never saw the original one: the target receives only the archive and the master key, recovers at startup or through UI import, and then restores user databases from the recovered catalog. They run the candidate application image in containers, building it from the checkout when no image is supplied, and remove only their own containers and volumes. [Commands](#commands) lists the run, which needs the Fedora preparation.
+
 ## Verification agent end-to-end tests
 
 These tests run the real agent binary against a real backend, proving that they agree on the contract and can restore a backup. The separate agent unit-test command needs neither a container engine nor the test database. [Commands](#commands) lists both runs and the rootful Podman subset; source servers still use Docker in that subset.
@@ -263,6 +268,7 @@ Whether checking a change with targeted tests or with `mise run test`, an agent 
 - A change to scenarios in `e2e/browser/scenarios` or to the `Dockerfile` runs `mise run e2e:browser`, and the change verification names a scenario change's command.
 - A change to tests in `backend/internal/agent/e2e` or to the verification agent's code runs `mise run agent:e2e`, or the Go test command for the affected tests.
 - A change to tests in `backend/internal/modules/backups/e2e` runs the Go test command for the affected tests.
+- A change to tests in `backend/internal/modules/instancebackups/e2e`, or to how Databasus backups are produced or recovered, runs [the recovery-cycle command](#commands).
 - A change to `backend/e2e/upgrade` runs `mise run backend:test-upgrade`.
 
 A break in the backup pipeline can pass `mise run test`. When a change touches that pipeline, run the affected tests in `backend/internal/modules/backups/e2e` by hand.
@@ -367,6 +373,7 @@ To repeat one failing test, call its Go or frontend runner directly. This takes 
 | One frontend browser UI shard                         | `pnpm --dir frontend test:browser --project=ui --shard=1/3`                       |
 | Update browser visual references                       | `pnpm --dir frontend test:browser --project=ui --update-references`              |
 | Upgrade test                                           | `mise run backend:test-upgrade`                                                  |
+| Databasus recovery-cycle tests                         | `go -C backend test -count=1 -timeout 20m ./internal/modules/instancebackups/e2e/...`, with the Fedora preparation below |
 | Filesystem tests                                       | `mise run test-filesystem`                                                       |
 | Browser end-to-end suite alone                         | `mise run e2e:browser`                                                           |
 | Its parts that need no Docker daemon                   | `mise run e2e:unit`                                                              |

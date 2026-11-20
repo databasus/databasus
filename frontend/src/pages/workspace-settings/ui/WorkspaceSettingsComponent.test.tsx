@@ -7,6 +7,7 @@ import type { User } from '@/entities/users';
 import type { Workspace } from '@/entities/workspaces';
 import { WorkspaceSettingsComponent } from '@/pages/workspace-settings/ui/WorkspaceSettingsComponent';
 import { activateSession } from '@/shared/auth';
+import { DICTIONARIES } from '@/shared/i18n';
 import { finishApiResponse } from '@/shared/lib/test/finishApiResponse';
 import { finishCancelledApiResponse } from '@/shared/lib/test/finishCancelledApiResponse';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
@@ -25,6 +26,7 @@ const user: User = {
   email: 'owner@example.com',
   role: 'MEMBER',
   status: 'ACTIVE',
+  isRootAdmin: false,
   createdAt: '2026-10-01T10:00:00Z',
 };
 const mockChildren = () =>
@@ -575,4 +577,33 @@ describe('WorkspaceSettingsComponent', () => {
       expect(onRenamed).not.toHaveBeenCalled();
     },
   );
+  it('explains that a selected Databasus backup destination blocks deletion', async () => {
+    server.use(
+      mockApi.get('/workspaces/{workspaceId}', 200, workspace),
+      mockApi.get('/databases', 200, { items: [] }),
+      mockApi.delete(
+        '/workspaces/{workspaceId}',
+        409,
+        buildProblem('databasus_backup_in_use', 409),
+      ),
+    );
+    mockChildren();
+    const onDeleted = vi.fn();
+    const view = renderScreen(
+      <WorkspaceSettingsComponent
+        selectedWorkspace={workspace}
+        user={user}
+        onDeleted={onDeleted}
+      />,
+    );
+    await screen.findByDisplayValue(workspace.name);
+
+    await view.user.click(screen.getByRole('button', { name: 'Delete workspace' }));
+    await view.user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete Workspace' }),
+    );
+
+    expect(await screen.findByText(DICTIONARIES.en.errors.databasusBackupInUse)).toBeTruthy();
+    expect(onDeleted).not.toHaveBeenCalled();
+  });
 });

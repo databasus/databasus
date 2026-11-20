@@ -5,11 +5,13 @@ import { I18nextProvider } from 'react-i18next';
 
 import { createI18n } from '@/shared/i18n/createI18n';
 import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from '@/shared/i18n/dictionaries';
+import { formatDateTime } from '@/shared/i18n/formatDateTime';
 import { formatNumber } from '@/shared/i18n/formatNumber';
 import { formatRelativeTime } from '@/shared/i18n/formatRelativeTime';
 import { LocaleContext } from '@/shared/i18n/localeContext';
 import { LOCALE_SETTINGS } from '@/shared/i18n/localeSettings';
 import { resolveInitialLocale } from '@/shared/i18n/resolveInitialLocale';
+import { getUserClockFormat } from '@/shared/time';
 
 // eslint-disable-next-line i18next/no-literal-string -- localStorage key
 const LOCALE_STORAGE_KEY = 'databasus-locale';
@@ -62,7 +64,10 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
   );
 
   const value = useMemo(() => {
-    const { languageTag, dayjsLocale } = LOCALE_SETTINGS[locale];
+    const { languageTag, dateLanguageTag, dayjsLocale } = LOCALE_SETTINGS[locale];
+
+    const formatLocalDateTime = (instant: string) =>
+      formatDateTime(instant, dateLanguageTag, getUserClockFormat().use12Hours);
 
     return {
       locale,
@@ -71,8 +76,14 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
       formatNumber: (number: number, options?: Intl.NumberFormatOptions) =>
         formatNumber(number, languageTag, options),
       formatRelativeTime: (date: dayjs.ConfigType) => formatRelativeTime(date, dayjsLocale),
+      formatDateTime: formatLocalDateTime,
+      formatDateTimeWithRelativeTime: (instant: string) =>
+        i18n.t('common.dateTimeWithRelativeTime', {
+          time: formatLocalDateTime(instant),
+          relativeTime: formatRelativeTime(instant, dayjsLocale),
+        }),
     };
-  }, [locale, setLocale]);
+  }, [locale, setLocale, i18n]);
 
   return (
     <I18nextProvider i18n={i18n}>

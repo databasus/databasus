@@ -86,6 +86,7 @@ export const registerResourceAccessScenarios = (resource: 'storages' | 'notifier
           name: 'Owner',
           role: 'ADMIN',
           status: 'ACTIVE',
+          isRootAdmin: false,
           createdAt: workspace.createdAt,
         };
         httpFixtures.find((fixture) => fixture.path === '/workspaces')!.body = {

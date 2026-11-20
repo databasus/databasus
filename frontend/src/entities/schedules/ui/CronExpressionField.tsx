@@ -11,9 +11,10 @@ import { getUserTimeFormat } from '@/shared/time';
 interface Props {
   cronExpression: string;
   onChange: (cronExpression: string) => void;
+  size?: 'xs' | 'sm';
 }
 
-export const CronExpressionField = ({ cronExpression, onChange }: Props) => {
+export const CronExpressionField = ({ cronExpression, onChange, size = 'xs' }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
   const controlId = useId();
@@ -35,7 +36,7 @@ export const CronExpressionField = ({ cronExpression, onChange }: Props) => {
             value={cronExpression}
             onChange={(e) => onChange(e.target.value)}
             placeholder="0 2 * * *"
-            size="xs"
+            size={size}
             className="w-full max-w-[200px] grow"
           />
           <Tooltip

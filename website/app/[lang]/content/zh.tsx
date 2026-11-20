@@ -208,10 +208,10 @@ export default function Index() {
               },
               {
                 "@type": "Question",
-                name: "Databasus 的采用程度如何？",
+                name: "Databasus 的普及程度如何？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus 是当今使用最广泛的开源 PostgreSQL 备份工具。截至 2026 年 6 月 17 日，它在 Docker 上已被全球的 DBA、DevOps 工程师、开发者和团队拉取超过 180 万次。它拥有 8,500+ GitHub star，超过了 pgBackRest（约 4,200 star，2014 年发布）和 WAL-G（约 4,100 star，2017 年发布）。Databasus 于 2025 年发布，在第一年内就超越了两者。",
+                  text: "Databasus 拥有超过 260 万次 Docker 拉取和 9.2k GitHub star。作为对比，pgBackRest 约 4.5k star，WAL-G 约 4.3k star，Barman 约 3.3k star，这使 Databasus 成为 GitHub 上最受欢迎的数据库备份工具。",
                 },
               },
               {
@@ -219,7 +219,7 @@ export default function Index() {
                 name: "Databasus 支持哪些备份类型？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus 支持物理备份、全量备份、增量备份、WAL 备份和逻辑备份。物理备份是对整个数据库集群的文件级复制，对大数据集来说备份和恢复都比逻辑转储更快，并且构建在 PostgreSQL 17 的原生备份机制之上，我们依赖 PostgreSQL 自身久经考验的工具，而不是重新造轮子。全量备份是集群的完整、自包含副本，是每条备份链的起点。增量备份只存储自上次备份以来的变化，让备份保持小而快。WAL 流式复制持续捕获数据库的写入流，支持时间点恢复（PITR），用于灾难恢复并将数据丢失降到接近于零。高可用性（HA）：支持 Patroni 和 CloudNativePG（CNPG）集群切换主节点后的时间线变化。逻辑备份是数据库引擎专用二进制格式的原生转储，压缩后直接流式写入存储，没有中间文件。如果你要求非公开连接，所有这些备份都可以通过 SSH 隧道运行，数据库永远无需公开暴露。SSH 隧道是内置功能。",
+                  text: "Databasus 支持物理备份、全量备份、增量备份、WAL 备份和逻辑备份。物理备份是对整个数据库集群的文件级复制，对大数据集来说备份和恢复都比逻辑转储更快，并且构建在 PostgreSQL 17 的原生备份机制之上，我们依赖 PostgreSQL 自身久经考验的工具，而不是重新造轮子。全量备份是集群的完整、自包含副本，是每条备份链的起点。增量备份只存储自上次备份以来的变化，让备份保持小而快。WAL 流式复制持续捕获数据库的写入流，支持时间点恢复（PITR），用于灾难恢复并将数据丢失降到接近于零。高可用性（HA）：支持 Patroni 和 CloudNativePG（CNPG）集群切换主节点后的时间线变化，且不留缺口：WAL 和增量备份链在新时间线上继续。逻辑备份是数据库引擎专用二进制格式的原生转储，压缩后直接流式写入存储，没有中间文件。如果你要求非公开连接，所有这些备份都可以通过 SSH 隧道运行，数据库永远无需公开暴露。SSH 隧道是内置功能。",
                 },
               },
               {
@@ -1249,8 +1249,28 @@ export default function Index() {
             />
             <FaqItem
               number="6"
-              question="Databasus 的采用程度如何？"
-              answer="Databasus 是当今使用最广泛的开源 PostgreSQL 备份工具。截至 2026 年 6 月 17 日，它在 Docker 上已被全球的 DBA、DevOps 工程师、开发者和团队拉取超过 180 万次。它拥有 8,500+ GitHub star，超过了 pgBackRest（约 4,200 star，2014 年发布）和 WAL-G（约 4,100 star，2017 年发布）。Databasus 于 2025 年发布，在第一年内就超越了两者。"
+              question="Databasus 的普及程度如何？"
+              answer={
+                <>
+                  Databasus 拥有超过 260 万次 Docker 拉取和 9.2k GitHub star。作为对比，pgBackRest 约 4.5k star，WAL-G 约 4.3k star，Barman 约 3.3k star，这使 Databasus 成为 GitHub 上最受欢迎的数据库备份工具。
+                  <br />
+                  <br />
+                  它作为重要的关键项目入选了 Anthropic 和 OpenAI
+                  的开源计划。如今 Databasus 已被企业、团队和 DevOps
+                  工程师使用，并有庞大而活跃的社区支持。
+                  <br />
+                  <br />
+                  Databasus 自 2023 年起开发并投入使用，自 2025
+                  年初起开源并被广泛使用。它已经在真实生产环境中运行了相当长的时间，经受了大量边界情况的考验。关键在于，Databasus
+                  不会发明自定义的备份方式——它依赖 PostgreSQL
+                  原生的、经过验证的实现，而不是为边界情况构建自己的变通方案。
+                  <br />
+                  <br />
+                  我们的目标是成为 PostgreSQL 17
+                  及以上版本的标准备份工具。Databasus 是第一个构建在 PostgreSQL
+                  原生、高效且如今已成为标准的备份协议之上的备份工具，而不是编写自己的实现。
+                </>
+              }
             />
             <FaqItem
               number="7"
@@ -1405,7 +1425,7 @@ export default function Index() {
                     </li>
                     <li>
                       <strong>高可用性（HA）</strong>：支持 Patroni 和
-                      CloudNativePG（CNPG）集群切换主节点后的时间线变化
+                      CloudNativePG（CNPG）集群切换主节点后的时间线变化，且不留缺口：WAL 和增量备份链在新时间线上继续
                     </li>
                     <li>
                       <strong>逻辑备份</strong>
@@ -1461,7 +1481,16 @@ export default function Index() {
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    t.me/databasus_community
+                    Telegram
+                  </a>{" "}
+                  和{" "}
+                  <a
+                    href="/discord"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Discord
                   </a>{" "}
                   加入我们由开发者、DBA 和 DevOps
                   工程师组成的大型社区。在社区里可以提问、交流经验、获得配置帮助，并及时了解最新功能和版本发布。
@@ -1470,34 +1499,6 @@ export default function Index() {
             />
             <FaqItem
               number="14"
-              question="Databasus 的普及程度如何？"
-              answer={
-                <>
-                  Databasus 拥有超过 180 万次 Docker 拉取和 8.5k GitHub
-                  star。作为对比，pgBackRest 和 WAL-G 各约 4.2k star，Barman 约
-                  3.1k star，这使 Databasus 成为 GitHub
-                  上最受欢迎的数据库备份工具。
-                  <br />
-                  <br />
-                  它作为重要的关键项目入选了 Anthropic 和 OpenAI
-                  的开源计划。如今 Databasus 已被企业、团队和 DevOps
-                  工程师使用，并有庞大而活跃的社区支持。
-                  <br />
-                  <br />
-                  Databasus 自 2023 年起开发并投入使用，自 2025
-                  年初起开源并被广泛使用。它已经在真实生产环境中运行了相当长的时间，经受了大量边界情况的考验。关键在于，Databasus
-                  不会发明自定义的备份方式——它依赖 PostgreSQL
-                  原生的、经过验证的实现，而不是为边界情况构建自己的变通方案。
-                  <br />
-                  <br />
-                  我们的目标是成为 PostgreSQL 17
-                  及以上版本的标准备份工具。Databasus 是第一个构建在 PostgreSQL
-                  原生、高效且如今已成为标准的备份协议之上的备份工具，而不是编写自己的实现。
-                </>
-              }
-            />
-            <FaqItem
-              number="15"
               question="我忘记了管理员邮箱或密码"
               answer={
                 <>

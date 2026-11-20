@@ -22,7 +22,18 @@ func validateFullBackup(ctx context.Context, common CommonBackupSpec, streamResu
 
 // A valid FULL remains usable independently of separately archived timeline history.
 func uploadHistoryForTimelineSwitch(ctx context.Context, common CommonBackupSpec, timelineID int) {
-	if _, err := timelines.UploadHistoryFile(ctx, timelines.HistoryUploadSpec{
+	if _, err := timelines.UploadHistoryFile(ctx, newHistoryUploadSpec(common, timelineID)); err != nil {
+		common.Logger.WarnContext(
+			ctx,
+			"history upload failed; full stays completed",
+			slog.Any("timeline_id", timelineID),
+			slog.Any("error", err),
+		)
+	}
+}
+
+func newHistoryUploadSpec(common CommonBackupSpec, timelineID int) timelines.HistoryUploadSpec {
+	return timelines.HistoryUploadSpec{
 		Publication: common.Publication,
 		TimelineID:  timelineID,
 		FileStore:   common.FileStore,
@@ -32,12 +43,5 @@ func uploadHistoryForTimelineSwitch(ctx context.Context, common CommonBackupSpec
 		Encryption: common.Encryption,
 		MasterKey:  common.MasterKey,
 		Logger:     common.Logger,
-	}); err != nil {
-		common.Logger.WarnContext(
-			ctx,
-			"history upload failed; full stays completed",
-			slog.Any("timeline_id", timelineID),
-			slog.Any("error", err),
-		)
 	}
 }

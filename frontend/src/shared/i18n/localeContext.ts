@@ -9,6 +9,8 @@ export interface LocaleContextValue {
   dateLocale: string;
   formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string;
   formatRelativeTime: (date: ConfigType) => string;
+  formatDateTime: (instant: string) => string;
+  formatDateTimeWithRelativeTime: (instant: string) => string;
 }
 
 export const LocaleContext = createContext<LocaleContextValue | undefined>(undefined);

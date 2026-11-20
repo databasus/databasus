@@ -21,6 +21,7 @@ import (
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/storages/internal/files"
 	storageshttpapi "databasus-backend/internal/modules/storages/internal/httpapi"
+	"databasus-backend/internal/modules/storages/internal/instancerecovery"
 	"databasus-backend/internal/modules/storages/internal/module"
 	"databasus-backend/internal/modules/storages/internal/providers"
 	"databasus-backend/internal/modules/storages/internal/providers/azureblob"
@@ -46,6 +47,11 @@ type (
 	StorageTransferring = storage.Transferring
 	// StorageTransferringHandler runs in the transfer's transaction; an error refuses the transfer.
 	StorageTransferringHandler = storage.TransferringHandler
+	// StorageDeleting names the locked storages a storage or workspace deletion is about to delete.
+	StorageDeleting = storage.Deleting
+	// StorageDeletingHandler runs in the deletion's transaction before the storages' own checks; an
+	// error refuses the deletion.
+	StorageDeletingHandler = storage.DeletingHandler
 	// StoredFileReference names a file in a storage.
 	StoredFileReference = files.StoredFileReference
 	// WriteReceipt is the permission to publish one uploaded file in a catalog transaction.
@@ -65,6 +71,9 @@ type (
 	CleanupScope        = files.CleanupScope
 	CleanupSummary      = files.CleanupSummary
 )
+
+// ErrStoredFileNotFound is a file its storage no longer holds.
+var ErrStoredFileNotFound = providers.ErrFileNotFound
 
 // ProductionFileTimings is the policy of a running instance; tests pass shorter timings.
 func ProductionFileTimings() FileTimings {
@@ -104,6 +113,11 @@ type Module interface {
 	// GetStorageBlockingTransfer reads the storage in the caller's transaction and makes a transfer of
 	// it wait until that transaction ends, so the workspace the caller checked stays the storage's.
 	GetStorageBlockingTransfer(ctx context.Context, storageID uuid.UUID) (Storage, bool, error)
+	// GetStoragesBlockingChanges reads the storages in the caller's transaction and makes their
+	// deletion and transfer wait until it ends. It leaves out the IDs that match no storage.
+	GetStoragesBlockingChanges(ctx context.Context, storageIDs []uuid.UUID) ([]Storage, error)
+	// GetAllStorages returns every storage of every workspace, ordered by name and ID.
+	GetAllStorages(ctx context.Context) ([]Storage, error)
 	// GetStorageTypes returns the type of every storage of the instance, for telemetry.
 	GetStorageTypes(ctx context.Context) ([]Type, error)
 	TransferStorage(ctx context.Context, actor users.Actor, transfer StorageTransfer) error
@@ -111,6 +125,9 @@ type Module interface {
 	// SubscribeToStorageTransferring is called by internal/app while it builds the application. The
 	// handlers run in the order they subscribed.
 	SubscribeToStorageTransferring(handler StorageTransferringHandler)
+	// SubscribeToStorageDeleting is called by internal/app while it builds the application. The
+	// handlers run in the order they subscribed.
+	SubscribeToStorageDeleting(handler StorageDeletingHandler)
 	GetJobs() []background.Job
 }
 
@@ -125,6 +142,12 @@ type Deps struct {
 	Clock          clock.Source
 	LocalFolders   LocalFolders
 	FileTimings    FileTimings
+}
+
+// NormalizeRecoveredState prepares the storages tables of a database a recovery staged: the lost
+// instance's unfinished file writes and deletions are discarded. It returns how many were discarded.
+func NormalizeRecoveredState(ctx context.Context, db *gorm.DB) (int, error) {
+	return instancerecovery.NewService(instancerecovery.NewRepositories(db)).NormalizeRecoveredState(ctx)
 }
 
 func New(deps Deps) Module {

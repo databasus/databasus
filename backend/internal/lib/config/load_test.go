@@ -134,6 +134,8 @@ func TestLoad(t *testing.T) {
 		assert.Equal(t, filepath.Join(dataDirectory, "temp"), loadedConfig.TempFolder)
 		assert.Equal(t, filepath.Join(dataDirectory, "secret.key"), loadedConfig.SecretKeyPath)
 		assert.Equal(t, filepath.Join(dataDirectory, "databasus.log"), loadedConfig.LogFilePath)
+		assert.Equal(t, filepath.Join(dataDirectory, "instance-recovery"), loadedConfig.RecoveryStateDirectory)
+		assert.Equal(t, filepath.Join(dataDirectory, "instance-backup-spool"), loadedConfig.InstanceBackupSpoolFolder)
 	})
 
 	t.Run("rejects an unknown ENV_MODE", func(t *testing.T) {
@@ -172,6 +174,64 @@ func TestApplicationVersion(t *testing.T) {
 			loadedConfig, _, err := Load(newIsolatedSpec(t, ""))
 			require.NoError(t, err)
 			assert.Equal(t, scenario.reported, loadedConfig.AppVersion)
+		})
+	}
+}
+
+func TestRecoverySettings(t *testing.T) {
+	t.Run("loads both recovery paths and the default archive limit", func(t *testing.T) {
+		setRequiredVariables(t)
+		t.Setenv("RECOVERY_DUMP_PATH", "/databasus-data/recovery/backup.dbbackup")
+		t.Setenv("RECOVERY_MASTER_KEY_PATH", "/databasus-data/recovery/master.key")
+		t.Setenv("RECOVERY_MAX_ARCHIVE_BYTES", "")
+
+		loadedConfig, _, err := Load(newIsolatedSpec(t, ""))
+
+		require.NoError(t, err)
+		assert.True(t, loadedConfig.IsStartupRecoveryConfigured())
+		assert.Equal(t, "/databasus-data/recovery/backup.dbbackup", loadedConfig.RecoveryDumpPath)
+		assert.Equal(t, "/databasus-data/recovery/master.key", loadedConfig.RecoveryMasterKeyPath)
+		assert.Equal(t, int64(10<<30), loadedConfig.RecoveryMaxArchiveBytes)
+	})
+
+	t.Run("starts without startup recovery when neither path is set", func(t *testing.T) {
+		setRequiredVariables(t)
+		t.Setenv("RECOVERY_DUMP_PATH", "")
+		t.Setenv("RECOVERY_MASTER_KEY_PATH", "")
+
+		loadedConfig, _, err := Load(newIsolatedSpec(t, ""))
+
+		require.NoError(t, err)
+		assert.False(t, loadedConfig.IsStartupRecoveryConfigured())
+	})
+
+	for _, unpairedCase := range []struct{ name, dumpPath, keyPath string }{
+		{"rejects a backup path without a key path", "/recovery/backup.dbbackup", ""},
+		{"rejects a key path without a backup path", "", "/recovery/master.key"},
+	} {
+		t.Run(unpairedCase.name, func(t *testing.T) {
+			setRequiredVariables(t)
+			t.Setenv("RECOVERY_DUMP_PATH", unpairedCase.dumpPath)
+			t.Setenv("RECOVERY_MASTER_KEY_PATH", unpairedCase.keyPath)
+
+			_, _, err := Load(newIsolatedSpec(t, ""))
+
+			require.ErrorIs(t, err, ErrInvalidVariable)
+			assert.Contains(t, err.Error(), "RECOVERY_DUMP_PATH and RECOVERY_MASTER_KEY_PATH")
+		})
+	}
+
+	for _, limit := range []string{"0", "-1"} {
+		t.Run("rejects the archive limit "+limit, func(t *testing.T) {
+			setRequiredVariables(t)
+			t.Setenv("RECOVERY_DUMP_PATH", "")
+			t.Setenv("RECOVERY_MASTER_KEY_PATH", "")
+			t.Setenv("RECOVERY_MAX_ARCHIVE_BYTES", limit)
+
+			_, _, err := Load(newIsolatedSpec(t, ""))
+
+			require.ErrorIs(t, err, ErrInvalidVariable)
+			assert.Contains(t, err.Error(), "RECOVERY_MAX_ARCHIVE_BYTES")
 		})
 	}
 }

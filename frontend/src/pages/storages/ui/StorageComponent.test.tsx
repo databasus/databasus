@@ -243,6 +243,62 @@ describe('StorageComponent', () => {
     expect(onStorageDeleted).not.toHaveBeenCalled();
   });
 
+  it('explains that root admin must deselect a Databasus backup destination before deletion', async () => {
+    const onStorageDeleted = vi.fn();
+    mockServer.use(
+      mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
+      mockApi.delete('/storages/{storageId}', 409, buildProblem('databasus_backup_in_use', 409)),
+    );
+    renderStorage(onStorageDeleted);
+
+    await screen.findByText('Local backups');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+    );
+
+    expect(await screen.findByText(DICTIONARIES.en.errors.databasusBackupInUse)).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Edit' }).length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', {
+        name: DICTIONARIES.en.storages.config.openDatabasusBackups,
+      }),
+    ).toBeNull();
+    expect(onStorageDeleted).not.toHaveBeenCalled();
+  });
+
+  it('opens the Databasus backups section from the refusal when root admin deletes a destination', async () => {
+    mockServer.use(
+      mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace),
+      mockApi.delete('/storages/{storageId}', 409, buildProblem('databasus_backup_in_use', 409)),
+    );
+    const onOpenDatabasusBackups = vi.fn();
+    const { user } = renderScreen(
+      <StorageComponent
+        storageId={localStorageOfWorkspace.id}
+        onStorageChanged={() => {}}
+        onStorageDeleted={() => {}}
+        onStorageTransferred={() => {}}
+        onOpenDatabasusBackups={onOpenDatabasusBackups}
+        isCanManageStorages
+      />,
+    );
+
+    await screen.findByText('Local backups');
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+    );
+    await user.click(
+      await screen.findByRole('button', {
+        name: DICTIONARIES.en.storages.config.openDatabasusBackups,
+      }),
+    );
+
+    expect(onOpenDatabasusBackups).toHaveBeenCalledTimes(1);
+  });
+
   it.each(['COLD', 'DEEP_ARCHIVE', '__proto__', 'toString'])(
     'shows the exact class when the storage uses %s',
     async (storageClass) => {

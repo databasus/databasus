@@ -32,6 +32,10 @@ func (s *Service) DeleteStorage(ctx context.Context, actor users.Actor, deletion
 			return err
 		}
 
+		if err := s.publishDeleting(ctx, []uuid.UUID{deletedStorage.ID}); err != nil {
+			return err
+		}
+
 		pending, err := s.fileDeletions.GetStoragePendingDeletions(ctx, deletedStorage.ID)
 		if err != nil {
 			return err
@@ -72,31 +76,40 @@ func (s *Service) DeleteStorage(ctx context.Context, actor users.Actor, deletion
 	})
 }
 
+// OnWorkspaceDeleting locks every storage of the workspace and lets the Deleting handlers refuse
+// for any of them before a single storage's references or cleanup are checked.
 func (s *Service) OnWorkspaceDeleting(ctx context.Context, event workspaces.WorkspaceDeleting) error {
 	workspaceStorages, err := s.repository.listByWorkspace(ctx, event.WorkspaceID)
 	if err != nil {
 		return err
 	}
 
-	hasPendingCleanup := false
+	lockedStorageIDs := make([]uuid.UUID, 0, len(workspaceStorages))
 	for _, workspaceStorage := range workspaceStorages {
 		_, isFound, err := s.repository.get(ctx, workspaceStorage.ID, forUpdateRowLock)
 		if err != nil {
 			return err
 		}
 
-		if !isFound {
-			continue
+		if isFound {
+			lockedStorageIDs = append(lockedStorageIDs, workspaceStorage.ID)
 		}
+	}
 
-		pending, err := s.fileDeletions.GetStoragePendingDeletions(ctx, workspaceStorage.ID)
+	if err := s.publishDeleting(ctx, lockedStorageIDs); err != nil {
+		return err
+	}
+
+	hasPendingCleanup := false
+	for _, storageID := range lockedStorageIDs {
+		pending, err := s.fileDeletions.GetStoragePendingDeletions(ctx, storageID)
 		if err != nil {
 			return err
 		}
 
 		hasPendingCleanup = hasPendingCleanup || len(pending) > 0
 
-		if err := s.repository.delete(ctx, workspaceStorage.ID); err != nil {
+		if err := s.repository.delete(ctx, storageID); err != nil {
 			if database.IsForeignKeyViolation(err) {
 				return ErrWorkspaceStorageInUse
 			}
@@ -107,6 +120,20 @@ func (s *Service) OnWorkspaceDeleting(ctx context.Context, event workspaces.Work
 
 	if hasPendingCleanup {
 		return ErrCleanupPending
+	}
+
+	return nil
+}
+
+func (s *Service) publishDeleting(ctx context.Context, storageIDs []uuid.UUID) error {
+	if len(storageIDs) == 0 {
+		return nil
+	}
+
+	for _, handler := range s.deletingHandlers {
+		if err := handler(ctx, Deleting{StorageIDs: storageIDs}); err != nil {
+			return err
+		}
 	}
 
 	return nil

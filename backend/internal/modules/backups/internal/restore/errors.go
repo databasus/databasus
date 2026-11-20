@@ -37,9 +37,9 @@ func newTargetVersionTooOldError(cause error) error {
 	})
 }
 
-func newInvalidTargetTLSError(cause error) error {
+func newInvalidTargetSettingError(setting string, cause error) error {
 	return apierror.NewInvalidFieldsProblem([]apierror.FieldError{
-		{Field: "target.sslMode", Detail: cause.Error()},
+		{Field: "target." + setting, Detail: cause.Error()},
 	})
 }
 

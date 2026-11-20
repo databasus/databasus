@@ -44,19 +44,28 @@ type Service struct {
 	logger        *slog.Logger
 	audit         auditRecorder
 	workspaces    workspaces.Module
+	// deletingHandlers check a deletion before the storages' own references and cleanup.
+	deletingHandlers []DeletingHandler
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		repository:    deps.Repositories.storages,
-		settings:      deps.Settings,
-		registry:      deps.Registry,
-		fileDeletions: deps.FileDeletions,
-		transactor:    deps.Transactor,
-		logger:        deps.Logger,
-		audit:         auditRecorder{auditLog: deps.AuditLog, users: deps.Users},
-		workspaces:    deps.Workspaces,
+		repository:       deps.Repositories.storages,
+		settings:         deps.Settings,
+		registry:         deps.Registry,
+		fileDeletions:    deps.FileDeletions,
+		transactor:       deps.Transactor,
+		logger:           deps.Logger,
+		audit:            auditRecorder{auditLog: deps.AuditLog, users: deps.Users},
+		workspaces:       deps.Workspaces,
+		deletingHandlers: nil,
 	}
+}
+
+// SubscribeToDeleting adds a handler after the ones subscribed before it. internal/app subscribes
+// while it builds the application, before any request runs.
+func (s *Service) SubscribeToDeleting(handler DeletingHandler) {
+	s.deletingHandlers = append(s.deletingHandlers, handler)
 }
 
 // ListStorages pages through the storages of a workspace, ordered by name.
@@ -241,6 +250,21 @@ func (s *Service) GetStorages(ctx context.Context, storageIDs []uuid.UUID) ([]St
 	}
 
 	return s.repository.listByIDs(ctx, storageIDs)
+}
+
+// GetStoragesBlockingChanges leaves out the IDs that match no storage and holds a share lock on the
+// found rows until the transaction in ctx ends, so their deletion and transfer wait for it.
+func (s *Service) GetStoragesBlockingChanges(ctx context.Context, storageIDs []uuid.UUID) ([]Storage, error) {
+	if len(storageIDs) == 0 {
+		return []Storage{}, nil
+	}
+
+	return s.repository.listByIDsBlockingChanges(ctx, storageIDs)
+}
+
+// GetAllStorages returns every storage of the instance, ordered by name and ID.
+func (s *Service) GetAllStorages(ctx context.Context) ([]Storage, error) {
+	return s.repository.listAll(ctx)
 }
 
 // GetStorageBlockingTransfer holds a share lock on the storage's row until the transaction in ctx

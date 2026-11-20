@@ -62,6 +62,13 @@ func TestCode(t *testing.T) {
 		{apierror.CodeNoRestorableBackup, http.StatusConflict},
 		{apierror.CodeTargetTimeUnreachable, http.StatusConflict},
 		{apierror.CodeInsufficientDiskSpace, http.StatusConflict},
+		{apierror.CodeDatabasusBackupInUse, http.StatusConflict},
+		{apierror.CodeStorageUnavailable, http.StatusConflict},
+		{apierror.CodeRecoveryIncompatible, http.StatusConflict},
+		{apierror.CodeRecoveryNotReady, http.StatusConflict},
+		{apierror.CodeIdentityProofInvalid, http.StatusBadRequest},
+		{apierror.CodeIdentityProofUnavailable, http.StatusConflict},
+		{apierror.CodeArchiveTooLarge, http.StatusRequestEntityTooLarge},
 		{apierror.CodeInternal, http.StatusInternalServerError},
 		{apierror.CodeVerificationGone, http.StatusGone},
 		{apierror.CodeInstanceUnhealthy, http.StatusServiceUnavailable},
@@ -129,6 +136,13 @@ func TestCode(t *testing.T) {
 			apierror.CodeInternal,
 			apierror.CodeVerificationGone,
 			apierror.CodeInstanceUnhealthy,
+			apierror.CodeDatabasusBackupInUse,
+			apierror.CodeStorageUnavailable,
+			apierror.CodeRecoveryIncompatible,
+			apierror.CodeRecoveryNotReady,
+			apierror.CodeIdentityProofInvalid,
+			apierror.CodeIdentityProofUnavailable,
+			apierror.CodeArchiveTooLarge,
 		}
 
 		contractCodes := []string{}

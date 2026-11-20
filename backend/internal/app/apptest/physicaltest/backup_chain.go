@@ -82,12 +82,26 @@ func chainTipStopLSN(t *testing.T, chain []backupRow) uint64 {
 func (team Team) buildIncremental(t *testing.T, conn *pgx.Conn, spec incrementalSpec) []backupRow {
 	t.Helper()
 
-	generateWalActivity(t, conn, 32*1024*1024)
-	_, err := conn.Exec(t.Context(), "CHECKPOINT")
+	return team.buildIncrementalOn(t, conn, conn, spec)
+}
+
+// buildIncrementalOn writes WAL through writer and waits until the node Databasus backs up from
+// has summarized the WAL after the parent backup, then takes an INCREMENTAL there.
+func (team Team) buildIncrementalOn(
+	t *testing.T,
+	writer *pgx.Conn,
+	backupSource *pgx.Conn,
+	spec incrementalSpec,
+) []backupRow {
+	t.Helper()
+
+	generateWalActivity(t, writer, 32*1024*1024)
+	_, err := writer.Exec(t.Context(), "CHECKPOINT")
 	require.NoError(t, err)
-	forceWalRotation(t, conn)
-	waitForWalSummaries(t, conn, spec.ParentStopLSN)
+	forceWalRotation(t, writer)
+	waitForWalSummaries(t, backupSource, spec.ParentStopLSN)
 
 	team.triggerIncremental(t)
+
 	return team.waitForChain(t, spec.Count)
 }

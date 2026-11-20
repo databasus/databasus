@@ -16,32 +16,13 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 
 	"databasus-backend/internal/lib/agentclient"
+	"databasus-backend/internal/lib/backoff"
 )
 
-// reportRetryDelay returns the exponential backoff for report attempt n
-// (1-based): 1s,2s,4s,8s,16s,32s, capped at maxBackoff. The exponent is
-// clamped before the shift so a large attempt count cannot overflow.
+// reportRetryDelay is the wait after report attempt number attempt: 1s, 2s, 4s and so on up to
+// maxBackoff.
 func reportRetryDelay(attempt int) time.Duration {
-	return expBackoff(attempt - 1)
-}
-
-func expBackoff(shift int) time.Duration {
-	const maxShift = 5 // 2^5 s = 32s = maxBackoff
-
-	if shift < 0 {
-		shift = 0
-	}
-
-	if shift >= maxShift {
-		return maxBackoff
-	}
-
-	d := time.Duration(1<<shift) * time.Second
-	if d > maxBackoff {
-		return maxBackoff
-	}
-
-	return d
+	return backoff.Exponential{First: time.Second, Max: maxBackoff}.GetDelay(attempt)
 }
 
 type Client struct {

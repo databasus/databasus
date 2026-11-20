@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	"databasus-backend/internal/lib/database"
 )
 
@@ -105,59 +104,6 @@ func (r *BackupRepository) FindByIDForUpdate(ctx context.Context, id uuid.UUID) 
 	return &backup, true, nil
 }
 
-func (r *BackupRepository) FindNextCompletedFull(ctx context.Context, full *Backup) (*Backup, bool, error) {
-	var successor Backup
-	err := database.Conn(ctx, r.db).
-		Where("kind = 'FULL' AND database_id = ? AND timeline_id = ? AND status = ? AND start_lsn > ?::pg_lsn", full.DatabaseID, full.TimelineID, BackupStatusCompleted, full.StartLSN.String()).
-		Order("start_lsn ASC").
-		First(&successor).
-		Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, false, nil
-	}
-	if err != nil {
-		return nil, false, err
-	}
-	return &successor, true, nil
-}
-
-func (r *BackupRepository) HasCompletedFullBefore(ctx context.Context, full *Backup) (bool, error) {
-	var count int64
-	err := database.Conn(ctx, r.db).
-		Model(&Backup{}).
-		Where("kind = 'FULL' AND database_id = ? AND timeline_id = ? AND status = ? AND start_lsn IS NOT NULL AND start_lsn < ?::pg_lsn", full.DatabaseID, full.TimelineID, BackupStatusCompleted, full.StartLSN.String()).
-		Count(&count).
-		Error
-	return count > 0, err
-}
-
-func (r *BackupRepository) HasSurvivingCompletedFullOnTimeline(ctx context.Context, full *Backup) (bool, error) {
-	var count int64
-	err := database.Conn(ctx, r.db).
-		Model(&Backup{}).
-		Where("kind = 'FULL' AND database_id = ? AND timeline_id = ? AND status = ? AND id != ?", full.DatabaseID, full.TimelineID, BackupStatusCompleted, full.ID).
-		Count(&count).
-		Error
-	return count > 0, err
-}
-
-func (r *BackupRepository) GetOwnershipSpan(ctx context.Context, full *Backup) (LSNRange, error) {
-	if full.StartLSN == nil {
-		return LSNRange{}, errors.New("cannot determine WAL ownership without FULL start_lsn")
-	}
-
-	successor, isFound, err := r.FindNextCompletedFull(ctx, full)
-	if err != nil {
-		return LSNRange{}, err
-	}
-
-	end := LSNMax
-	if isFound && successor.StartLSN != nil {
-		end = *successor.StartLSN
-	}
-	return LSNRange{Start: *full.StartLSN, End: end}, nil
-}
-
 func (r *BackupRepository) UpdateAttemptFileName(ctx context.Context, backup *Backup) error {
 	return database.Conn(ctx, r.db).
 		Model(&Backup{}).
@@ -223,30 +169,6 @@ func (r *BackupRepository) AcquireBackupAndOrphanCleanupLock(ctx context.Context
 		`SELECT pg_advisory_xact_lock(hashtextextended('physical-backup:' || ?::text, 0))`,
 		databaseID,
 	).Error
-}
-
-func (r *BackupRepository) HasCompletedFullBackupCoveringWal(
-	ctx context.Context,
-	databaseID uuid.UUID,
-	timelineID int,
-	walEndLSN walmath.LSN,
-) (bool, error) {
-	var fullCount int64
-
-	err := database.Conn(ctx, r.db).Model(&Backup{}).
-		Where(
-			"kind = 'FULL' AND database_id = ? AND timeline_id = ? AND status = ? AND start_lsn IS NOT NULL AND start_lsn < ?::pg_lsn",
-			databaseID,
-			timelineID,
-			BackupStatusCompleted,
-			walEndLSN.String(),
-		).
-		Count(&fullCount).Error
-	if err != nil {
-		return false, err
-	}
-
-	return fullCount > 0, nil
 }
 
 func (r *BackupRepository) InsertRunning(ctx context.Context, backup *Backup) (bool, error) {

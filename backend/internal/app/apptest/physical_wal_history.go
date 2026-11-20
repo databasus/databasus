@@ -16,6 +16,10 @@ type PhysicalWalHistoryFileSeed struct {
 	FileName        string `json:"fileName"        gorm:"column:file_name;type:text;not null"`
 	HistoryFilename string `json:"historyFilename" gorm:"column:history_filename;type:text;not null"`
 
+	ParentTimelineID *int    `json:"parentTimelineId" gorm:"column:parent_timeline_id;type:int"`
+	ForkLSN          *string `json:"forkLsn"          gorm:"column:fork_lsn;type:pg_lsn"`
+	IsConflicting    bool    `json:"isConflicting"    gorm:"column:is_conflicting;type:boolean;not null;default:false"`
+
 	CompressedSizeMb float64 `json:"compressedSizeMb" gorm:"column:compressed_size_mb;type:double precision;not null;default:0"`
 
 	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at"`

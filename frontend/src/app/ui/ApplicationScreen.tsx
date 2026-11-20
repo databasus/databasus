@@ -6,9 +6,18 @@ import { useLocation, useNavigate } from 'react-router';
 
 import { useApplicationStartup } from '@/app/model/useApplicationStartup';
 import { useIsNewGitHubVersionAvailable } from '@/app/model/useIsNewGitHubVersionAvailable';
-import { CreateWorkspaceDialogComponent } from '@/app/ui/CreateWorkspaceDialogComponent';
+import {
+  useInstanceBackupStatus,
+  useRefreshInstanceBackupStatus,
+} from '@/entities/instance-backups';
+import { CreateWorkspaceDialog } from '@/features/create-workspace';
 import { DatabasesPage } from '@/pages/databases';
-import { InstanceSettingsPage } from '@/pages/instance-settings';
+import {
+  INSTANCE_BACKUPS_HEADING_ID,
+  InstanceSettingsPage,
+  focusSettingsHeading,
+} from '@/pages/instance-settings';
+import { MasterKeyOnboardingPage } from '@/pages/master-key-onboarding';
 import { NotifiersComponent } from '@/pages/notifiers';
 import { ProfilePage } from '@/pages/profile';
 import { StoragesComponent } from '@/pages/storages';
@@ -27,6 +36,7 @@ import {
   type MainTab,
   type SidebarTab,
 } from '@/widgets/app-shell';
+import { InstanceBackupStatusWidget } from '@/widgets/instance-backup-status';
 
 export const ApplicationScreen = () => {
   const location = useLocation();
@@ -36,6 +46,7 @@ export const ApplicationScreen = () => {
   const selectedTab = address.section;
   const [isCreateWorkspaceDialogOpen, setShowCreateWorkspaceDialog] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isBackupSectionFocusPending, setIsBackupSectionFocusPending] = useState(false);
 
   const handleCreateWorkspace = () => {
     if (!canCreateWorkspace || !isCurrent()) return;
@@ -73,6 +84,11 @@ export const ApplicationScreen = () => {
     canManageWorkspace,
   } = startup;
 
+  const isRootAdmin = !!user?.isRootAdmin;
+  const backupStatusQuery = useInstanceBackupStatus({ isEnabled: isRootAdmin });
+  const refreshBackupStatus = useRefreshInstanceBackupStatus();
+  const isBackupStatusPending = isRootAdmin && backupStatusQuery.isPending;
+
   const isNewGitHubVersionAvailable = useIsNewGitHubVersionAvailable();
   const getTabPath = (section: MainTab) =>
     getApplicationPath({ section, workspaceId: selectedWorkspace?.id });
@@ -95,6 +111,19 @@ export const ApplicationScreen = () => {
     if (isReady && !isReconcilingWorkspace && canonicalPath !== location.pathname)
       void navigate(canonicalPath, { replace: true });
   }, [isReady, isReconcilingWorkspace, canonicalPath, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!isBackupSectionFocusPending || selectedTab !== 'databasus-settings') return;
+
+    setIsBackupSectionFocusPending(false);
+    focusSettingsHeading(INSTANCE_BACKUPS_HEADING_ID);
+  }, [isBackupSectionFocusPending, selectedTab]);
+
+  const openBackupSection = () => {
+    setIsBackupSectionFocusPending(true);
+    if (selectedTab !== 'databasus-settings')
+      void navigate(getApplicationPath({ section: 'databasus-settings' }));
+  };
 
   const isUsedMoreThan85Percent =
     diskUsage && diskUsage.usedSpaceBytes / diskUsage.totalSpaceBytes > 0.85;
@@ -166,6 +195,14 @@ export const ApplicationScreen = () => {
     },
   ].map((tab) => ({ ...tab, href: getTabPath(tab.name as MainTab) })) as SidebarTab[];
 
+  if (isRootAdmin && backupStatusQuery.data && !backupStatusQuery.data.isMasterKeyAcknowledged)
+    return (
+      <MasterKeyOnboardingPage
+        status={backupStatusQuery.data}
+        onAcknowledged={refreshBackupStatus}
+      />
+    );
+
   return (
     <>
       <AppShell
@@ -212,7 +249,10 @@ export const ApplicationScreen = () => {
         isSidebarOpen={isSidebarOpen}
         onOpenSidebar={() => setIsSidebarOpen(true)}
       >
-        {isLoading || isReconcilingWorkspace || (isReady && !isNavigationReady) ? (
+        {isLoading ||
+        isReconcilingWorkspace ||
+        isBackupStatusPending ||
+        (isReady && !isNavigationReady) ? (
           <div className="flex flex-1 items-center justify-center">
             <Loader role="status" />
           </div>
@@ -221,9 +261,19 @@ export const ApplicationScreen = () => {
         ) : (
           isNavigationReady && (
             <>
+              <InstanceBackupStatusWidget
+                isRootAdmin={isRootAdmin}
+                isBackupSectionOpen={selectedTab === 'databasus-settings'}
+                onOpenBackupSection={openBackupSection}
+              />
               {selectedTab === 'profile' && <ProfilePage onUserChanged={startup.acceptUser} />}
               {selectedTab === 'databasus-settings' && isAdmin && (
-                <InstanceSettingsPage onSettingsChanged={startup.acceptSettings} />
+                <InstanceSettingsPage
+                  isRootAdmin={user?.isRootAdmin ?? false}
+                  workspaces={workspaces}
+                  onWorkspaceCreated={startup.addWorkspace}
+                  onSettingsChanged={startup.acceptSettings}
+                />
               )}
               {selectedTab === 'users' && isAdmin && <UsersPage />}
               {['databases', 'storages', 'notifiers', 'settings'].includes(selectedTab) &&
@@ -252,6 +302,7 @@ export const ApplicationScreen = () => {
                     {selectedTab === 'storages' && (
                       <StoragesComponent
                         onUnavailable={startup.reconcileUnavailableWorkspace}
+                        onOpenDatabasusBackups={user?.isRootAdmin ? openBackupSection : undefined}
                         workspace={selectedWorkspace}
                         isCanManageStorages={canManageWorkspace}
                       />
@@ -308,7 +359,7 @@ export const ApplicationScreen = () => {
         </div>
       </AppShell>
       {isCreateWorkspaceDialogOpen && user && globalSettings && (
-        <CreateWorkspaceDialogComponent
+        <CreateWorkspaceDialog
           user={user}
           globalSettings={globalSettings}
           workspacesCount={workspaces.length}

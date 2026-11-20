@@ -23,7 +23,7 @@ func getInterruptedBackupScenarios() []cnpgScenario {
 		kind string
 	}{
 		{name: "replaces an interrupted full with ", kind: "FULL"},
-		{name: "replaces an interrupted incremental with ", kind: "INCREMENTAL"},
+		{name: "continues the chain after an interrupted incremental with ", kind: "INCREMENTAL"},
 	} {
 		scenarios = append(scenarios, cnpgScenario{
 			name: interruption.name,

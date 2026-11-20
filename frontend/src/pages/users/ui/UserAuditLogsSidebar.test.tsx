@@ -14,6 +14,7 @@ const firstUser: User = {
   email: 'first@example.com',
   role: 'MEMBER',
   status: 'ACTIVE',
+  isRootAdmin: false,
   createdAt: '2026-10-01T00:00:00Z',
 };
 const secondUser: User = { ...firstUser, id: 'second-user', name: 'Second' };

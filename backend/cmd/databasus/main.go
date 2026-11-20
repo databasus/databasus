@@ -99,12 +99,13 @@ func serve(ctx context.Context, environment *app.Environment, standardOutput io.
 		return 1
 	}
 
-	application, err := app.New(ctx, environment)
+	lifecycleLock, err := app.OpenServerLifecycle(ctx, environment)
 	if err != nil {
 		environment.Logging.GetLogger().ErrorContext(ctx, "failed to start the application", slog.Any("error", err))
 
 		return 1
 	}
+	defer func() { _ = lifecycleLock.Close() }()
 
 	if !environment.Config.IsDisableAnonymousTelemetry {
 		_, _ = fmt.Fprintln(standardOutput, telemetryAnnouncer)
@@ -113,14 +114,50 @@ func serve(ctx context.Context, environment *app.Environment, standardOutput io.
 	stopSignalCtx, stopListening := shutdown.ListenForStopSignal(ctx)
 	defer stopListening()
 
-	err = application.Serve(stopSignalCtx, serverAddress)
-	if err != nil {
-		environment.Logging.GetLogger().ErrorContext(ctx, "failed to serve", slog.Any("error", err))
+	return serveUntilStopped(stopSignalCtx, environment, lifecycleLock, serverAddress)
+}
 
-		return 1
+// serveUntilStopped builds and serves the application until the stop signal. An accepted recovery
+// stops it without a container restart: the closed application frees the internal database, the
+// recovery is published under the lifecycle lock, and a new application starts from the recovered
+// database and master key with its schedules running.
+func serveUntilStopped(
+	ctx context.Context,
+	environment *app.Environment,
+	lifecycleLock *app.LifecycleLock,
+	address string,
+) int {
+	logger := environment.Logging.GetLogger()
+
+	for {
+		application, err := app.New(context.WithoutCancel(ctx), environment)
+		if err != nil {
+			logger.ErrorContext(ctx, "failed to start the application", slog.Any("error", err))
+
+			return 1
+		}
+
+		outcome, err := application.Serve(ctx, address)
+		application.Close()
+
+		if err != nil {
+			logger.ErrorContext(ctx, "failed to serve", slog.Any("error", err))
+
+			return 1
+		}
+
+		if !outcome.IsRebuildRequested {
+			return 0
+		}
+
+		err = app.PublishAcceptedRecovery(context.WithoutCancel(ctx), environment, lifecycleLock, outcome.IsDrained)
+		if err != nil {
+			logger.ErrorContext(ctx, "failed to publish the accepted recovery; restart Databasus to finish it",
+				slog.Any("error", err))
+
+			return 1
+		}
 	}
-
-	return 0
 }
 
 func runConsoleCommand(
@@ -130,6 +167,14 @@ func runConsoleCommand(
 	standardOutput io.Writer,
 ) int {
 	defer flushLogs(ctx, environment)
+
+	lifecycleLock, err := app.OpenConsoleLifecycle(environment)
+	if err != nil {
+		environment.Logging.GetLogger().ErrorContext(ctx, "failed to start the application", slog.Any("error", err))
+
+		return 1
+	}
+	defer func() { _ = lifecycleLock.Close() }()
 
 	application, err := app.New(ctx, environment)
 	if err != nil {

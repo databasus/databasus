@@ -78,17 +78,18 @@ The [architecture linter](../backend/tools/archlint) checks these contract bound
 
 | Module         | Owns                                                                                                                                                                             |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users`        | accounts, sign-in (password, GitHub and Google OAuth, email codes), password reset, instance settings, global roles, the request's `Actor`, the instance admin area              |
+| `users`        | accounts, sign-in (password, GitHub and Google OAuth, email codes), password reset, instance settings, global roles, the request's `Actor`, the instance admin area, the root admin designation and its purpose-bound identity proofs |
 | `workspaces`   | workspaces, members, workspace roles, invitations, ownership transfer, `Authorize`, every audit log view: the global one, a user's and a workspace's                             |
 | `notifiers`    | notifiers and sending a notification                                                                                                                                             |
 | `storages`     | storages, the file lifecycle (write receipts, pending deletions and the deletion worker)                                                                                         |
 | `databases`    | connections to user databases, the notifiers attached to a database, connection tests, read-only and replication users, the last backup time and health status shown in the list |
 | `backups`      | backup configs, logical backups, physical backups and WAL, restores, downloads and restore streams, retention                                                                    |
+| `instancebackups` | Databasus backups of the internal database: destinations, runs, copies, retention, Databasus backup health and incident mail, master-key export and Databasus recovery |
 | `verification` | verification agents, verification configs and verifications                                                                                                                      |
 | `healthcheck`  | scheduled availability checks of user databases                                                                                                                                  |
 | `telemetry`    | anonymous usage statistics                                                                                                                                                       |
 
-The dependency graph between modules has no cycles. From lowest to highest, the order is: `users`; `workspaces`; `notifiers` and `storages`; `databases`; `backups`; `verification` and `healthcheck`; `telemetry`. A module imports only modules lower in this order.
+The dependency graph between modules has no cycles. From lowest to highest, the order is: `users`; `workspaces`; `notifiers` and `storages`; `databases`; `backups` and `instancebackups`; `verification` and `healthcheck`; `telemetry`. A module imports only modules lower in this order.
 
 ### How modules talk
 
@@ -129,7 +130,7 @@ Each module owns its part of the internal database. Integrity rules live in the 
   - Services open transactions through an injected transactor and never hold the connection pool. Repositories in any module join the caller's transaction while honoring the query's own deadline and cancellation.
   - Work that outlives its caller detaches from the transaction. External effects register after-commit hooks: the outermost commit runs them in order without the transaction, and rollback discards them.
   - The [database package](../backend/internal/lib/database) supplies the transaction primitives; [backend rules](../backend/AGENTS.md#handlers-services-repositories) define their use.
-- **Secrets** of providers and databases are encrypted per field with the master key and decrypted only where they are used. The cipher is AES-GCM, and an encrypted value starts with `enc:`. Account passwords and agent tokens are hashed.
+- **Secrets** of providers and databases are encrypted per field with the master key and decrypted only where they are used. The cipher is AES-GCM, and an encrypted value starts with `enc:`. Account passwords and agent tokens are hashed. The master key itself leaves the server only through the root-only export that the `api-design` skill defines as the single exception to write-only secrets; [Databasus backups and recovery](#databasus-backups-and-recovery) explains why.
 
 ### Migrations
 
@@ -141,6 +142,8 @@ The schema changes only through goose SQL migrations in `backend/migrations`, em
   - A migration that adds or tightens a constraint first repairs the rows that would violate it. Otherwise the upgraded instance does not start.
   - A migration that moves encrypted values copies them as they are, because SQL cannot decrypt them.
 - **One-way upgrades.** A binary refuses to start when the database's newest migration is newer than its own. On a renamed table it would otherwise fail only at its first request. An unknown migration older than the binary's newest does not stop it, because releases have deleted or renamed migrations.
+  - The refusal advises restarting the newer image. Databasus never deletes data to downgrade, because the container cannot see how the host stores it and deleting it discards the installation.
+  - A Databasus recovery never runs migrations, so a snapshot is never upgraded or fitted to another release; [Databasus backups and recovery](#databasus-backups-and-recovery) holds its schema comparison.
 - **Testing.** The upgrade test from [testing.md](testing.md) runs every migration against data written by the previous release.
 
 ## Engines and providers
@@ -185,7 +188,7 @@ Two contracts describe the API, and the servers, test clients and frontend types
 - **Request context.** Application handlers receive the HTTP request's context. Gin contexts stay inside transport adapters and strict middleware, because Gin reuses them after a request finishes. The [generator override](../backend/api/templates/README.md) preserves this boundary for both contracts.
 - **Implementation.** A module implements its generated strict server in `internal/modules/<name>/internal/httpapi`, or in `internal/agentapi` for `agent.yaml`. Operations are assigned to modules by tag. The `system` tag is the exception: it describes the running instance, and `internal/app/systemhttpapi` serves it.
 - **Mounting mistakes.** A route registered without an operation in the contract answers 500, so a mistake cannot expose an operation without its access checks.
-- **Errors** use the `Problem` format (RFC 9457) with a machine-readable `code`, and every operation declares a `default` response with it. An internal error's text never reaches the client, and the frontend chooses its translation by `code`.
+- **Errors** use the `Problem` format (RFC 9457) with a machine-readable `code`, and every operation declares a `default` response with it. An internal error's text never reaches the client, and the frontend chooses its translation by `code`. A request whose client left before the answer is closed with 499 and no body, so an abandoned read is logged as served rather than as a server failure.
 - **Access to the user API.** The `users` middleware authenticates a request, puts the `Actor` into its context and enforces the instance admin mark from `openapi.yaml`. `Authorize` checks workspace access, as [Modules](#modules) describes.
 - **Access to the agent API.** Its operations run on a separate route group behind their own contract guard, and the verification module authenticates each with the agent token.
 - **Lists** are paged with a cursor through `limit` and `after`.
@@ -234,6 +237,7 @@ Backup data does not touch the host's disk, with two exceptions:
 
 - A PostgreSQL restore that runs `pg_restore -j`, excludes extensions or skips user mappings reads the archive more than once. It downloads the archive into a file after checking that the disk has room.
 - `pg_receivewal` writes WAL segments into a local queue before they are uploaded.
+- A Databasus backup is staged once as an encrypted file and then delivered to each destination, as [Databasus backups and recovery](#databasus-backups-and-recovery) explains.
 
 Backups are encrypted per file. The key for each file is derived from the master key and the file's ID with PBKDF2-SHA256, and data is encrypted with AES-GCM in chunks.
 
@@ -287,8 +291,29 @@ PostgreSQL owns the backup format and the block-level incrementals. Product rule
 - **Separate reported health from live control.** API health comes from stored WAL samples and persisted source identity refusals. The streamer's live tracking sends notifications and controls receiver pauses, slot rebuilding and WAL rotation.
 - **Verify the session that supplies WAL.** The physical engine checks the saved cluster identity on each connection that receives WAL or mutates a WAL slot. A separate preflight check leaves a routing race between connections. Session handoff preserves upstream TLS and leaves WAL writing and timeline handling to PostgreSQL's client. The backups module owns retries and persisted identity refusals; a refusal remains unresolved until verified streaming resumes.
 - **Timeline history.** One publisher acquires history with identity verification on the same replication session. It needs replication privileges and a temporary WAL sender, not server-file access. Acquisition and cleanup are bounded; publication validates history while preserving the source bytes and retains local work until it succeeds. It follows the same write-receipt and storage-generation rules as other archived files.
-- **Restore.** The user restores from a downloaded restore set with the recovery script Databasus serves. Archive replay above timeline 1 requires the selected timeline's published history in the FULL's storage. Restore tokens, downloads and coverage share that prerequisite. Without history, latest recovery stops at a completed backup and a later requested time is unreachable. A valid FULL remains completed, and explicit backup recovery needs no separate history because the backup includes its own WAL.
-  - PITR time bounds use complete source transaction timestamps from the selected timeline's archived WAL. WAL receipt time measures archiving, because delayed ingestion cannot establish which source transactions can be recovered. WAL without transaction evidence does not extend that time bound. [Patroni guidance](postgresql-patroni.md) explains recovery gaps after promotion.
+  - The catalog records each history's parent timeline and fork point. Restore, retention and the INCREMENTAL decision follow the same timeline line, and they compute it from catalog rows instead of downloading and parsing history files on every request. A later history for the same timeline with a different fork point marks the row conflicting, and the line never crosses that fork point, because the archived WAL could then belong to either branch.
+- **Restore.** The user restores from a downloaded restore set with the recovery script Databasus serves. A chain replays along its timeline line: its FULL's timeline up to the fork point, then each promoted timeline whose history is published in the FULL's storage. The fork point is crossed only through published history, so a missing, conflicting or foreign history stops the line, and targets beyond it are unreachable. Restore tokens, downloads, coverage and WAL retention share that line. A valid FULL remains completed, and explicit backup recovery needs no separate history because the backup includes its own WAL.
+  - PITR time bounds use complete source transaction timestamps from the archived WAL on the line. WAL receipt time measures archiving, because delayed ingestion cannot establish which source transactions can be recovered. WAL without transaction evidence does not extend that time bound, and neither does WAL the former primary wrote past a fork point, because the promoted timeline never contained it. [Patroni guidance](postgresql-patroni.md) explains recovery around a promotion.
+
+## Databasus backups and recovery
+
+A Databasus backup protects the instance itself: accounts, settings, encrypted credentials and the backup catalog. A Databasus recovery puts that state on a new or replaced server. The `instancebackups` module owns both. `users` keeps the root admin designation and identity proofs, `storages` keeps provider settings and file access, and `internal/app` composes startup recovery and in-process publication around them. The specs `databasus-backups`, `databasus-recovery`, `databasus-backup-alerts` and `master-key-export` define the product rules and limits.
+
+### Producing and delivering a Databasus backup
+
+- **Produce once, deliver independently.** One dump is encrypted into a single file on the data volume, and each destination then receives that file with its own retries and outcome. A broken storage therefore cannot fail the dump or the other copies, and a retry does not rerun the dump. This is the one exception to disk-free backup streaming, and the staged file holds encrypted bytes only.
+- **Destinations reference storages.** A destination selects an existing workspace storage instead of copying its settings, so workspace editors keep their ordinary rights over it. A selected storage cannot be deleted.
+- **Self-contained file.** The encrypted file authenticates its source release, its schema identity and its own end, so a cut or extended file is refused and no sidecar is needed. It never contains the master key.
+- **Alerts outside workspace notifiers.** An incident goes to root admin through the instance mail server, independently of any workspace. An overdue deadline is fixed at the first missed occurrence, so a frequent schedule cannot postpone the report.
+- **Master-key export.** The master key decrypts every stored secret and backup file, so it leaves the server only through a root-only export and a short-lived single-use download token. When the instance requires two-factor sign-in, the export also needs an emailed code; otherwise root admin's session is enough. The key counts as saved only after root admin confirms it in a separate step, because the server cannot see whether a copy or a download was kept. Neither the key nor the code is logged. The `api-design` skill holds the contract exception.
+
+### Recovery
+
+- **Exact release.** A recovery never runs migrations, so it accepts only an archive made by the running release with a matching schema identity. A file name or label outside the encrypted file proves nothing.
+- **Startup recovery** runs from a mounted archive and key before any module touches the database, and only on a target that holds nothing beyond what automatic initialization creates. A refusal changes nothing and stops the server, so the owner cannot mistake the unchanged installation for a recovered one.
+- **UI import** replaces an installation that holds user state, so instead of the content check it requires root admin's current session and an explicit replacement confirmation, plus an emailed code while two-factor sign-in is required. The server drains the application, publishes the recovered state and builds a new application in the same process, without relying on a container restart policy.
+- **State outside the snapshot.** A lifecycle lock and a recovery journal live on the data volume, outside the internal database, so they survive the replacement. The journal makes publication resumable after a crash and remembers consumed startup archives, so an archive left configured is not imported again.
+- **Recovered instance.** A recovered instance runs its schedules, notifications and storage writes from its first start, with no confirmation step. The old installation must therefore be stopped before the recovery: two installations running at once write to the same storages and databases. Publication marks the database with the recovery that produced it, so a resumed publication recognizes its own staged database. The lost server's unfinished work ends as interrupted, its sessions and tokens are revoked and its pending file deletions are dropped, and the Databasus backups section names the dropped deletions. Recovered storages are used as they were, local ones included: the Databasus backup does not restore a local storage's folder, so the owner restores or recreates it on the new host, and until then its writes fail with the folder's own error.
 
 ## Verification agent
 

@@ -7,7 +7,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 )
 
-func runSummarizerPreCheck(ctx context.Context, spec backupExecutionSpec) (Result, bool) {
+func runSummarizerPreCheck(ctx context.Context, spec backupExecutionSpec, isAcrossPromotion bool) (Result, bool) {
 	conn, err := pgphysical.NewSource(spec.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		return errorResult(catalog.BackupErrorNetworkFailure,
@@ -45,12 +45,22 @@ func runSummarizerPreCheck(ctx context.Context, spec backupExecutionSpec) (Resul
 	case DecisionFullNewChain:
 		return summarizerRefusedResult(
 			catalog.BackupStatusChainBroken,
-			*decision.Reason,
+			getSummarizerChainBreakReason(*decision.Reason, isAcrossPromotion),
 			"summarizer pre-check refused incremental; new FULL required",
 		), false
 	}
 
 	panic("unknown summarizer decision")
+}
+
+// getSummarizerChainBreakReason records a summarizer refusal across a promotion as a timeline
+// switch, so the immediate replacement FULL anchors a new chain.
+func getSummarizerChainBreakReason(reason catalog.BackupErrorReason, isAcrossPromotion bool) catalog.BackupErrorReason {
+	if isAcrossPromotion {
+		return catalog.BackupErrorTimelineSwitchDetected
+	}
+
+	return reason
 }
 
 func summarizerRefusedResult(

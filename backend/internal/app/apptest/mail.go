@@ -68,6 +68,23 @@ func (r *MailRecorder) RefuseSends() {
 	r.isRefusingSend = true
 }
 
+// AcceptSends undoes RefuseSends, as a mail server that recovered does.
+func (r *MailRecorder) AcceptSends() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	r.isRefusingSend = false
+}
+
+// ConfigureMailServer gives an instance built WithoutMailServer its mail server, as an operator who
+// configures one while the instance runs does.
+func (r *MailRecorder) ConfigureMailServer() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	r.isConfigured = true
+}
+
 // GetMessagesTo returns the messages sent to the address, the oldest first.
 func (r *MailRecorder) GetMessagesTo(address string) []MailMessage {
 	r.mutex.Lock()

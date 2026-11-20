@@ -340,6 +340,261 @@ func (e HealthReportStatus) Valid() bool {
 	}
 }
 
+// Defines values for InstanceBackupCopyStatus.
+const (
+	InstanceBackupCopyStatusDELETED     InstanceBackupCopyStatus = "DELETED"
+	InstanceBackupCopyStatusFAILED      InstanceBackupCopyStatus = "FAILED"
+	InstanceBackupCopyStatusINTERRUPTED InstanceBackupCopyStatus = "INTERRUPTED"
+	InstanceBackupCopyStatusPENDING     InstanceBackupCopyStatus = "PENDING"
+	InstanceBackupCopyStatusRETRYING    InstanceBackupCopyStatus = "RETRYING"
+	InstanceBackupCopyStatusSTORED      InstanceBackupCopyStatus = "STORED"
+	InstanceBackupCopyStatusUPLOADING   InstanceBackupCopyStatus = "UPLOADING"
+)
+
+// Valid indicates whether the value is a known member of the InstanceBackupCopyStatus enum.
+func (e InstanceBackupCopyStatus) Valid() bool {
+	switch e {
+	case InstanceBackupCopyStatusDELETED:
+		return true
+	case InstanceBackupCopyStatusFAILED:
+		return true
+	case InstanceBackupCopyStatusINTERRUPTED:
+		return true
+	case InstanceBackupCopyStatusPENDING:
+		return true
+	case InstanceBackupCopyStatusRETRYING:
+		return true
+	case InstanceBackupCopyStatusSTORED:
+		return true
+	case InstanceBackupCopyStatusUPLOADING:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceBackupHealth.
+const (
+	InstanceBackupHealthFAILED        InstanceBackupHealth = "FAILED"
+	InstanceBackupHealthHEALTHY       InstanceBackupHealth = "HEALTHY"
+	InstanceBackupHealthINITIALIZING  InstanceBackupHealth = "INITIALIZING"
+	InstanceBackupHealthNOTCONFIGURED InstanceBackupHealth = "NOT_CONFIGURED"
+	InstanceBackupHealthOVERDUE       InstanceBackupHealth = "OVERDUE"
+	InstanceBackupHealthPARTIAL       InstanceBackupHealth = "PARTIAL"
+	InstanceBackupHealthRESUMING      InstanceBackupHealth = "RESUMING"
+	InstanceBackupHealthSTOPPED       InstanceBackupHealth = "STOPPED"
+)
+
+// Valid indicates whether the value is a known member of the InstanceBackupHealth enum.
+func (e InstanceBackupHealth) Valid() bool {
+	switch e {
+	case InstanceBackupHealthFAILED:
+		return true
+	case InstanceBackupHealthHEALTHY:
+		return true
+	case InstanceBackupHealthINITIALIZING:
+		return true
+	case InstanceBackupHealthNOTCONFIGURED:
+		return true
+	case InstanceBackupHealthOVERDUE:
+		return true
+	case InstanceBackupHealthPARTIAL:
+		return true
+	case InstanceBackupHealthRESUMING:
+		return true
+	case InstanceBackupHealthSTOPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceBackupIncidentKind.
+const (
+	InstanceBackupIncidentKindFAILED  InstanceBackupIncidentKind = "FAILED"
+	InstanceBackupIncidentKindOVERDUE InstanceBackupIncidentKind = "OVERDUE"
+	InstanceBackupIncidentKindPARTIAL InstanceBackupIncidentKind = "PARTIAL"
+	InstanceBackupIncidentKindSTOPPED InstanceBackupIncidentKind = "STOPPED"
+)
+
+// Valid indicates whether the value is a known member of the InstanceBackupIncidentKind enum.
+func (e InstanceBackupIncidentKind) Valid() bool {
+	switch e {
+	case InstanceBackupIncidentKindFAILED:
+		return true
+	case InstanceBackupIncidentKindOVERDUE:
+		return true
+	case InstanceBackupIncidentKindPARTIAL:
+		return true
+	case InstanceBackupIncidentKindSTOPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceBackupMailStatus.
+const (
+	InstanceBackupMailStatusNOTELIGIBLE InstanceBackupMailStatus = "NOT_ELIGIBLE"
+	InstanceBackupMailStatusPENDING     InstanceBackupMailStatus = "PENDING"
+	InstanceBackupMailStatusRETRYING    InstanceBackupMailStatus = "RETRYING"
+	InstanceBackupMailStatusSENT        InstanceBackupMailStatus = "SENT"
+)
+
+// Valid indicates whether the value is a known member of the InstanceBackupMailStatus enum.
+func (e InstanceBackupMailStatus) Valid() bool {
+	switch e {
+	case InstanceBackupMailStatusNOTELIGIBLE:
+		return true
+	case InstanceBackupMailStatusPENDING:
+		return true
+	case InstanceBackupMailStatusRETRYING:
+		return true
+	case InstanceBackupMailStatusSENT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceBackupStatusValue.
+const (
+	InstanceBackupStatusValueCOMPLETED   InstanceBackupStatusValue = "COMPLETED"
+	InstanceBackupStatusValueFAILED      InstanceBackupStatusValue = "FAILED"
+	InstanceBackupStatusValueINPROGRESS  InstanceBackupStatusValue = "IN_PROGRESS"
+	InstanceBackupStatusValueINTERRUPTED InstanceBackupStatusValue = "INTERRUPTED"
+	InstanceBackupStatusValuePARTIAL     InstanceBackupStatusValue = "PARTIAL"
+)
+
+// Valid indicates whether the value is a known member of the InstanceBackupStatusValue enum.
+func (e InstanceBackupStatusValue) Valid() bool {
+	switch e {
+	case InstanceBackupStatusValueCOMPLETED:
+		return true
+	case InstanceBackupStatusValueFAILED:
+		return true
+	case InstanceBackupStatusValueINPROGRESS:
+		return true
+	case InstanceBackupStatusValueINTERRUPTED:
+		return true
+	case InstanceBackupStatusValuePARTIAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceBackupTrigger.
+const (
+	InstanceBackupTriggerDESTINATIONADDED InstanceBackupTrigger = "DESTINATION_ADDED"
+	InstanceBackupTriggerMANUAL           InstanceBackupTrigger = "MANUAL"
+	InstanceBackupTriggerSCHEDULE         InstanceBackupTrigger = "SCHEDULE"
+)
+
+// Valid indicates whether the value is a known member of the InstanceBackupTrigger enum.
+func (e InstanceBackupTrigger) Valid() bool {
+	switch e {
+	case InstanceBackupTriggerDESTINATIONADDED:
+		return true
+	case InstanceBackupTriggerMANUAL:
+		return true
+	case InstanceBackupTriggerSCHEDULE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceRecoveryFailure.
+const (
+	InstanceRecoveryFailureARCHIVEINCOMPLETE     InstanceRecoveryFailure = "ARCHIVE_INCOMPLETE"
+	InstanceRecoveryFailureARCHIVEINVALID        InstanceRecoveryFailure = "ARCHIVE_INVALID"
+	InstanceRecoveryFailureEXPIRED               InstanceRecoveryFailure = "EXPIRED"
+	InstanceRecoveryFailureIMPORTFAILED          InstanceRecoveryFailure = "IMPORT_FAILED"
+	InstanceRecoveryFailureINSUFFICIENTDISKSPACE InstanceRecoveryFailure = "INSUFFICIENT_DISK_SPACE"
+	InstanceRecoveryFailureINTERRUPTED           InstanceRecoveryFailure = "INTERRUPTED"
+	InstanceRecoveryFailureMASTERKEYINVALID      InstanceRecoveryFailure = "MASTER_KEY_INVALID"
+	InstanceRecoveryFailureQUIESCENCEFAILED      InstanceRecoveryFailure = "QUIESCENCE_FAILED"
+	InstanceRecoveryFailureRELEASEMISMATCH       InstanceRecoveryFailure = "RELEASE_MISMATCH"
+	InstanceRecoveryFailureSCHEMAINCOMPATIBLE    InstanceRecoveryFailure = "SCHEMA_INCOMPATIBLE"
+)
+
+// Valid indicates whether the value is a known member of the InstanceRecoveryFailure enum.
+func (e InstanceRecoveryFailure) Valid() bool {
+	switch e {
+	case InstanceRecoveryFailureARCHIVEINCOMPLETE:
+		return true
+	case InstanceRecoveryFailureARCHIVEINVALID:
+		return true
+	case InstanceRecoveryFailureEXPIRED:
+		return true
+	case InstanceRecoveryFailureIMPORTFAILED:
+		return true
+	case InstanceRecoveryFailureINSUFFICIENTDISKSPACE:
+		return true
+	case InstanceRecoveryFailureINTERRUPTED:
+		return true
+	case InstanceRecoveryFailureMASTERKEYINVALID:
+		return true
+	case InstanceRecoveryFailureQUIESCENCEFAILED:
+		return true
+	case InstanceRecoveryFailureRELEASEMISMATCH:
+		return true
+	case InstanceRecoveryFailureSCHEMAINCOMPATIBLE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceRecoveryOrigin.
+const (
+	InstanceRecoveryOriginSTARTUP InstanceRecoveryOrigin = "STARTUP"
+	InstanceRecoveryOriginUPLOAD  InstanceRecoveryOrigin = "UPLOAD"
+)
+
+// Valid indicates whether the value is a known member of the InstanceRecoveryOrigin enum.
+func (e InstanceRecoveryOrigin) Valid() bool {
+	switch e {
+	case InstanceRecoveryOriginSTARTUP:
+		return true
+	case InstanceRecoveryOriginUPLOAD:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstanceRecoveryStatus.
+const (
+	InstanceRecoveryStatusAPPLYING   InstanceRecoveryStatus = "APPLYING"
+	InstanceRecoveryStatusCANCELLED  InstanceRecoveryStatus = "CANCELLED"
+	InstanceRecoveryStatusCOMPLETED  InstanceRecoveryStatus = "COMPLETED"
+	InstanceRecoveryStatusFAILED     InstanceRecoveryStatus = "FAILED"
+	InstanceRecoveryStatusREADY      InstanceRecoveryStatus = "READY"
+	InstanceRecoveryStatusVALIDATING InstanceRecoveryStatus = "VALIDATING"
+)
+
+// Valid indicates whether the value is a known member of the InstanceRecoveryStatus enum.
+func (e InstanceRecoveryStatus) Valid() bool {
+	switch e {
+	case InstanceRecoveryStatusAPPLYING:
+		return true
+	case InstanceRecoveryStatusCANCELLED:
+		return true
+	case InstanceRecoveryStatusCOMPLETED:
+		return true
+	case InstanceRecoveryStatusFAILED:
+		return true
+	case InstanceRecoveryStatusREADY:
+		return true
+	case InstanceRecoveryStatusVALIDATING:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobHealthLastOutcome.
 const (
 	JobHealthLastOutcomeCANCELED  JobHealthLastOutcome = "CANCELED"
@@ -1041,14 +1296,18 @@ const (
 	ProblemCodeAdminEmailMissing          ProblemCode = "admin_email_missing"
 	ProblemCodeAlreadyMember              ProblemCode = "already_member"
 	ProblemCodeAlreadyRunning             ProblemCode = "already_running"
+	ProblemCodeArchiveTooLarge            ProblemCode = "archive_too_large"
 	ProblemCodeBackupNotCompleted         ProblemCode = "backup_not_completed"
 	ProblemCodeCannotChangeOwnRole        ProblemCode = "cannot_change_own_role"
 	ProblemCodeCleanupPending             ProblemCode = "cleanup_pending"
 	ProblemCodeDatabaseConnectionFailed   ProblemCode = "database_connection_failed"
+	ProblemCodeDatabasusBackupInUse       ProblemCode = "databasus_backup_in_use"
 	ProblemCodeEmailNotConfigured         ProblemCode = "email_not_configured"
 	ProblemCodeEmailNotFound              ProblemCode = "email_not_found"
 	ProblemCodeEmailTaken                 ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed    ProblemCode = "human_verification_failed"
+	ProblemCodeIdentityProofInvalid       ProblemCode = "identity_proof_invalid"
+	ProblemCodeIdentityProofUnavailable   ProblemCode = "identity_proof_unavailable"
 	ProblemCodeInUse                      ProblemCode = "in_use"
 	ProblemCodeInstanceUnhealthy          ProblemCode = "instance_unhealthy"
 	ProblemCodeInsufficientDiskSpace      ProblemCode = "insufficient_disk_space"
@@ -1070,11 +1329,14 @@ const (
 	ProblemCodePendingSignInNotUsable     ProblemCode = "pending_sign_in_not_usable"
 	ProblemCodePermissionDenied           ProblemCode = "permission_denied"
 	ProblemCodeRateLimited                ProblemCode = "rate_limited"
+	ProblemCodeRecoveryIncompatible       ProblemCode = "recovery_incompatible"
+	ProblemCodeRecoveryNotReady           ProblemCode = "recovery_not_ready"
 	ProblemCodeRegistrationClosed         ProblemCode = "registration_closed"
 	ProblemCodeRegistrationIncomplete     ProblemCode = "registration_incomplete"
 	ProblemCodeSignInCodeIncorrect        ProblemCode = "sign_in_code_incorrect"
 	ProblemCodeSignInCodeNotSent          ProblemCode = "sign_in_code_not_sent"
 	ProblemCodeSignInCodeResentTooSoon    ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeStorageUnavailable         ProblemCode = "storage_unavailable"
 	ProblemCodeTargetTimeUnreachable      ProblemCode = "target_time_unreachable"
 	ProblemCodeTooManySignInCodes         ProblemCode = "too_many_sign_in_codes"
 	ProblemCodeUnauthenticated            ProblemCode = "unauthenticated"
@@ -1091,6 +1353,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeAlreadyRunning:
 		return true
+	case ProblemCodeArchiveTooLarge:
+		return true
 	case ProblemCodeBackupNotCompleted:
 		return true
 	case ProblemCodeCannotChangeOwnRole:
@@ -1099,6 +1363,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeDatabaseConnectionFailed:
 		return true
+	case ProblemCodeDatabasusBackupInUse:
+		return true
 	case ProblemCodeEmailNotConfigured:
 		return true
 	case ProblemCodeEmailNotFound:
@@ -1106,6 +1372,10 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeEmailTaken:
 		return true
 	case ProblemCodeHumanVerificationFailed:
+		return true
+	case ProblemCodeIdentityProofInvalid:
+		return true
+	case ProblemCodeIdentityProofUnavailable:
 		return true
 	case ProblemCodeInUse:
 		return true
@@ -1149,6 +1419,10 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeRateLimited:
 		return true
+	case ProblemCodeRecoveryIncompatible:
+		return true
+	case ProblemCodeRecoveryNotReady:
+		return true
 	case ProblemCodeRegistrationClosed:
 		return true
 	case ProblemCodeRegistrationIncomplete:
@@ -1158,6 +1432,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeSignInCodeNotSent:
 		return true
 	case ProblemCodeSignInCodeResentTooSoon:
+		return true
+	case ProblemCodeStorageUnavailable:
 		return true
 	case ProblemCodeTargetTimeUnreachable:
 		return true
@@ -1426,6 +1702,36 @@ const (
 func (e StorageSwitchedOnTransferType) Valid() bool {
 	switch e {
 	case StorageSwitchedOnTransferTypeSWITCHTOSTORAGE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StorageType.
+const (
+	StorageTypeAZUREBLOB StorageType = "AZURE_BLOB"
+	StorageTypeFTP       StorageType = "FTP"
+	StorageTypeLOCAL     StorageType = "LOCAL"
+	StorageTypeNAS       StorageType = "NAS"
+	StorageTypeS3        StorageType = "S3"
+	StorageTypeSFTP      StorageType = "SFTP"
+)
+
+// Valid indicates whether the value is a known member of the StorageType enum.
+func (e StorageType) Valid() bool {
+	switch e {
+	case StorageTypeAZUREBLOB:
+		return true
+	case StorageTypeFTP:
+		return true
+	case StorageTypeLOCAL:
+		return true
+	case StorageTypeNAS:
+		return true
+	case StorageTypeS3:
+		return true
+	case StorageTypeSFTP:
 		return true
 	default:
 		return false
@@ -2430,6 +2736,315 @@ type HealthcheckConfigInput struct {
 	IsNotificationEnabled bool `json:"isNotificationEnabled"`
 }
 
+// IdentityConfirmation An emailed identity code that was sent
+type IdentityConfirmation struct {
+	// ExpiresAt When the code stops working
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// InstanceBackup One encrypted snapshot of the internal database and its copies
+type InstanceBackup struct {
+	// CompletedAt When the last copy reached its final state
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
+
+	// Copies One entry per destination of the run
+	Copies []InstanceBackupCopy `json:"copies"`
+
+	// FailureReason The sanitized reason the dump failed
+	FailureReason *string `json:"failureReason,omitempty"`
+
+	// Id The ID of the Databasus backup, also the ID inside its file
+	Id openapi_types.UUID `json:"id"`
+
+	// SizeBytes The size of the encrypted file
+	SizeBytes *int64 `json:"sizeBytes,omitempty"`
+
+	// SnapshotAt The moment the snapshot represents, null until the dump finished
+	SnapshotAt *time.Time `json:"snapshotAt,omitempty"`
+
+	// SourceRelease The Databasus release that made the backup; recovery needs exactly this release
+	SourceRelease string `json:"sourceRelease"`
+
+	// StartedAt When the backup started
+	StartedAt time.Time `json:"startedAt"`
+
+	// Status Where a Databasus backup is in its life. `PARTIAL` when some copies succeeded and others failed, `INTERRUPTED` when Databasus stopped before it ended
+	Status InstanceBackupStatusValue `json:"status"`
+
+	// Trigger What started a Databasus backup
+	Trigger InstanceBackupTrigger `json:"trigger"`
+}
+
+// InstanceBackupCopy The delivery of one Databasus backup to one storage
+type InstanceBackupCopy struct {
+	// AttemptCount How many delivery attempts were made
+	AttemptCount int `json:"attemptCount"`
+
+	// Id The ID of the copy
+	Id openapi_types.UUID `json:"id"`
+
+	// IsDownloadable Whether a download token can be issued for the copy now
+	IsDownloadable bool `json:"isDownloadable"`
+
+	// LastError The sanitized error of the latest failed attempt
+	LastError *string `json:"lastError,omitempty"`
+
+	// Status Where the delivery of one copy is
+	Status InstanceBackupCopyStatus `json:"status"`
+
+	// StorageId The storage, null after the storage was deleted
+	StorageId *openapi_types.UUID `json:"storageId,omitempty"`
+
+	// StorageName The storage's name when the copy was made
+	StorageName string `json:"storageName"`
+
+	// StoredAt When the copy was stored
+	StoredAt *time.Time `json:"storedAt,omitempty"`
+
+	// WorkspaceName The workspace's name when the copy was made
+	WorkspaceName string `json:"workspaceName"`
+}
+
+// InstanceBackupCopyStatus Where the delivery of one copy is
+type InstanceBackupCopyStatus string
+
+// InstanceBackupDestinationChoice A storage root admin can select as a destination, without its settings
+type InstanceBackupDestinationChoice struct {
+	// IsSelected Whether the storage is a current destination
+	IsSelected bool `json:"isSelected"`
+
+	// StorageId The ID of the storage
+	StorageId openapi_types.UUID `json:"storageId"`
+
+	// StorageName The name of the storage
+	StorageName string `json:"storageName"`
+
+	// StorageType The provider of a storage
+	StorageType StorageType `json:"storageType"`
+
+	// WorkspaceId The workspace the storage belongs to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+
+	// WorkspaceName The name of that workspace
+	WorkspaceName string `json:"workspaceName"`
+}
+
+// InstanceBackupDestinationHealth The protection state of one selected destination
+type InstanceBackupDestinationHealth struct {
+	// Health How well the instance is protected. `NOT_CONFIGURED` before any destination was selected, `INITIALIZING` until the first copy succeeds, `RESUMING` after destinations return following `STOPPED`, `PARTIAL` when some current destinations lack a fresh copy, `FAILED` when none has one, `OVERDUE` when a scheduled copy is more than 15 minutes late
+	Health InstanceBackupHealth `json:"health"`
+
+	// LastError The sanitized error of the latest failed delivery
+	LastError *string `json:"lastError,omitempty"`
+
+	// LastSuccessfulSnapshotAt The snapshot time of the newest successful copy in this destination
+	LastSuccessfulSnapshotAt *time.Time `json:"lastSuccessfulSnapshotAt,omitempty"`
+
+	// OverdueAt When the earliest uncovered scheduled occurrence becomes overdue
+	OverdueAt *time.Time `json:"overdueAt,omitempty"`
+
+	// StorageId The selected storage
+	StorageId openapi_types.UUID `json:"storageId"`
+
+	// StorageName The current name of the storage
+	StorageName string `json:"storageName"`
+
+	// StorageType The provider of a storage
+	StorageType *StorageType `json:"storageType,omitempty"`
+
+	// WorkspaceId The workspace the storage belongs to now
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+
+	// WorkspaceName The current name of that workspace
+	WorkspaceName string `json:"workspaceName"`
+}
+
+// InstanceBackupDestinationPage One page of destination choices, ordered by workspace name, storage name and ID
+type InstanceBackupDestinationPage struct {
+	// Items The choices on the page
+	Items []InstanceBackupDestinationChoice `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// InstanceBackupDownloadToken A single-use token that downloads one encrypted copy within five minutes
+type InstanceBackupDownloadToken struct {
+	// ExpiresAt When the token stops working
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// FileName The name the downloaded file gets
+	FileName string `json:"fileName"`
+
+	// Token The token, returned only in this response
+	Token string `json:"token"`
+}
+
+// InstanceBackupDownloadTokenCreate The stored copy to download
+type InstanceBackupDownloadTokenCreate struct {
+	// CopyId The copy of this backup to download
+	CopyId openapi_types.UUID `json:"copyId"`
+}
+
+// InstanceBackupHealth How well the instance is protected. `NOT_CONFIGURED` before any destination was selected, `INITIALIZING` until the first copy succeeds, `RESUMING` after destinations return following `STOPPED`, `PARTIAL` when some current destinations lack a fresh copy, `FAILED` when none has one, `OVERDUE` when a scheduled copy is more than 15 minutes late
+type InstanceBackupHealth string
+
+// InstanceBackupIncident An unresolved protection problem
+type InstanceBackupIncident struct {
+	// Id The ID of the incident
+	Id openapi_types.UUID `json:"id"`
+
+	// Kind The protection problem an incident reports
+	Kind InstanceBackupIncidentKind `json:"kind"`
+
+	// LastMailError The sanitized error of the latest failed mail attempt
+	LastMailError *string `json:"lastMailError,omitempty"`
+
+	// LastMailedAt When the mail server last accepted an email about it
+	LastMailedAt *time.Time `json:"lastMailedAt,omitempty"`
+
+	// MailStatus Mail delivery of an incident. `NOT_ELIGIBLE` without a system mail server or a usable root admin address
+	MailStatus InstanceBackupMailStatus `json:"mailStatus"`
+
+	// StartedAt When the problem began
+	StartedAt time.Time `json:"startedAt"`
+}
+
+// InstanceBackupIncidentKind The protection problem an incident reports
+type InstanceBackupIncidentKind string
+
+// InstanceBackupMailStatus Mail delivery of an incident. `NOT_ELIGIBLE` without a system mail server or a usable root admin address
+type InstanceBackupMailStatus string
+
+// InstanceBackupPage One page of Databasus backups, the newest snapshot first
+type InstanceBackupPage struct {
+	// Items The backups on the page
+	Items []InstanceBackup `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// InstanceBackupReminder The initial setup reminder
+type InstanceBackupReminder struct {
+	// IsEligible Whether the instance has a user database or storage, so setup should be suggested. The reminder cannot be deferred: it shows while no destination is selected.
+	IsEligible bool `json:"isEligible"`
+}
+
+// InstanceBackupSettings How and where Databasus backs up its own internal database
+type InstanceBackupSettings struct {
+	// RetentionDays How many days a stored copy is kept; the newest successful copy of a destination is always kept
+	RetentionDays int `json:"retentionDays"`
+
+	// Schedule When recurring work runs; times of day are in UTC
+	Schedule Schedule `json:"schedule"`
+
+	// StorageIds The selected destinations, as IDs of existing storages of any workspace
+	StorageIds []openapi_types.UUID `json:"storageIds"`
+}
+
+// InstanceBackupStatus The protection state of the instance for root admin
+type InstanceBackupStatus struct {
+	// Destinations Every selected destination
+	Destinations []InstanceBackupDestinationHealth `json:"destinations"`
+
+	// Health How well the instance is protected. `NOT_CONFIGURED` before any destination was selected, `INITIALIZING` until the first copy succeeds, `RESUMING` after destinations return following `STOPPED`, `PARTIAL` when some current destinations lack a fresh copy, `FAILED` when none has one, `OVERDUE` when a scheduled copy is more than 15 minutes late
+	Health InstanceBackupHealth `json:"health"`
+
+	// Incident The open incident, null when protection has no problem
+	Incident *InstanceBackupIncident `json:"incident,omitempty"`
+
+	// IsConfirmationCodeRequired Whether a master-key export and a recovery apply need a code emailed to root admin, because the instance requires two-factor sign-in
+	IsConfirmationCodeRequired bool `json:"isConfirmationCodeRequired"`
+
+	// IsEmailConfigured Whether the operator configured the system mail server
+	IsEmailConfigured bool `json:"isEmailConfigured"`
+
+	// IsMasterKeyAcknowledged Whether root admin confirmed saving the current master key
+	IsMasterKeyAcknowledged bool `json:"isMasterKeyAcknowledged"`
+
+	// IsRootEmailUsable Whether root admin's address can receive mail
+	IsRootEmailUsable bool `json:"isRootEmailUsable"`
+
+	// Recovery The latest recovery of the local journal, null when there was none
+	Recovery *InstanceRecovery `json:"recovery,omitempty"`
+
+	// Reminder The initial setup reminder
+	Reminder InstanceBackupReminder `json:"reminder"`
+}
+
+// InstanceBackupStatusValue Where a Databasus backup is in its life. `PARTIAL` when some copies succeeded and others failed, `INTERRUPTED` when Databasus stopped before it ended
+type InstanceBackupStatusValue string
+
+// InstanceBackupTrigger What started a Databasus backup
+type InstanceBackupTrigger string
+
+// InstanceRecovery A recovery of the instance's internal state from a Databasus backup file
+type InstanceRecovery struct {
+	// ArchiveSha256 Lowercase hexadecimal SHA-256 of the whole encrypted file
+	ArchiveSha256 string `json:"archiveSha256"`
+
+	// CompletedAt When publication completed
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
+
+	// CreatedAt When the recovery started
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DiscardedCleanupCount Unfinished file writes and deletions of the source instance that were discarded instead of replayed; their files may need manual cleanup
+	DiscardedCleanupCount int `json:"discardedCleanupCount"`
+
+	// ExpiresAt When an unapplied recovery stops being applicable
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// Failure Why the recovery failed, null otherwise
+	Failure *InstanceRecoveryFailure `json:"failure,omitempty"`
+
+	// Id The ID of the recovery
+	Id openapi_types.UUID `json:"id"`
+
+	// Origin How the recovery inputs arrived
+	Origin InstanceRecoveryOrigin `json:"origin"`
+
+	// RunningRelease The release of this installation
+	RunningRelease string `json:"runningRelease"`
+
+	// SnapshotAt The authenticated snapshot time, null until validated
+	SnapshotAt *time.Time `json:"snapshotAt,omitempty"`
+
+	// SourceRelease The authenticated release of the archive, null until validated
+	SourceRelease *string `json:"sourceRelease,omitempty"`
+
+	// Status Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can be applied, `APPLYING` once apply was accepted, `COMPLETED` once the recovered installation is published
+	Status InstanceRecoveryStatus `json:"status"`
+}
+
+// InstanceRecoveryApply The replacement confirmation, with the emailed code while two-factor sign-in is required
+type InstanceRecoveryApply struct {
+	// Code The code emailed for this recovery; required while the instance requires two-factor sign-in and ignored otherwise
+	Code *string `json:"code,omitempty"`
+
+	// IsReplacementConfirmed Root admin accepted that current users, settings and backup catalog are replaced
+	IsReplacementConfirmed bool `json:"isReplacementConfirmed"`
+}
+
+// InstanceRecoveryFailure The safe reason a recovery failed
+type InstanceRecoveryFailure string
+
+// InstanceRecoveryOrigin How the recovery inputs arrived
+type InstanceRecoveryOrigin string
+
+// InstanceRecoveryStatus Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can be applied, `APPLYING` once apply was accepted, `COMPLETED` once the recovered installation is published
+type InstanceRecoveryStatus string
+
+// InstanceRecoveryUpload The recovery inputs
+type InstanceRecoveryUpload struct {
+	// Archive The encrypted Databasus backup file
+	Archive openapi_types.File `json:"archive"`
+
+	// MasterKey The source installation's master key as text; its exact UTF-8 bytes are used
+	MasterKey *string `json:"masterKey,omitempty"`
+}
+
 // InstanceSettings The settings of the instance
 type InstanceSettings struct {
 	// IsAllowExternalRegistrations Anyone may sign up without an invitation
@@ -2645,10 +3260,10 @@ type LogicalRetentionPolicy string
 
 // MariadbRestoreTarget A MariaDB database the dump is replayed into
 type MariadbRestoreTarget struct {
-	// Database The database the restore writes into
+	// Database The database the restore writes into. Must not start with `-` or contain a line break or another control character.
 	Database string `json:"database"`
 
-	// Host The host of the server
+	// Host The host of the server. Must not contain a line break or another control character.
 	Host string `json:"host"`
 
 	// IsHttps Whether the connection is encrypted, without verifying the server certificate
@@ -2657,7 +3272,7 @@ type MariadbRestoreTarget struct {
 	// IsSkipGaleraDisable Whether the restore keeps Galera replication on for its session
 	IsSkipGaleraDisable bool `json:"isSkipGaleraDisable"`
 
-	// Password The password
+	// Password The password. Must not contain a line break or another control character.
 	Password *string `json:"password,omitempty"`
 
 	// Port The port of the server
@@ -2669,7 +3284,7 @@ type MariadbRestoreTarget struct {
 	// Type Always `MARIADB`
 	Type MariadbRestoreTargetType `json:"type"`
 
-	// Username The user name
+	// Username The user name. Must not contain a line break or another control character.
 	Username string `json:"username"`
 }
 
@@ -2678,13 +3293,13 @@ type MariadbRestoreTargetType string
 
 // MariadbSettings One MariaDB database backed up with mariadb-dump
 type MariadbSettings struct {
-	// Database The database the dump reads, absent until one is picked
+	// Database The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character.
 	Database *string `json:"database,omitempty"`
 
 	// ExcludeTables The tables the dump leaves out
 	ExcludeTables []string `json:"excludeTables"`
 
-	// Host The host of the server
+	// Host The host of the server. Must not contain a line break or another control character.
 	Host string `json:"host"`
 
 	// IsExcludeEvents Whether the dump leaves out the scheduled events
@@ -2696,7 +3311,7 @@ type MariadbSettings struct {
 	// IsSkipGaleraDisable Whether the dump keeps Galera replication on for its session
 	IsSkipGaleraDisable bool `json:"isSkipGaleraDisable"`
 
-	// Password The password
+	// Password The password. Must not contain a line break or another control character.
 	Password *string `json:"password,omitempty"`
 
 	// Port The port of the server
@@ -2711,7 +3326,7 @@ type MariadbSettings struct {
 	// Type Always `MARIADB`
 	Type MariadbSettingsType `json:"type"`
 
-	// Username The user name
+	// Username The user name. Must not contain a line break or another control character.
 	Username string `json:"username"`
 
 	// Version The version the server reported at the last save
@@ -2723,6 +3338,30 @@ type MariadbSettingsType string
 
 // MariadbVersion The version the server reported at the last save
 type MariadbVersion string
+
+// MasterKeyAcknowledgment Whether root admin saved the current master key
+type MasterKeyAcknowledgment struct {
+	// IsSaved `true` records that the current key is saved outside the server
+	IsSaved bool `json:"isSaved"`
+}
+
+// MasterKeyExport A single-use token that downloads the master key within 60 seconds
+type MasterKeyExport struct {
+	// ExpiresAt When the token stops working
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// FileName The name the downloaded file gets
+	FileName string `json:"fileName"`
+
+	// Token The token, returned only in this response
+	Token string `json:"token"`
+}
+
+// MasterKeyExportCreate The confirmation for a master-key export
+type MasterKeyExportCreate struct {
+	// Code The emailed confirmation code; required when the instance requires two-factor sign-in
+	Code *string `json:"code,omitempty"`
+}
 
 // MattermostNotifierSettings Posts to Mattermost through an incoming webhook or a bot account
 type MattermostNotifierSettings struct {
@@ -2858,16 +3497,16 @@ type MongodbVersion string
 
 // MysqlRestoreTarget A MySQL database the dump is replayed into
 type MysqlRestoreTarget struct {
-	// Database The database the restore writes into
+	// Database The database the restore writes into. Must not start with `-` or contain a line break or another control character.
 	Database string `json:"database"`
 
-	// Host The host of the server
+	// Host The host of the server. Must not contain a line break or another control character.
 	Host string `json:"host"`
 
 	// IsHttps Whether the connection is encrypted, without verifying the server certificate
 	IsHttps bool `json:"isHttps"`
 
-	// Password The password
+	// Password The password. Must not contain a line break or another control character.
 	Password *string `json:"password,omitempty"`
 
 	// Port The port of the server
@@ -2879,7 +3518,7 @@ type MysqlRestoreTarget struct {
 	// Type Always `MYSQL`
 	Type MysqlRestoreTargetType `json:"type"`
 
-	// Username The user name
+	// Username The user name. Must not contain a line break or another control character.
 	Username string `json:"username"`
 }
 
@@ -2888,19 +3527,19 @@ type MysqlRestoreTargetType string
 
 // MysqlSettings One MySQL database backed up with mysqldump
 type MysqlSettings struct {
-	// Database The database the dump reads, absent until one is picked
+	// Database The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character.
 	Database *string `json:"database,omitempty"`
 
 	// ExcludeTables The tables the dump leaves out
 	ExcludeTables []string `json:"excludeTables"`
 
-	// Host The host of the server
+	// Host The host of the server. Must not contain a line break or another control character.
 	Host string `json:"host"`
 
 	// IsHttps Whether the connection is encrypted, without verifying the server certificate
 	IsHttps bool `json:"isHttps"`
 
-	// Password The password
+	// Password The password. Must not contain a line break or another control character.
 	Password *string `json:"password,omitempty"`
 
 	// Port The port of the server
@@ -2915,7 +3554,7 @@ type MysqlSettings struct {
 	// Type Always `MYSQL`
 	Type MysqlSettingsType `json:"type"`
 
-	// Username The user name
+	// Username The user name. Must not contain a line break or another control character.
 	Username string `json:"username"`
 
 	// Version The version the server reported at the last save
@@ -3831,6 +4470,9 @@ type StorageTransfer struct {
 	TargetWorkspaceId openapi_types.UUID `json:"targetWorkspaceId"`
 }
 
+// StorageType The provider of a storage
+type StorageType string
+
 // StorageUpdate The editable fields of a storage
 type StorageUpdate struct {
 	// Name The name of the storage
@@ -3901,6 +4543,9 @@ type User struct {
 
 	// Id The ID of the user
 	Id openapi_types.UUID `json:"id"`
+
+	// IsRootAdmin Whether the user is root admin, the instance's bootstrap administrator who alone manages Databasus backups, master-key export and recovery; the role `ADMIN` alone does not grant it
+	IsRootAdmin bool `json:"isRootAdmin"`
 
 	// Name The name other users see
 	Name string `json:"name"`
@@ -4597,6 +5242,12 @@ type BackupId = openapi_types.UUID
 // DatabaseId defines model for DatabaseId.
 type DatabaseId = openapi_types.UUID
 
+// InstanceBackupId defines model for InstanceBackupId.
+type InstanceBackupId = openapi_types.UUID
+
+// InstanceRecoveryId defines model for InstanceRecoveryId.
+type InstanceRecoveryId = openapi_types.UUID
+
 // MemberId defines model for MemberId.
 type MemberId = openapi_types.UUID
 
@@ -4681,6 +5332,33 @@ type ListHealthcheckAttemptsParams struct {
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
+// ListInstanceBackupDestinationsParams defines parameters for ListInstanceBackupDestinations.
+type ListInstanceBackupDestinationsParams struct {
+	// Limit The largest number of choices on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+
+	// Query The text the storage name or the workspace name contains
+	Query *string `form:"query,omitempty" json:"query,omitempty"`
+}
+
+// DownloadInstanceBackupParams defines parameters for DownloadInstanceBackup.
+type DownloadInstanceBackupParams struct {
+	// Token The download token issued for the copy
+	Token string `form:"token" json:"token"`
+}
+
+// ListInstanceBackupsParams defines parameters for ListInstanceBackups.
+type ListInstanceBackupsParams struct {
+	// Limit The largest number of backups on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
 // ListLogicalBackupsParams defines parameters for ListLogicalBackups.
 type ListLogicalBackupsParams struct {
 	// DatabaseId The database whose backups to list
@@ -4702,6 +5380,12 @@ type ListLogicalBackupsParams struct {
 // DownloadLogicalBackupParams defines parameters for DownloadLogicalBackup.
 type DownloadLogicalBackupParams struct {
 	// Token The download token issued for this backup
+	Token string `form:"token" json:"token"`
+}
+
+// DownloadMasterKeyParams defines parameters for DownloadMasterKey.
+type DownloadMasterKeyParams struct {
+	// Token The token issued by `createMasterKeyExport`
 	Token string `form:"token" json:"token"`
 }
 
@@ -4867,6 +5551,18 @@ type SignInWithGoogleJSONRequestBody = OAuthSignInRequest
 // UpdateHealthcheckConfigJSONRequestBody defines body for UpdateHealthcheckConfig for application/json ContentType.
 type UpdateHealthcheckConfigJSONRequestBody = HealthcheckConfigInput
 
+// UpdateInstanceBackupSettingsJSONRequestBody defines body for UpdateInstanceBackupSettings for application/json ContentType.
+type UpdateInstanceBackupSettingsJSONRequestBody = InstanceBackupSettings
+
+// CreateInstanceBackupDownloadTokenJSONRequestBody defines body for CreateInstanceBackupDownloadToken for application/json ContentType.
+type CreateInstanceBackupDownloadTokenJSONRequestBody = InstanceBackupDownloadTokenCreate
+
+// CreateInstanceRecoveryMultipartRequestBody defines body for CreateInstanceRecovery for multipart/form-data ContentType.
+type CreateInstanceRecoveryMultipartRequestBody = InstanceRecoveryUpload
+
+// ApplyInstanceRecoveryJSONRequestBody defines body for ApplyInstanceRecovery for application/json ContentType.
+type ApplyInstanceRecoveryJSONRequestBody = InstanceRecoveryApply
+
 // UpdateInstanceSettingsJSONRequestBody defines body for UpdateInstanceSettings for application/json ContentType.
 type UpdateInstanceSettingsJSONRequestBody = InstanceSettingsUpdate
 
@@ -4878,6 +5574,12 @@ type CreateLimitedUserJSONRequestBody = DatabaseSettingsTarget
 
 // StartLogicalBackupJSONRequestBody defines body for StartLogicalBackup for application/json ContentType.
 type StartLogicalBackupJSONRequestBody = LogicalBackupStart
+
+// AcknowledgeMasterKeyJSONRequestBody defines body for AcknowledgeMasterKey for application/json ContentType.
+type AcknowledgeMasterKeyJSONRequestBody = MasterKeyAcknowledgment
+
+// CreateMasterKeyExportJSONRequestBody defines body for CreateMasterKeyExport for application/json ContentType.
+type CreateMasterKeyExportJSONRequestBody = MasterKeyExportCreate
 
 // TestNotifierSettingsJSONRequestBody defines body for TestNotifierSettings for application/json ContentType.
 type TestNotifierSettingsJSONRequestBody = NotifierSettingsTest
@@ -6575,6 +7277,139 @@ type ClientInterface interface {
 	// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
 	UpdateHealthcheckConfig(ctx context.Context, databaseId openapi_types.UUID, body UpdateHealthcheckConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListInstanceBackupDestinations List the storages root admin can select as destinations
+	//
+	// Only root admin lists them. Every storage of every workspace is a choice, ordered by workspace name, then storage name, then storage ID. `query` keeps the storages whose name or workspace name contains it, ignoring case. No provider settings or secrets are returned.
+	//
+	// Corresponds with GET /instance-backup-destinations (the `ListInstanceBackupDestinations` operationId).
+	ListInstanceBackupDestinations(ctx context.Context, params *ListInstanceBackupDestinationsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DownloadInstanceBackup Download the encrypted file of a Databasus backup copy
+	//
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createInstanceBackupDownloadToken` is the credential. The file stays encrypted with the master key and needs no separate metadata to be recovered. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`.
+	//
+	// Corresponds with GET /instance-backup-downloads (the `DownloadInstanceBackup` operationId).
+	DownloadInstanceBackup(ctx context.Context, params *DownloadInstanceBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInstanceBackupSettings Get the Databasus backup settings
+	//
+	// Only root admin reads them; another instance admin gets 403 `permission_denied`. A new installation has no destinations, an hourly schedule and 30-day retention.
+	//
+	// Corresponds with GET /instance-backup-settings (the `GetInstanceBackupSettings` operationId).
+	GetInstanceBackupSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateInstanceBackupSettingsWithBody Replace the Databasus backup settings
+	//
+	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /instance-backup-settings (the `UpdateInstanceBackupSettings` operationId).
+	UpdateInstanceBackupSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateInstanceBackupSettings Replace the Databasus backup settings
+	//
+	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /instance-backup-settings (the `UpdateInstanceBackupSettings` operationId).
+	UpdateInstanceBackupSettings(ctx context.Context, body UpdateInstanceBackupSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInstanceBackupStatus Get the protection state of the instance
+	//
+	// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
+	//
+	// Corresponds with GET /instance-backup-statuses (the `GetInstanceBackupStatus` operationId).
+	GetInstanceBackupStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListInstanceBackups List the Databasus backups
+	//
+	// Only root admin lists them. The newest snapshot comes first, then the higher ID; a backup whose dump has not finished sorts by its start time.
+	//
+	// Corresponds with GET /instance-backups (the `ListInstanceBackups` operationId).
+	ListInstanceBackups(ctx context.Context, params *ListInstanceBackupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartInstanceBackup Start a Databasus backup now
+	//
+	// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
+	//
+	// Corresponds with POST /instance-backups (the `StartInstanceBackup` operationId).
+	StartInstanceBackup(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInstanceBackup Get a Databasus backup with the outcome of each copy
+	//
+	// Only root admin reads it.
+	//
+	// Corresponds with GET /instance-backups/{instanceBackupId} (the `GetInstanceBackup` operationId).
+	GetInstanceBackup(ctx context.Context, instanceBackupId InstanceBackupId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateInstanceBackupDownloadTokenWithBody Issue a single-use token to download a stored copy
+	//
+	// Only root admin gets one. The copy must have been stored successfully and its storage must still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an unknown copy. The token downloads the encrypted file once and expires after five minutes.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /instance-backups/{instanceBackupId}/download-tokens (the `CreateInstanceBackupDownloadToken` operationId).
+	CreateInstanceBackupDownloadTokenWithBody(ctx context.Context, instanceBackupId InstanceBackupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateInstanceBackupDownloadToken Issue a single-use token to download a stored copy
+	//
+	// Only root admin gets one. The copy must have been stored successfully and its storage must still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an unknown copy. The token downloads the encrypted file once and expires after five minutes.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /instance-backups/{instanceBackupId}/download-tokens (the `CreateInstanceBackupDownloadToken` operationId).
+	CreateInstanceBackupDownloadToken(ctx context.Context, instanceBackupId InstanceBackupId, body CreateInstanceBackupDownloadTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateInstanceRecoveryWithBody Upload a Databasus backup file and its master key to prepare a replacement
+	//
+	// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /instance-recoveries (the `CreateInstanceRecovery` operationId).
+	CreateInstanceRecoveryWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInstanceRecovery Get a recovery from the local recovery journal
+	//
+	// Only the current root admin reads it, including root admin restored by this recovery. It exposes the authenticated snapshot time and source release, the archive fingerprint and a safe failure reason, never the key or the decrypted dump.
+	//
+	// Corresponds with GET /instance-recoveries/{instanceRecoveryId} (the `GetInstanceRecovery` operationId).
+	GetInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ApplyInstanceRecoveryWithBody Replace this installation with the prepared recovery
+	//
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/apply (the `ApplyInstanceRecovery` operationId).
+	ApplyInstanceRecoveryWithBody(ctx context.Context, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ApplyInstanceRecovery Replace this installation with the prepared recovery
+	//
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/apply (the `ApplyInstanceRecovery` operationId).
+	ApplyInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, body ApplyInstanceRecoveryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CancelInstanceRecovery Cancel a recovery that was not applied
+	//
+	// Only root admin cancels. The answer comes after the staged archive, key and staging database are released, with the recovery `CANCELLED`; cancelling it again returns the same answer. Once apply was accepted, or for a recovery that already failed or completed, the answer is 409 `recovery_not_ready`.
+	//
+	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/cancel (the `CancelInstanceRecovery` operationId).
+	CancelInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RequestInstanceRecoveryConfirmation Email root admin a code that confirms applying this recovery
+	//
+	// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+	//
+	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/confirmations (the `RequestInstanceRecoveryConfirmation` operationId).
+	RequestInstanceRecoveryConfirmation(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetInstanceSettings Get the instance settings
 	//
 	// Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
@@ -6684,10 +7519,60 @@ type ClientInterface interface {
 
 	// DownloadLogicalBackup Download the file of a logical backup
 	//
-	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
 	//
 	// Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
 	DownloadLogicalBackup(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AcknowledgeMasterKeyWithBody Record that root admin saved the current master key
+	//
+	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
+	AcknowledgeMasterKeyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AcknowledgeMasterKey Record that root admin saved the current master key
+	//
+	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
+	AcknowledgeMasterKey(ctx context.Context, body AcknowledgeMasterKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RequestMasterKeyConfirmation Email root admin a code that confirms a master-key export
+	//
+	// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+	//
+	// Corresponds with POST /master-key-confirmations (the `RequestMasterKeyConfirmation` operationId).
+	RequestMasterKeyConfirmation(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DownloadMasterKey Download the master key once
+	//
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
+	//
+	// Corresponds with GET /master-key-downloads (the `DownloadMasterKey` operationId).
+	DownloadMasterKey(ctx context.Context, params *DownloadMasterKeyParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateMasterKeyExportWithBody Get a single-use token that downloads the master key
+	//
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
+	CreateMasterKeyExportWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateMasterKeyExport Get a single-use token that downloads the master key
+	//
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
+	CreateMasterKeyExport(ctx context.Context, body CreateMasterKeyExportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TestNotifierSettingsWithBody Send a test message with settings that are not saved
 	//
@@ -7041,7 +7926,7 @@ type ClientInterface interface {
 
 	// DeleteStorage Delete a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A storage selected as a Databasus backup destination gets 409 `databasus_backup_in_use` until root admin deselects it, even when database backups also use it. Otherwise a storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
 	//
 	// Corresponds with DELETE /storages/{storageId} (the `DeleteStorage` operationId).
 	DeleteStorage(ctx context.Context, storageId StorageId, params *DeleteStorageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7312,12 +8197,16 @@ type ClientInterface interface {
 
 	// StartVerificationWithBody Start a manual backup verification
 	//
+	// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
+	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /verifications (the `StartVerification` operationId).
 	StartVerificationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// StartVerification Start a manual backup verification
+	//
+	// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7425,7 +8314,7 @@ type ClientInterface interface {
 
 	// DeleteWorkspace Delete a workspace with its notifiers, storages and members
 	//
-	// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
+	// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Next, a storage of the workspace selected as a Databasus backup destination gets 409 `databasus_backup_in_use`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
 	//
 	// Corresponds with DELETE /workspaces/{workspaceId} (the `DeleteWorkspace` operationId).
 	DeleteWorkspace(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7980,6 +8869,309 @@ func (c *Client) UpdateHealthcheckConfig(ctx context.Context, databaseId openapi
 	return c.Client.Do(req)
 }
 
+// ListInstanceBackupDestinations List the storages root admin can select as destinations
+//
+// Only root admin lists them. Every storage of every workspace is a choice, ordered by workspace name, then storage name, then storage ID. `query` keeps the storages whose name or workspace name contains it, ignoring case. No provider settings or secrets are returned.
+//
+// Corresponds with GET /instance-backup-destinations (the `ListInstanceBackupDestinations` operationId).
+func (c *Client) ListInstanceBackupDestinations(ctx context.Context, params *ListInstanceBackupDestinationsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListInstanceBackupDestinationsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DownloadInstanceBackup Download the encrypted file of a Databasus backup copy
+//
+// Public, because a browser link cannot carry the session: the single-use `token` from `createInstanceBackupDownloadToken` is the credential. The file stays encrypted with the master key and needs no separate metadata to be recovered. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`.
+//
+// Corresponds with GET /instance-backup-downloads (the `DownloadInstanceBackup` operationId).
+func (c *Client) DownloadInstanceBackup(ctx context.Context, params *DownloadInstanceBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDownloadInstanceBackupRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInstanceBackupSettings Get the Databasus backup settings
+//
+// Only root admin reads them; another instance admin gets 403 `permission_denied`. A new installation has no destinations, an hourly schedule and 30-day retention.
+//
+// Corresponds with GET /instance-backup-settings (the `GetInstanceBackupSettings` operationId).
+func (c *Client) GetInstanceBackupSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInstanceBackupSettingsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateInstanceBackupSettingsWithBody Replace the Databasus backup settings
+//
+// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /instance-backup-settings (the `UpdateInstanceBackupSettings` operationId).
+func (c *Client) UpdateInstanceBackupSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateInstanceBackupSettingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateInstanceBackupSettings Replace the Databasus backup settings
+//
+// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /instance-backup-settings (the `UpdateInstanceBackupSettings` operationId).
+func (c *Client) UpdateInstanceBackupSettings(ctx context.Context, body UpdateInstanceBackupSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateInstanceBackupSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInstanceBackupStatus Get the protection state of the instance
+//
+// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
+//
+// Corresponds with GET /instance-backup-statuses (the `GetInstanceBackupStatus` operationId).
+func (c *Client) GetInstanceBackupStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInstanceBackupStatusRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListInstanceBackups List the Databasus backups
+//
+// Only root admin lists them. The newest snapshot comes first, then the higher ID; a backup whose dump has not finished sorts by its start time.
+//
+// Corresponds with GET /instance-backups (the `ListInstanceBackups` operationId).
+func (c *Client) ListInstanceBackups(ctx context.Context, params *ListInstanceBackupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListInstanceBackupsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartInstanceBackup Start a Databasus backup now
+//
+// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
+//
+// Corresponds with POST /instance-backups (the `StartInstanceBackup` operationId).
+func (c *Client) StartInstanceBackup(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartInstanceBackupRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInstanceBackup Get a Databasus backup with the outcome of each copy
+//
+// Only root admin reads it.
+//
+// Corresponds with GET /instance-backups/{instanceBackupId} (the `GetInstanceBackup` operationId).
+func (c *Client) GetInstanceBackup(ctx context.Context, instanceBackupId InstanceBackupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInstanceBackupRequest(c.Server, instanceBackupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateInstanceBackupDownloadTokenWithBody Issue a single-use token to download a stored copy
+//
+// Only root admin gets one. The copy must have been stored successfully and its storage must still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an unknown copy. The token downloads the encrypted file once and expires after five minutes.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /instance-backups/{instanceBackupId}/download-tokens (the `CreateInstanceBackupDownloadToken` operationId).
+func (c *Client) CreateInstanceBackupDownloadTokenWithBody(ctx context.Context, instanceBackupId InstanceBackupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateInstanceBackupDownloadTokenRequestWithBody(c.Server, instanceBackupId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateInstanceBackupDownloadToken Issue a single-use token to download a stored copy
+//
+// Only root admin gets one. The copy must have been stored successfully and its storage must still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an unknown copy. The token downloads the encrypted file once and expires after five minutes.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /instance-backups/{instanceBackupId}/download-tokens (the `CreateInstanceBackupDownloadToken` operationId).
+func (c *Client) CreateInstanceBackupDownloadToken(ctx context.Context, instanceBackupId InstanceBackupId, body CreateInstanceBackupDownloadTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateInstanceBackupDownloadTokenRequest(c.Server, instanceBackupId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateInstanceRecoveryWithBody Upload a Databasus backup file and its master key to prepare a replacement
+//
+// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /instance-recoveries (the `CreateInstanceRecovery` operationId).
+func (c *Client) CreateInstanceRecoveryWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateInstanceRecoveryRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInstanceRecovery Get a recovery from the local recovery journal
+//
+// Only the current root admin reads it, including root admin restored by this recovery. It exposes the authenticated snapshot time and source release, the archive fingerprint and a safe failure reason, never the key or the decrypted dump.
+//
+// Corresponds with GET /instance-recoveries/{instanceRecoveryId} (the `GetInstanceRecovery` operationId).
+func (c *Client) GetInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInstanceRecoveryRequest(c.Server, instanceRecoveryId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ApplyInstanceRecoveryWithBody Replace this installation with the prepared recovery
+//
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/apply (the `ApplyInstanceRecovery` operationId).
+func (c *Client) ApplyInstanceRecoveryWithBody(ctx context.Context, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApplyInstanceRecoveryRequestWithBody(c.Server, instanceRecoveryId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ApplyInstanceRecovery Replace this installation with the prepared recovery
+//
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/apply (the `ApplyInstanceRecovery` operationId).
+func (c *Client) ApplyInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, body ApplyInstanceRecoveryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApplyInstanceRecoveryRequest(c.Server, instanceRecoveryId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CancelInstanceRecovery Cancel a recovery that was not applied
+//
+// Only root admin cancels. The answer comes after the staged archive, key and staging database are released, with the recovery `CANCELLED`; cancelling it again returns the same answer. Once apply was accepted, or for a recovery that already failed or completed, the answer is 409 `recovery_not_ready`.
+//
+// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/cancel (the `CancelInstanceRecovery` operationId).
+func (c *Client) CancelInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCancelInstanceRecoveryRequest(c.Server, instanceRecoveryId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RequestInstanceRecoveryConfirmation Email root admin a code that confirms applying this recovery
+//
+// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+//
+// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/confirmations (the `RequestInstanceRecoveryConfirmation` operationId).
+func (c *Client) RequestInstanceRecoveryConfirmation(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRequestInstanceRecoveryConfirmationRequest(c.Server, instanceRecoveryId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetInstanceSettings Get the instance settings
 //
 // Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
@@ -8219,11 +9411,121 @@ func (c *Client) CancelLogicalBackup(ctx context.Context, backupId BackupId, req
 
 // DownloadLogicalBackup Download the file of a logical backup
 //
-// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
+// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
 //
 // Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
 func (c *Client) DownloadLogicalBackup(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDownloadLogicalBackupRequest(c.Server, backupId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AcknowledgeMasterKeyWithBody Record that root admin saved the current master key
+//
+// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
+func (c *Client) AcknowledgeMasterKeyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAcknowledgeMasterKeyRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AcknowledgeMasterKey Record that root admin saved the current master key
+//
+// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
+func (c *Client) AcknowledgeMasterKey(ctx context.Context, body AcknowledgeMasterKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAcknowledgeMasterKeyRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RequestMasterKeyConfirmation Email root admin a code that confirms a master-key export
+//
+// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+//
+// Corresponds with POST /master-key-confirmations (the `RequestMasterKeyConfirmation` operationId).
+func (c *Client) RequestMasterKeyConfirmation(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRequestMasterKeyConfirmationRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DownloadMasterKey Download the master key once
+//
+// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
+//
+// Corresponds with GET /master-key-downloads (the `DownloadMasterKey` operationId).
+func (c *Client) DownloadMasterKey(ctx context.Context, params *DownloadMasterKeyParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDownloadMasterKeyRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateMasterKeyExportWithBody Get a single-use token that downloads the master key
+//
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
+func (c *Client) CreateMasterKeyExportWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateMasterKeyExportRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateMasterKeyExport Get a single-use token that downloads the master key
+//
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
+func (c *Client) CreateMasterKeyExport(ctx context.Context, body CreateMasterKeyExportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateMasterKeyExportRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9006,7 +10308,7 @@ func (c *Client) CreateStorage(ctx context.Context, body CreateStorageJSONReques
 
 // DeleteStorage Delete a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
+// Needs the role `WORKSPACE_MEMBER` or higher. A storage selected as a Databasus backup destination gets 409 `databasus_backup_in_use` until root admin deselects it, even when database backups also use it. Otherwise a storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
 //
 // Corresponds with DELETE /storages/{storageId} (the `DeleteStorage` operationId).
 func (c *Client) DeleteStorage(ctx context.Context, storageId StorageId, params *DeleteStorageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9627,6 +10929,8 @@ func (c *Client) ListVerifications(ctx context.Context, params *ListVerification
 
 // StartVerificationWithBody Start a manual backup verification
 //
+// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
+//
 // Takes any type of body and a specified content type.
 //
 // Corresponds with POST /verifications (the `StartVerification` operationId).
@@ -9643,6 +10947,8 @@ func (c *Client) StartVerificationWithBody(ctx context.Context, contentType stri
 }
 
 // StartVerification Start a manual backup verification
+//
+// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9890,7 +11196,7 @@ func (c *Client) CreateWorkspace(ctx context.Context, body CreateWorkspaceJSONRe
 
 // DeleteWorkspace Delete a workspace with its notifiers, storages and members
 //
-// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
+// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Next, a storage of the workspace selected as a Databasus backup destination gets 409 `databasus_backup_in_use`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
 //
 // Corresponds with DELETE /workspaces/{workspaceId} (the `DeleteWorkspace` operationId).
 func (c *Client) DeleteWorkspace(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10938,6 +12244,580 @@ func NewUpdateHealthcheckConfigRequestWithBody(server string, databaseId openapi
 	return req, nil
 }
 
+// NewListInstanceBackupDestinationsRequest constructs an http.Request for the ListInstanceBackupDestinations method
+func NewListInstanceBackupDestinationsRequest(server string, params *ListInstanceBackupDestinationsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-backup-destinations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Query != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "query", *params.Query, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDownloadInstanceBackupRequest constructs an http.Request for the DownloadInstanceBackup method
+func NewDownloadInstanceBackupRequest(server string, params *DownloadInstanceBackupParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-backup-downloads")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "token", params.Token, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetInstanceBackupSettingsRequest constructs an http.Request for the GetInstanceBackupSettings method
+func NewGetInstanceBackupSettingsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-backup-settings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateInstanceBackupSettingsRequest calls the generic UpdateInstanceBackupSettings builder with application/json body
+func NewUpdateInstanceBackupSettingsRequest(server string, body UpdateInstanceBackupSettingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateInstanceBackupSettingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewUpdateInstanceBackupSettingsRequestWithBody constructs an http.Request for the UpdateInstanceBackupSettings method, with any body, and a specified content type
+func NewUpdateInstanceBackupSettingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-backup-settings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetInstanceBackupStatusRequest constructs an http.Request for the GetInstanceBackupStatus method
+func NewGetInstanceBackupStatusRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-backup-statuses")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListInstanceBackupsRequest constructs an http.Request for the ListInstanceBackups method
+func NewListInstanceBackupsRequest(server string, params *ListInstanceBackupsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-backups")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStartInstanceBackupRequest constructs an http.Request for the StartInstanceBackup method
+func NewStartInstanceBackupRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-backups")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetInstanceBackupRequest constructs an http.Request for the GetInstanceBackup method
+func NewGetInstanceBackupRequest(server string, instanceBackupId InstanceBackupId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "instanceBackupId", instanceBackupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-backups/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateInstanceBackupDownloadTokenRequest calls the generic CreateInstanceBackupDownloadToken builder with application/json body
+func NewCreateInstanceBackupDownloadTokenRequest(server string, instanceBackupId InstanceBackupId, body CreateInstanceBackupDownloadTokenJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateInstanceBackupDownloadTokenRequestWithBody(server, instanceBackupId, "application/json", bodyReader)
+}
+
+// NewCreateInstanceBackupDownloadTokenRequestWithBody constructs an http.Request for the CreateInstanceBackupDownloadToken method, with any body, and a specified content type
+func NewCreateInstanceBackupDownloadTokenRequestWithBody(server string, instanceBackupId InstanceBackupId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "instanceBackupId", instanceBackupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-backups/%s/download-tokens", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCreateInstanceRecoveryRequestWithBody constructs an http.Request for the CreateInstanceRecovery method, with any body, and a specified content type
+func NewCreateInstanceRecoveryRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-recoveries")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetInstanceRecoveryRequest constructs an http.Request for the GetInstanceRecovery method
+func NewGetInstanceRecoveryRequest(server string, instanceRecoveryId InstanceRecoveryId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "instanceRecoveryId", instanceRecoveryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-recoveries/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApplyInstanceRecoveryRequest calls the generic ApplyInstanceRecovery builder with application/json body
+func NewApplyInstanceRecoveryRequest(server string, instanceRecoveryId InstanceRecoveryId, body ApplyInstanceRecoveryJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewApplyInstanceRecoveryRequestWithBody(server, instanceRecoveryId, "application/json", bodyReader)
+}
+
+// NewApplyInstanceRecoveryRequestWithBody constructs an http.Request for the ApplyInstanceRecovery method, with any body, and a specified content type
+func NewApplyInstanceRecoveryRequestWithBody(server string, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "instanceRecoveryId", instanceRecoveryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-recoveries/%s/apply", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCancelInstanceRecoveryRequest constructs an http.Request for the CancelInstanceRecovery method
+func NewCancelInstanceRecoveryRequest(server string, instanceRecoveryId InstanceRecoveryId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "instanceRecoveryId", instanceRecoveryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-recoveries/%s/cancel", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRequestInstanceRecoveryConfirmationRequest constructs an http.Request for the RequestInstanceRecoveryConfirmation method
+func NewRequestInstanceRecoveryConfirmationRequest(server string, instanceRecoveryId InstanceRecoveryId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "instanceRecoveryId", instanceRecoveryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-recoveries/%s/confirmations", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetInstanceSettingsRequest constructs an http.Request for the GetInstanceSettings method
 func NewGetInstanceSettingsRequest(server string) (*http.Request, error) {
 	var err error
@@ -11378,6 +13258,163 @@ func NewDownloadLogicalBackupRequest(server string, backupId BackupId, params *D
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewAcknowledgeMasterKeyRequest calls the generic AcknowledgeMasterKey builder with application/json body
+func NewAcknowledgeMasterKeyRequest(server string, body AcknowledgeMasterKeyJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAcknowledgeMasterKeyRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewAcknowledgeMasterKeyRequestWithBody constructs an http.Request for the AcknowledgeMasterKey method, with any body, and a specified content type
+func NewAcknowledgeMasterKeyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/master-key-acknowledgments")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRequestMasterKeyConfirmationRequest constructs an http.Request for the RequestMasterKeyConfirmation method
+func NewRequestMasterKeyConfirmationRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/master-key-confirmations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDownloadMasterKeyRequest constructs an http.Request for the DownloadMasterKey method
+func NewDownloadMasterKeyRequest(server string, params *DownloadMasterKeyParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/master-key-downloads")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "token", params.Token, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateMasterKeyExportRequest calls the generic CreateMasterKeyExport builder with application/json body
+func NewCreateMasterKeyExportRequest(server string, body CreateMasterKeyExportJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateMasterKeyExportRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateMasterKeyExportRequestWithBody constructs an http.Request for the CreateMasterKeyExport method, with any body, and a specified content type
+func NewCreateMasterKeyExportRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/master-key-exports")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -14728,6 +16765,159 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
 	UpdateHealthcheckConfigWithResponse(ctx context.Context, databaseId openapi_types.UUID, body UpdateHealthcheckConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateHealthcheckConfigResponse, error)
 
+	// ListInstanceBackupDestinationsWithResponse List the storages root admin can select as destinations
+	//
+	// Only root admin lists them. Every storage of every workspace is a choice, ordered by workspace name, then storage name, then storage ID. `query` keeps the storages whose name or workspace name contains it, ignoring case. No provider settings or secrets are returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /instance-backup-destinations (the `ListInstanceBackupDestinations` operationId).
+	ListInstanceBackupDestinationsWithResponse(ctx context.Context, params *ListInstanceBackupDestinationsParams, reqEditors ...RequestEditorFn) (*ListInstanceBackupDestinationsResponse, error)
+
+	// DownloadInstanceBackupWithResponse Download the encrypted file of a Databasus backup copy
+	//
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createInstanceBackupDownloadToken` is the credential. The file stays encrypted with the master key and needs no separate metadata to be recovered. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /instance-backup-downloads (the `DownloadInstanceBackup` operationId).
+	DownloadInstanceBackupWithResponse(ctx context.Context, params *DownloadInstanceBackupParams, reqEditors ...RequestEditorFn) (*DownloadInstanceBackupResponse, error)
+
+	// GetInstanceBackupSettingsWithResponse Get the Databasus backup settings
+	//
+	// Only root admin reads them; another instance admin gets 403 `permission_denied`. A new installation has no destinations, an hourly schedule and 30-day retention.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /instance-backup-settings (the `GetInstanceBackupSettings` operationId).
+	GetInstanceBackupSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInstanceBackupSettingsResponse, error)
+
+	// UpdateInstanceBackupSettingsWithBodyWithResponse Replace the Databasus backup settings
+	//
+	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /instance-backup-settings (the `UpdateInstanceBackupSettings` operationId).
+	UpdateInstanceBackupSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateInstanceBackupSettingsResponse, error)
+
+	// UpdateInstanceBackupSettingsWithResponse Replace the Databasus backup settings
+	//
+	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /instance-backup-settings (the `UpdateInstanceBackupSettings` operationId).
+	UpdateInstanceBackupSettingsWithResponse(ctx context.Context, body UpdateInstanceBackupSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstanceBackupSettingsResponse, error)
+
+	// GetInstanceBackupStatusWithResponse Get the protection state of the instance
+	//
+	// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /instance-backup-statuses (the `GetInstanceBackupStatus` operationId).
+	GetInstanceBackupStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInstanceBackupStatusResponse, error)
+
+	// ListInstanceBackupsWithResponse List the Databasus backups
+	//
+	// Only root admin lists them. The newest snapshot comes first, then the higher ID; a backup whose dump has not finished sorts by its start time.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /instance-backups (the `ListInstanceBackups` operationId).
+	ListInstanceBackupsWithResponse(ctx context.Context, params *ListInstanceBackupsParams, reqEditors ...RequestEditorFn) (*ListInstanceBackupsResponse, error)
+
+	// StartInstanceBackupWithResponse Start a Databasus backup now
+	//
+	// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /instance-backups (the `StartInstanceBackup` operationId).
+	StartInstanceBackupWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*StartInstanceBackupResponse, error)
+
+	// GetInstanceBackupWithResponse Get a Databasus backup with the outcome of each copy
+	//
+	// Only root admin reads it.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /instance-backups/{instanceBackupId} (the `GetInstanceBackup` operationId).
+	GetInstanceBackupWithResponse(ctx context.Context, instanceBackupId InstanceBackupId, reqEditors ...RequestEditorFn) (*GetInstanceBackupResponse, error)
+
+	// CreateInstanceBackupDownloadTokenWithBodyWithResponse Issue a single-use token to download a stored copy
+	//
+	// Only root admin gets one. The copy must have been stored successfully and its storage must still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an unknown copy. The token downloads the encrypted file once and expires after five minutes.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /instance-backups/{instanceBackupId}/download-tokens (the `CreateInstanceBackupDownloadToken` operationId).
+	CreateInstanceBackupDownloadTokenWithBodyWithResponse(ctx context.Context, instanceBackupId InstanceBackupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateInstanceBackupDownloadTokenResponse, error)
+
+	// CreateInstanceBackupDownloadTokenWithResponse Issue a single-use token to download a stored copy
+	//
+	// Only root admin gets one. The copy must have been stored successfully and its storage must still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an unknown copy. The token downloads the encrypted file once and expires after five minutes.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /instance-backups/{instanceBackupId}/download-tokens (the `CreateInstanceBackupDownloadToken` operationId).
+	CreateInstanceBackupDownloadTokenWithResponse(ctx context.Context, instanceBackupId InstanceBackupId, body CreateInstanceBackupDownloadTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateInstanceBackupDownloadTokenResponse, error)
+
+	// CreateInstanceRecoveryWithBodyWithResponse Upload a Databasus backup file and its master key to prepare a replacement
+	//
+	// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /instance-recoveries (the `CreateInstanceRecovery` operationId).
+	CreateInstanceRecoveryWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateInstanceRecoveryResponse, error)
+
+	// GetInstanceRecoveryWithResponse Get a recovery from the local recovery journal
+	//
+	// Only the current root admin reads it, including root admin restored by this recovery. It exposes the authenticated snapshot time and source release, the archive fingerprint and a safe failure reason, never the key or the decrypted dump.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /instance-recoveries/{instanceRecoveryId} (the `GetInstanceRecovery` operationId).
+	GetInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*GetInstanceRecoveryResponse, error)
+
+	// ApplyInstanceRecoveryWithBodyWithResponse Replace this installation with the prepared recovery
+	//
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/apply (the `ApplyInstanceRecovery` operationId).
+	ApplyInstanceRecoveryWithBodyWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ApplyInstanceRecoveryResponse, error)
+
+	// ApplyInstanceRecoveryWithResponse Replace this installation with the prepared recovery
+	//
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/apply (the `ApplyInstanceRecovery` operationId).
+	ApplyInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, body ApplyInstanceRecoveryJSONRequestBody, reqEditors ...RequestEditorFn) (*ApplyInstanceRecoveryResponse, error)
+
+	// CancelInstanceRecoveryWithResponse Cancel a recovery that was not applied
+	//
+	// Only root admin cancels. The answer comes after the staged archive, key and staging database are released, with the recovery `CANCELLED`; cancelling it again returns the same answer. Once apply was accepted, or for a recovery that already failed or completed, the answer is 409 `recovery_not_ready`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/cancel (the `CancelInstanceRecovery` operationId).
+	CancelInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*CancelInstanceRecoveryResponse, error)
+
+	// RequestInstanceRecoveryConfirmationWithResponse Email root admin a code that confirms applying this recovery
+	//
+	// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/confirmations (the `RequestInstanceRecoveryConfirmation` operationId).
+	RequestInstanceRecoveryConfirmationWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*RequestInstanceRecoveryConfirmationResponse, error)
+
 	// GetInstanceSettingsWithResponse Get the instance settings
 	//
 	// Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
@@ -14847,12 +17037,66 @@ type ClientWithResponsesInterface interface {
 
 	// DownloadLogicalBackupWithResponse Download the file of a logical backup
 	//
-	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
 	DownloadLogicalBackupWithResponse(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*DownloadLogicalBackupResponse, error)
+
+	// AcknowledgeMasterKeyWithBodyWithResponse Record that root admin saved the current master key
+	//
+	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
+	AcknowledgeMasterKeyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AcknowledgeMasterKeyResponse, error)
+
+	// AcknowledgeMasterKeyWithResponse Record that root admin saved the current master key
+	//
+	// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
+	AcknowledgeMasterKeyWithResponse(ctx context.Context, body AcknowledgeMasterKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*AcknowledgeMasterKeyResponse, error)
+
+	// RequestMasterKeyConfirmationWithResponse Email root admin a code that confirms a master-key export
+	//
+	// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /master-key-confirmations (the `RequestMasterKeyConfirmation` operationId).
+	RequestMasterKeyConfirmationWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*RequestMasterKeyConfirmationResponse, error)
+
+	// DownloadMasterKeyWithResponse Download the master key once
+	//
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /master-key-downloads (the `DownloadMasterKey` operationId).
+	DownloadMasterKeyWithResponse(ctx context.Context, params *DownloadMasterKeyParams, reqEditors ...RequestEditorFn) (*DownloadMasterKeyResponse, error)
+
+	// CreateMasterKeyExportWithBodyWithResponse Get a single-use token that downloads the master key
+	//
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
+	CreateMasterKeyExportWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateMasterKeyExportResponse, error)
+
+	// CreateMasterKeyExportWithResponse Get a single-use token that downloads the master key
+	//
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
+	CreateMasterKeyExportWithResponse(ctx context.Context, body CreateMasterKeyExportJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMasterKeyExportResponse, error)
 
 	// TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
 	//
@@ -15234,7 +17478,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteStorageWithResponse Delete a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
+	// Needs the role `WORKSPACE_MEMBER` or higher. A storage selected as a Databasus backup destination gets 409 `databasus_backup_in_use` until root admin deselects it, even when database backups also use it. Otherwise a storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -15543,12 +17787,16 @@ type ClientWithResponsesInterface interface {
 
 	// StartVerificationWithBodyWithResponse Start a manual backup verification
 	//
+	// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
+	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /verifications (the `StartVerification` operationId).
 	StartVerificationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartVerificationResponse, error)
 
 	// StartVerificationWithResponse Start a manual backup verification
+	//
+	// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15670,7 +17918,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteWorkspaceWithResponse Delete a workspace with its notifiers, storages and members
 	//
-	// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
+	// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Next, a storage of the workspace selected as a Databasus backup destination gets 409 `databasus_backup_in_use`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17125,6 +19373,1071 @@ func (r UpdateHealthcheckConfigResponse) ContentType() string {
 	return ""
 }
 
+type ListInstanceBackupDestinationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceBackupDestinationPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListInstanceBackupDestinationsResponse) GetJSON200() *InstanceBackupDestinationPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListInstanceBackupDestinationsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListInstanceBackupDestinationsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListInstanceBackupDestinationsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListInstanceBackupDestinationsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListInstanceBackupDestinationsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListInstanceBackupDestinationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListInstanceBackupDestinationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListInstanceBackupDestinationsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DownloadInstanceBackupResponse200Headers the declared response headers of an HTTP 200 response for DownloadInstanceBackup
+type DownloadInstanceBackupResponse200Headers struct {
+	CacheControl       *string
+	ContentDisposition *string
+}
+
+type DownloadInstanceBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *DownloadInstanceBackupResponse200Headers
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DownloadInstanceBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DownloadInstanceBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DownloadInstanceBackupResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DownloadInstanceBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DownloadInstanceBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DownloadInstanceBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DownloadInstanceBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DownloadInstanceBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInstanceBackupSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceBackupSettings
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInstanceBackupSettingsResponse) GetJSON200() *InstanceBackupSettings {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetInstanceBackupSettingsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetInstanceBackupSettingsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetInstanceBackupSettingsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInstanceBackupSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInstanceBackupSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInstanceBackupSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInstanceBackupSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateInstanceBackupSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceBackupSettings
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateInstanceBackupSettingsResponse) GetJSON200() *InstanceBackupSettings {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateInstanceBackupSettingsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateInstanceBackupSettingsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateInstanceBackupSettingsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r UpdateInstanceBackupSettingsResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateInstanceBackupSettingsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateInstanceBackupSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateInstanceBackupSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateInstanceBackupSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateInstanceBackupSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInstanceBackupStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceBackupStatus
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInstanceBackupStatusResponse) GetJSON200() *InstanceBackupStatus {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetInstanceBackupStatusResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetInstanceBackupStatusResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetInstanceBackupStatusResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInstanceBackupStatusResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInstanceBackupStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInstanceBackupStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInstanceBackupStatusResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListInstanceBackupsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceBackupPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListInstanceBackupsResponse) GetJSON200() *InstanceBackupPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListInstanceBackupsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListInstanceBackupsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListInstanceBackupsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListInstanceBackupsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListInstanceBackupsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListInstanceBackupsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListInstanceBackupsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListInstanceBackupsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartInstanceBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *InstanceBackup
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartInstanceBackupResponse) GetJSON202() *InstanceBackup {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r StartInstanceBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r StartInstanceBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r StartInstanceBackupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r StartInstanceBackupResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r StartInstanceBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartInstanceBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartInstanceBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartInstanceBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartInstanceBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInstanceBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceBackup
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInstanceBackupResponse) GetJSON200() *InstanceBackup {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetInstanceBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetInstanceBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetInstanceBackupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetInstanceBackupResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetInstanceBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInstanceBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInstanceBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInstanceBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInstanceBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateInstanceBackupDownloadTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *InstanceBackupDownloadToken
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateInstanceBackupDownloadTokenResponse) GetJSON201() *InstanceBackupDownloadToken {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateInstanceBackupDownloadTokenResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateInstanceBackupDownloadTokenResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateInstanceBackupDownloadTokenResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreateInstanceBackupDownloadTokenResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CreateInstanceBackupDownloadTokenResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateInstanceBackupDownloadTokenResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateInstanceBackupDownloadTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateInstanceBackupDownloadTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateInstanceBackupDownloadTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateInstanceBackupDownloadTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateInstanceRecoveryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *InstanceRecovery
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSON413 the response for an HTTP 413 `application/problem+json` response
+	ApplicationproblemJSON413 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r CreateInstanceRecoveryResponse) GetJSON202() *InstanceRecovery {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateInstanceRecoveryResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateInstanceRecoveryResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateInstanceRecoveryResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CreateInstanceRecoveryResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON413 returns the response for an HTTP 413 `application/problem+json` response
+func (r CreateInstanceRecoveryResponse) GetApplicationproblemJSON413() *Problem {
+	return r.ApplicationproblemJSON413
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateInstanceRecoveryResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateInstanceRecoveryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateInstanceRecoveryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateInstanceRecoveryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateInstanceRecoveryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInstanceRecoveryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceRecovery
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInstanceRecoveryResponse) GetJSON200() *InstanceRecovery {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetInstanceRecoveryResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetInstanceRecoveryResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetInstanceRecoveryResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetInstanceRecoveryResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetInstanceRecoveryResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInstanceRecoveryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInstanceRecoveryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInstanceRecoveryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInstanceRecoveryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ApplyInstanceRecoveryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *InstanceRecovery
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r ApplyInstanceRecoveryResponse) GetJSON202() *InstanceRecovery {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ApplyInstanceRecoveryResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ApplyInstanceRecoveryResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ApplyInstanceRecoveryResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ApplyInstanceRecoveryResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r ApplyInstanceRecoveryResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ApplyInstanceRecoveryResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ApplyInstanceRecoveryResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ApplyInstanceRecoveryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ApplyInstanceRecoveryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ApplyInstanceRecoveryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ApplyInstanceRecoveryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CancelInstanceRecoveryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceRecovery
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CancelInstanceRecoveryResponse) GetJSON200() *InstanceRecovery {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CancelInstanceRecoveryResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CancelInstanceRecoveryResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CancelInstanceRecoveryResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CancelInstanceRecoveryResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CancelInstanceRecoveryResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CancelInstanceRecoveryResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CancelInstanceRecoveryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CancelInstanceRecoveryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CancelInstanceRecoveryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CancelInstanceRecoveryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RequestInstanceRecoveryConfirmationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *IdentityConfirmation
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r RequestInstanceRecoveryConfirmationResponse) GetJSON201() *IdentityConfirmation {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r RequestInstanceRecoveryConfirmationResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r RequestInstanceRecoveryConfirmationResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r RequestInstanceRecoveryConfirmationResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r RequestInstanceRecoveryConfirmationResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r RequestInstanceRecoveryConfirmationResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r RequestInstanceRecoveryConfirmationResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r RequestInstanceRecoveryConfirmationResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RequestInstanceRecoveryConfirmationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RequestInstanceRecoveryConfirmationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RequestInstanceRecoveryConfirmationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RequestInstanceRecoveryConfirmationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetInstanceSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -17338,6 +20651,8 @@ type CreateLimitedUserResponse struct {
 	ApplicationproblemJSON403 *Problem
 	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
 	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
 	ApplicationproblemJSONDefault *Problem
 }
@@ -17365,6 +20680,11 @@ func (r CreateLimitedUserResponse) GetApplicationproblemJSON403() *Problem {
 // GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
 func (r CreateLimitedUserResponse) GetApplicationproblemJSON404() *Problem {
 	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CreateLimitedUserResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
 }
 
 // GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
@@ -17793,6 +21113,8 @@ type DownloadLogicalBackupResponse struct {
 	ApplicationproblemJSON400 *Problem
 	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
 	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
 	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
 	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
@@ -17809,6 +21131,11 @@ func (r DownloadLogicalBackupResponse) GetApplicationproblemJSON400() *Problem {
 // GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
 func (r DownloadLogicalBackupResponse) GetApplicationproblemJSON401() *Problem {
 	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DownloadLogicalBackupResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
 }
 
 // GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
@@ -17850,6 +21177,290 @@ func (r DownloadLogicalBackupResponse) ContentType() string {
 	return ""
 }
 
+type AcknowledgeMasterKeyResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *MasterKeyAcknowledgment
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r AcknowledgeMasterKeyResponse) GetJSON200() *MasterKeyAcknowledgment {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r AcknowledgeMasterKeyResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r AcknowledgeMasterKeyResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r AcknowledgeMasterKeyResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r AcknowledgeMasterKeyResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r AcknowledgeMasterKeyResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AcknowledgeMasterKeyResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AcknowledgeMasterKeyResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AcknowledgeMasterKeyResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RequestMasterKeyConfirmationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *IdentityConfirmation
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r RequestMasterKeyConfirmationResponse) GetJSON201() *IdentityConfirmation {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r RequestMasterKeyConfirmationResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r RequestMasterKeyConfirmationResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r RequestMasterKeyConfirmationResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r RequestMasterKeyConfirmationResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r RequestMasterKeyConfirmationResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RequestMasterKeyConfirmationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RequestMasterKeyConfirmationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RequestMasterKeyConfirmationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RequestMasterKeyConfirmationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DownloadMasterKeyResponse200Headers the declared response headers of an HTTP 200 response for DownloadMasterKey
+type DownloadMasterKeyResponse200Headers struct {
+	CacheControl       *string
+	ContentDisposition *string
+}
+
+type DownloadMasterKeyResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *DownloadMasterKeyResponse200Headers
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DownloadMasterKeyResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DownloadMasterKeyResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DownloadMasterKeyResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DownloadMasterKeyResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DownloadMasterKeyResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DownloadMasterKeyResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DownloadMasterKeyResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateMasterKeyExportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *MasterKeyExport
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateMasterKeyExportResponse) GetJSON201() *MasterKeyExport {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateMasterKeyExportResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateMasterKeyExportResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateMasterKeyExportResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r CreateMasterKeyExportResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateMasterKeyExportResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateMasterKeyExportResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateMasterKeyExportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateMasterKeyExportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateMasterKeyExportResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type TestNotifierSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -17863,6 +21474,8 @@ type TestNotifierSettingsResponse struct {
 	ApplicationproblemJSON403 *Problem
 	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
 	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
 	ApplicationproblemJSONDefault *Problem
 }
@@ -17890,6 +21503,11 @@ func (r TestNotifierSettingsResponse) GetApplicationproblemJSON403() *Problem {
 // GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
 func (r TestNotifierSettingsResponse) GetApplicationproblemJSON404() *Problem {
 	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r TestNotifierSettingsResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
 }
 
 // GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
@@ -18303,6 +21921,8 @@ type TestNotifierResponse struct {
 	ApplicationproblemJSON401 *Problem
 	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
 	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
 	ApplicationproblemJSONDefault *Problem
 }
@@ -18325,6 +21945,11 @@ func (r TestNotifierResponse) GetApplicationproblemJSON401() *Problem {
 // GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
 func (r TestNotifierResponse) GetApplicationproblemJSON404() *Problem {
 	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r TestNotifierResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
 }
 
 // GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
@@ -18841,6 +22466,8 @@ type DeletePhysicalBackupResponse struct {
 	ApplicationproblemJSON403 *Problem
 	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
 	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
 	ApplicationproblemJSONDefault *Problem
 }
@@ -18863,6 +22490,11 @@ func (r DeletePhysicalBackupResponse) GetApplicationproblemJSON403() *Problem {
 // GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
 func (r DeletePhysicalBackupResponse) GetApplicationproblemJSON404() *Problem {
 	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DeletePhysicalBackupResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
 }
 
 // GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
@@ -19630,6 +23262,8 @@ type TestStorageSettingsResponse struct {
 	ApplicationproblemJSON403 *Problem
 	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
 	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
 	ApplicationproblemJSONDefault *Problem
 }
@@ -19657,6 +23291,11 @@ func (r TestStorageSettingsResponse) GetApplicationproblemJSON403() *Problem {
 // GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
 func (r TestStorageSettingsResponse) GetApplicationproblemJSON404() *Problem {
 	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r TestStorageSettingsResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
 }
 
 // GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
@@ -20153,6 +23792,8 @@ type TestStorageResponse struct {
 	ApplicationproblemJSON401 *Problem
 	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
 	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
 	ApplicationproblemJSONDefault *Problem
 }
@@ -20175,6 +23816,11 @@ func (r TestStorageResponse) GetApplicationproblemJSON401() *Problem {
 // GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
 func (r TestStorageResponse) GetApplicationproblemJSON404() *Problem {
 	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r TestStorageResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
 }
 
 // GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
@@ -23249,6 +26895,261 @@ func (c *ClientWithResponses) UpdateHealthcheckConfigWithResponse(ctx context.Co
 	return ParseUpdateHealthcheckConfigResponse(rsp)
 }
 
+// ListInstanceBackupDestinationsWithResponse List the storages root admin can select as destinations
+//
+// Only root admin lists them. Every storage of every workspace is a choice, ordered by workspace name, then storage name, then storage ID. `query` keeps the storages whose name or workspace name contains it, ignoring case. No provider settings or secrets are returned.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /instance-backup-destinations (the `ListInstanceBackupDestinations` operationId).
+func (c *ClientWithResponses) ListInstanceBackupDestinationsWithResponse(ctx context.Context, params *ListInstanceBackupDestinationsParams, reqEditors ...RequestEditorFn) (*ListInstanceBackupDestinationsResponse, error) {
+	rsp, err := c.ListInstanceBackupDestinations(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListInstanceBackupDestinationsResponse(rsp)
+}
+
+// DownloadInstanceBackupWithResponse Download the encrypted file of a Databasus backup copy
+//
+// Public, because a browser link cannot carry the session: the single-use `token` from `createInstanceBackupDownloadToken` is the credential. The file stays encrypted with the master key and needs no separate metadata to be recovered. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /instance-backup-downloads (the `DownloadInstanceBackup` operationId).
+func (c *ClientWithResponses) DownloadInstanceBackupWithResponse(ctx context.Context, params *DownloadInstanceBackupParams, reqEditors ...RequestEditorFn) (*DownloadInstanceBackupResponse, error) {
+	rsp, err := c.DownloadInstanceBackup(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDownloadInstanceBackupResponse(rsp)
+}
+
+// GetInstanceBackupSettingsWithResponse Get the Databasus backup settings
+//
+// Only root admin reads them; another instance admin gets 403 `permission_denied`. A new installation has no destinations, an hourly schedule and 30-day retention.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /instance-backup-settings (the `GetInstanceBackupSettings` operationId).
+func (c *ClientWithResponses) GetInstanceBackupSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInstanceBackupSettingsResponse, error) {
+	rsp, err := c.GetInstanceBackupSettings(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInstanceBackupSettingsResponse(rsp)
+}
+
+// UpdateInstanceBackupSettingsWithBodyWithResponse Replace the Databasus backup settings
+//
+// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /instance-backup-settings (the `UpdateInstanceBackupSettings` operationId).
+func (c *ClientWithResponses) UpdateInstanceBackupSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateInstanceBackupSettingsResponse, error) {
+	rsp, err := c.UpdateInstanceBackupSettingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateInstanceBackupSettingsResponse(rsp)
+}
+
+// UpdateInstanceBackupSettingsWithResponse Replace the Databasus backup settings
+//
+// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /instance-backup-settings (the `UpdateInstanceBackupSettings` operationId).
+func (c *ClientWithResponses) UpdateInstanceBackupSettingsWithResponse(ctx context.Context, body UpdateInstanceBackupSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstanceBackupSettingsResponse, error) {
+	rsp, err := c.UpdateInstanceBackupSettings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateInstanceBackupSettingsResponse(rsp)
+}
+
+// GetInstanceBackupStatusWithResponse Get the protection state of the instance
+//
+// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /instance-backup-statuses (the `GetInstanceBackupStatus` operationId).
+func (c *ClientWithResponses) GetInstanceBackupStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInstanceBackupStatusResponse, error) {
+	rsp, err := c.GetInstanceBackupStatus(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInstanceBackupStatusResponse(rsp)
+}
+
+// ListInstanceBackupsWithResponse List the Databasus backups
+//
+// Only root admin lists them. The newest snapshot comes first, then the higher ID; a backup whose dump has not finished sorts by its start time.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /instance-backups (the `ListInstanceBackups` operationId).
+func (c *ClientWithResponses) ListInstanceBackupsWithResponse(ctx context.Context, params *ListInstanceBackupsParams, reqEditors ...RequestEditorFn) (*ListInstanceBackupsResponse, error) {
+	rsp, err := c.ListInstanceBackups(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListInstanceBackupsResponse(rsp)
+}
+
+// StartInstanceBackupWithResponse Start a Databasus backup now
+//
+// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /instance-backups (the `StartInstanceBackup` operationId).
+func (c *ClientWithResponses) StartInstanceBackupWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*StartInstanceBackupResponse, error) {
+	rsp, err := c.StartInstanceBackup(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartInstanceBackupResponse(rsp)
+}
+
+// GetInstanceBackupWithResponse Get a Databasus backup with the outcome of each copy
+//
+// Only root admin reads it.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /instance-backups/{instanceBackupId} (the `GetInstanceBackup` operationId).
+func (c *ClientWithResponses) GetInstanceBackupWithResponse(ctx context.Context, instanceBackupId InstanceBackupId, reqEditors ...RequestEditorFn) (*GetInstanceBackupResponse, error) {
+	rsp, err := c.GetInstanceBackup(ctx, instanceBackupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInstanceBackupResponse(rsp)
+}
+
+// CreateInstanceBackupDownloadTokenWithBodyWithResponse Issue a single-use token to download a stored copy
+//
+// Only root admin gets one. The copy must have been stored successfully and its storage must still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an unknown copy. The token downloads the encrypted file once and expires after five minutes.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /instance-backups/{instanceBackupId}/download-tokens (the `CreateInstanceBackupDownloadToken` operationId).
+func (c *ClientWithResponses) CreateInstanceBackupDownloadTokenWithBodyWithResponse(ctx context.Context, instanceBackupId InstanceBackupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateInstanceBackupDownloadTokenResponse, error) {
+	rsp, err := c.CreateInstanceBackupDownloadTokenWithBody(ctx, instanceBackupId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateInstanceBackupDownloadTokenResponse(rsp)
+}
+
+// CreateInstanceBackupDownloadTokenWithResponse Issue a single-use token to download a stored copy
+//
+// Only root admin gets one. The copy must have been stored successfully and its storage must still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an unknown copy. The token downloads the encrypted file once and expires after five minutes.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /instance-backups/{instanceBackupId}/download-tokens (the `CreateInstanceBackupDownloadToken` operationId).
+func (c *ClientWithResponses) CreateInstanceBackupDownloadTokenWithResponse(ctx context.Context, instanceBackupId InstanceBackupId, body CreateInstanceBackupDownloadTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateInstanceBackupDownloadTokenResponse, error) {
+	rsp, err := c.CreateInstanceBackupDownloadToken(ctx, instanceBackupId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateInstanceBackupDownloadTokenResponse(rsp)
+}
+
+// CreateInstanceRecoveryWithBodyWithResponse Upload a Databasus backup file and its master key to prepare a replacement
+//
+// Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /instance-recoveries (the `CreateInstanceRecovery` operationId).
+func (c *ClientWithResponses) CreateInstanceRecoveryWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateInstanceRecoveryResponse, error) {
+	rsp, err := c.CreateInstanceRecoveryWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateInstanceRecoveryResponse(rsp)
+}
+
+// GetInstanceRecoveryWithResponse Get a recovery from the local recovery journal
+//
+// Only the current root admin reads it, including root admin restored by this recovery. It exposes the authenticated snapshot time and source release, the archive fingerprint and a safe failure reason, never the key or the decrypted dump.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /instance-recoveries/{instanceRecoveryId} (the `GetInstanceRecovery` operationId).
+func (c *ClientWithResponses) GetInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*GetInstanceRecoveryResponse, error) {
+	rsp, err := c.GetInstanceRecovery(ctx, instanceRecoveryId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInstanceRecoveryResponse(rsp)
+}
+
+// ApplyInstanceRecoveryWithBodyWithResponse Replace this installation with the prepared recovery
+//
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/apply (the `ApplyInstanceRecovery` operationId).
+func (c *ClientWithResponses) ApplyInstanceRecoveryWithBodyWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ApplyInstanceRecoveryResponse, error) {
+	rsp, err := c.ApplyInstanceRecoveryWithBody(ctx, instanceRecoveryId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApplyInstanceRecoveryResponse(rsp)
+}
+
+// ApplyInstanceRecoveryWithResponse Replace this installation with the prepared recovery
+//
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/apply (the `ApplyInstanceRecovery` operationId).
+func (c *ClientWithResponses) ApplyInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, body ApplyInstanceRecoveryJSONRequestBody, reqEditors ...RequestEditorFn) (*ApplyInstanceRecoveryResponse, error) {
+	rsp, err := c.ApplyInstanceRecovery(ctx, instanceRecoveryId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApplyInstanceRecoveryResponse(rsp)
+}
+
+// CancelInstanceRecoveryWithResponse Cancel a recovery that was not applied
+//
+// Only root admin cancels. The answer comes after the staged archive, key and staging database are released, with the recovery `CANCELLED`; cancelling it again returns the same answer. Once apply was accepted, or for a recovery that already failed or completed, the answer is 409 `recovery_not_ready`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/cancel (the `CancelInstanceRecovery` operationId).
+func (c *ClientWithResponses) CancelInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*CancelInstanceRecoveryResponse, error) {
+	rsp, err := c.CancelInstanceRecovery(ctx, instanceRecoveryId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCancelInstanceRecoveryResponse(rsp)
+}
+
+// RequestInstanceRecoveryConfirmationWithResponse Email root admin a code that confirms applying this recovery
+//
+// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/confirmations (the `RequestInstanceRecoveryConfirmation` operationId).
+func (c *ClientWithResponses) RequestInstanceRecoveryConfirmationWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*RequestInstanceRecoveryConfirmationResponse, error) {
+	rsp, err := c.RequestInstanceRecoveryConfirmation(ctx, instanceRecoveryId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRequestInstanceRecoveryConfirmationResponse(rsp)
+}
+
 // GetInstanceSettingsWithResponse Get the instance settings
 //
 // Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
@@ -23446,7 +27347,7 @@ func (c *ClientWithResponses) CancelLogicalBackupWithResponse(ctx context.Contex
 
 // DownloadLogicalBackupWithResponse Download the file of a logical backup
 //
-// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
+// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -23457,6 +27358,96 @@ func (c *ClientWithResponses) DownloadLogicalBackupWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseDownloadLogicalBackupResponse(rsp)
+}
+
+// AcknowledgeMasterKeyWithBodyWithResponse Record that root admin saved the current master key
+//
+// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
+func (c *ClientWithResponses) AcknowledgeMasterKeyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AcknowledgeMasterKeyResponse, error) {
+	rsp, err := c.AcknowledgeMasterKeyWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAcknowledgeMasterKeyResponse(rsp)
+}
+
+// AcknowledgeMasterKeyWithResponse Record that root admin saved the current master key
+//
+// Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
+func (c *ClientWithResponses) AcknowledgeMasterKeyWithResponse(ctx context.Context, body AcknowledgeMasterKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*AcknowledgeMasterKeyResponse, error) {
+	rsp, err := c.AcknowledgeMasterKey(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAcknowledgeMasterKeyResponse(rsp)
+}
+
+// RequestMasterKeyConfirmationWithResponse Email root admin a code that confirms a master-key export
+//
+// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /master-key-confirmations (the `RequestMasterKeyConfirmation` operationId).
+func (c *ClientWithResponses) RequestMasterKeyConfirmationWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*RequestMasterKeyConfirmationResponse, error) {
+	rsp, err := c.RequestMasterKeyConfirmation(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRequestMasterKeyConfirmationResponse(rsp)
+}
+
+// DownloadMasterKeyWithResponse Download the master key once
+//
+// Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /master-key-downloads (the `DownloadMasterKey` operationId).
+func (c *ClientWithResponses) DownloadMasterKeyWithResponse(ctx context.Context, params *DownloadMasterKeyParams, reqEditors ...RequestEditorFn) (*DownloadMasterKeyResponse, error) {
+	rsp, err := c.DownloadMasterKey(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDownloadMasterKeyResponse(rsp)
+}
+
+// CreateMasterKeyExportWithBodyWithResponse Get a single-use token that downloads the master key
+//
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
+func (c *ClientWithResponses) CreateMasterKeyExportWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateMasterKeyExportResponse, error) {
+	rsp, err := c.CreateMasterKeyExportWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateMasterKeyExportResponse(rsp)
+}
+
+// CreateMasterKeyExportWithResponse Get a single-use token that downloads the master key
+//
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /master-key-exports (the `CreateMasterKeyExport` operationId).
+func (c *ClientWithResponses) CreateMasterKeyExportWithResponse(ctx context.Context, body CreateMasterKeyExportJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMasterKeyExportResponse, error) {
+	rsp, err := c.CreateMasterKeyExport(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateMasterKeyExportResponse(rsp)
 }
 
 // TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
@@ -24091,7 +28082,7 @@ func (c *ClientWithResponses) CreateStorageWithResponse(ctx context.Context, bod
 
 // DeleteStorageWithResponse Delete a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
+// Needs the role `WORKSPACE_MEMBER` or higher. A storage selected as a Databasus backup destination gets 409 `databasus_backup_in_use` until root admin deselects it, even when database backups also use it. Otherwise a storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -24610,6 +28601,8 @@ func (c *ClientWithResponses) ListVerificationsWithResponse(ctx context.Context,
 
 // StartVerificationWithBodyWithResponse Start a manual backup verification
 //
+// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
+//
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /verifications (the `StartVerification` operationId).
@@ -24622,6 +28615,8 @@ func (c *ClientWithResponses) StartVerificationWithBodyWithResponse(ctx context.
 }
 
 // StartVerificationWithResponse Start a manual backup verification
+//
+// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24827,7 +28822,7 @@ func (c *ClientWithResponses) CreateWorkspaceWithResponse(ctx context.Context, b
 
 // DeleteWorkspaceWithResponse Delete a workspace with its notifiers, storages and members
 //
-// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
+// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Next, a storage of the workspace selected as a Databasus backup destination gets 409 `databasus_backup_in_use`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -26038,6 +30033,873 @@ func ParseUpdateHealthcheckConfigResponse(rsp *http.Response) (*UpdateHealthchec
 	return response, nil
 }
 
+// ParseListInstanceBackupDestinationsResponse parses an HTTP response from a ListInstanceBackupDestinationsWithResponse call
+func ParseListInstanceBackupDestinationsResponse(rsp *http.Response) (*ListInstanceBackupDestinationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListInstanceBackupDestinationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceBackupDestinationPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDownloadInstanceBackupResponse parses an HTTP response from a DownloadInstanceBackupWithResponse call
+func ParseDownloadInstanceBackupResponse(rsp *http.Response) (*DownloadInstanceBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DownloadInstanceBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers DownloadInstanceBackupResponse200Headers
+		if values := rsp.Header.Values("Cache-Control"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Cache-Control", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.CacheControl = &value
+		}
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = &value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGetInstanceBackupSettingsResponse parses an HTTP response from a GetInstanceBackupSettingsWithResponse call
+func ParseGetInstanceBackupSettingsResponse(rsp *http.Response) (*GetInstanceBackupSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInstanceBackupSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceBackupSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateInstanceBackupSettingsResponse parses an HTTP response from a UpdateInstanceBackupSettingsWithResponse call
+func ParseUpdateInstanceBackupSettingsResponse(rsp *http.Response) (*UpdateInstanceBackupSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateInstanceBackupSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceBackupSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetInstanceBackupStatusResponse parses an HTTP response from a GetInstanceBackupStatusWithResponse call
+func ParseGetInstanceBackupStatusResponse(rsp *http.Response) (*GetInstanceBackupStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInstanceBackupStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceBackupStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListInstanceBackupsResponse parses an HTTP response from a ListInstanceBackupsWithResponse call
+func ParseListInstanceBackupsResponse(rsp *http.Response) (*ListInstanceBackupsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListInstanceBackupsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceBackupPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartInstanceBackupResponse parses an HTTP response from a StartInstanceBackupWithResponse call
+func ParseStartInstanceBackupResponse(rsp *http.Response) (*StartInstanceBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartInstanceBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest InstanceBackup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetInstanceBackupResponse parses an HTTP response from a GetInstanceBackupWithResponse call
+func ParseGetInstanceBackupResponse(rsp *http.Response) (*GetInstanceBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInstanceBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceBackup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateInstanceBackupDownloadTokenResponse parses an HTTP response from a CreateInstanceBackupDownloadTokenWithResponse call
+func ParseCreateInstanceBackupDownloadTokenResponse(rsp *http.Response) (*CreateInstanceBackupDownloadTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateInstanceBackupDownloadTokenResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest InstanceBackupDownloadToken
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateInstanceRecoveryResponse parses an HTTP response from a CreateInstanceRecoveryWithResponse call
+func ParseCreateInstanceRecoveryResponse(rsp *http.Response) (*CreateInstanceRecoveryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateInstanceRecoveryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest InstanceRecovery
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetInstanceRecoveryResponse parses an HTTP response from a GetInstanceRecoveryWithResponse call
+func ParseGetInstanceRecoveryResponse(rsp *http.Response) (*GetInstanceRecoveryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInstanceRecoveryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceRecovery
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApplyInstanceRecoveryResponse parses an HTTP response from a ApplyInstanceRecoveryWithResponse call
+func ParseApplyInstanceRecoveryResponse(rsp *http.Response) (*ApplyInstanceRecoveryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ApplyInstanceRecoveryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest InstanceRecovery
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCancelInstanceRecoveryResponse parses an HTTP response from a CancelInstanceRecoveryWithResponse call
+func ParseCancelInstanceRecoveryResponse(rsp *http.Response) (*CancelInstanceRecoveryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CancelInstanceRecoveryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceRecovery
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRequestInstanceRecoveryConfirmationResponse parses an HTTP response from a RequestInstanceRecoveryConfirmationWithResponse call
+func ParseRequestInstanceRecoveryConfirmationResponse(rsp *http.Response) (*RequestInstanceRecoveryConfirmationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RequestInstanceRecoveryConfirmationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest IdentityConfirmation
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetInstanceSettingsResponse parses an HTTP response from a GetInstanceSettingsWithResponse call
 func ParseGetInstanceSettingsResponse(rsp *http.Response) (*GetInstanceSettingsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -26241,6 +31103,13 @@ func ParseCreateLimitedUserResponse(rsp *http.Response) (*CreateLimitedUserRespo
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem
@@ -26590,6 +31459,13 @@ func ParseDownloadLogicalBackupResponse(rsp *http.Response) (*DownloadLogicalBac
 		}
 		response.ApplicationproblemJSON401 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
 		var dest Problem
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -26617,6 +31493,242 @@ func ParseDownloadLogicalBackupResponse(rsp *http.Response) (*DownloadLogicalBac
 			headers.ContentDisposition = &value
 		}
 		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseAcknowledgeMasterKeyResponse parses an HTTP response from a AcknowledgeMasterKeyWithResponse call
+func ParseAcknowledgeMasterKeyResponse(rsp *http.Response) (*AcknowledgeMasterKeyResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AcknowledgeMasterKeyResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest MasterKeyAcknowledgment
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRequestMasterKeyConfirmationResponse parses an HTTP response from a RequestMasterKeyConfirmationWithResponse call
+func ParseRequestMasterKeyConfirmationResponse(rsp *http.Response) (*RequestMasterKeyConfirmationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RequestMasterKeyConfirmationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest IdentityConfirmation
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDownloadMasterKeyResponse parses an HTTP response from a DownloadMasterKeyWithResponse call
+func ParseDownloadMasterKeyResponse(rsp *http.Response) (*DownloadMasterKeyResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DownloadMasterKeyResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers DownloadMasterKeyResponse200Headers
+		if values := rsp.Header.Values("Cache-Control"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Cache-Control", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.CacheControl = &value
+		}
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = &value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseCreateMasterKeyExportResponse parses an HTTP response from a CreateMasterKeyExportWithResponse call
+func ParseCreateMasterKeyExportResponse(rsp *http.Response) (*CreateMasterKeyExportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateMasterKeyExportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest MasterKeyExport
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
 	}
 
 	return response, nil
@@ -26670,6 +31782,13 @@ func ParseTestNotifierSettingsResponse(rsp *http.Response) (*TestNotifierSetting
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem
@@ -27018,6 +32137,13 @@ func ParseTestNotifierResponse(rsp *http.Response) (*TestNotifierResponse, error
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem
@@ -27451,6 +32577,13 @@ func ParseDeletePhysicalBackupResponse(rsp *http.Response) (*DeletePhysicalBacku
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem
@@ -28093,6 +33226,13 @@ func ParseTestStorageSettingsResponse(rsp *http.Response) (*TestStorageSettingsR
 		}
 		response.ApplicationproblemJSON404 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -28508,6 +33648,13 @@ func ParseTestStorageResponse(rsp *http.Response) (*TestStorageResponse, error) 
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

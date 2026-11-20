@@ -6,31 +6,55 @@ Keep PostgreSQL physical backups recoverable when the source moves to a new time
 
 ## Requirements
 
-### Requirement: Incremental backups use their root FULL timeline
-The system SHALL start an incremental backup only when the live PostgreSQL timeline matches the timeline of the chain's root FULL.
+### Requirement: Incremental backups continue along their chain's timeline line
+The system SHALL start an incremental backup on the live PostgreSQL timeline when that timeline equals the timeline of the chain's newest included backup, or descends from it through promotions. A descendant timeline SHALL extend the chain only when all of these hold: the verified history of the live timeline lists the newest included backup's timeline as an ancestor, that backup's stop LSN is not later than the fork point's LSN at which the line leaves its timeline, every history on the line matches the published history for the same database and timeline, and PostgreSQL accepts the incremental backup against the chain's latest manifest. An equal system identifier alone SHALL NOT authorize the extension.
+
+When the live timeline is newer and the chain cannot be extended, the system SHALL refuse the incremental backup as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`. This includes a promoted node that lacks the WAL summaries the incremental backup needs.
 
 #### Scenario: Timeline matches the root FULL
-- **WHEN** an incremental backup starts and the live timeline matches its root FULL timeline
+- **WHEN** an incremental backup starts and the live timeline matches the timeline of the chain's newest included backup, which is the root FULL's timeline until the chain crosses a promotion
 - **THEN** the system proceeds with the incremental backup
 
 #### Scenario: Promotion happened before the incremental started
-- **WHEN** the live timeline is newer than the root FULL timeline
+- **WHEN** the live timeline is newer than the timeline of the chain's newest included backup, its verified history lists that timeline as an ancestor with a fork point's LSN at or after that backup's stop LSN, `summarize_wal` was on for the promoted node before its promotion, and the promoted node has WAL summaries covering the chain's latest backup through the new start position
+- **THEN** the system completes the incremental backup as part of the same chain, with no replacement FULL
+
+#### Scenario: The newest backup lies past the fork point
+- **WHEN** the chain's newest included backup stopped later than the fork point's LSN at which the live timeline's history leaves that backup's timeline
+- **THEN** the system refuses the incremental backup as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`
+
+#### Scenario: The live timeline does not descend from the chain
+- **WHEN** the verified history of the live timeline does not list the timeline of the chain's newest included backup
+- **THEN** the system refuses the incremental backup as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`
+
+#### Scenario: The promoted node lacks WAL summaries
+- **WHEN** the live timeline descends from the chain but the promoted node has no WAL summaries for part of the range from the chain's latest backup to the new start position
 - **THEN** the system refuses the incremental backup as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`
 
 #### Scenario: Source timeline regressed
-- **WHEN** the live timeline is older than the root FULL timeline
+- **WHEN** the live timeline is older than the timeline of the chain's newest included backup
 - **THEN** the system refuses the incremental backup with reason `TIMELINE_REGRESSION`
 
 #### Scenario: Cataloged history is newer than the root FULL
-- **WHEN** a history file for the live timeline is already cataloged but the root FULL belongs to an older timeline
-- **THEN** the system still refuses the incremental backup as `TIMELINE_SWITCH_DETECTED`
+- **WHEN** a history file for the live timeline is already cataloged and the root FULL belongs to an older timeline
+- **THEN** the system extends the chain only if the live timeline's verified history matches the cataloged entry and the other conditions for continuing along the line hold
+- **AND** otherwise it refuses the incremental backup as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`
+
+#### Scenario: Two promotions before the next incremental
+- **WHEN** the source has advanced from the chain's timeline through two promotions, each fork point's LSN lies at or after the chain's newest backup's stop LSN, `summarize_wal` was on for every promoted node, and the live node has the required WAL summaries
+- **THEN** the system completes the incremental backup as part of the same chain
 
 ### Requirement: Backup failures are rechecked for promotion
 The system SHALL check PostgreSQL cluster identity again when a physical backup stream fails unexpectedly while the backup is still active.
 
 #### Scenario: Promotion interrupts an incremental stream
-- **WHEN** the timeline advances after incremental preflight and the stream fails
-- **THEN** the system records the incremental as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`
+- **WHEN** the live timeline advances past the timeline observed at incremental preflight and the stream fails
+- **THEN** the system records the incremental as `ERROR` with reason `FAILOVER_DURING_BACKUP`
+- **AND** the chain stays extendable, so the next due incremental backup applies the rules for continuing along the timeline line
+
+#### Scenario: Stream failure on a chain that already crossed a promotion
+- **WHEN** a chain's root FULL is on timeline 1, its newest incremental is on timeline 2, the live timeline stays 2 and an incremental stream fails
+- **THEN** the system keeps the original stream failure and does not classify it as a promotion
 
 #### Scenario: Promotion interrupts a FULL stream
 - **WHEN** the timeline advances after FULL preflight and the stream fails
@@ -65,11 +89,19 @@ The system SHALL check PostgreSQL cluster identity again when a physical backup 
 - **THEN** that newer completed FULL supersedes earlier mismatch results and normal automatic scheduling resumes
 
 ### Requirement: Timeline failures trigger one immediate replacement FULL
-The system SHALL create one immediate replacement FULL after a backup ends with a timeline-related failure.
+The system SHALL create one immediate replacement FULL after a FULL ends as `ERROR` with reason `FAILOVER_DURING_BACKUP` or an incremental ends as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`. An incremental backup that continues its chain across a promotion is not a failure and SHALL NOT trigger a replacement FULL. An incremental that ends as `ERROR` with reason `FAILOVER_DURING_BACKUP` SHALL NOT trigger one either: its chain stays extendable, and the next incremental runs at its configured time.
 
 #### Scenario: Incremental chain broke after promotion
 - **WHEN** an incremental ends as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED` and no later FULL attempt exists
 - **THEN** the system schedules a FULL without waiting for the configured incremental or FULL interval
+
+#### Scenario: Incremental continued across a promotion
+- **WHEN** an incremental completes on a promoted timeline as part of its chain
+- **THEN** the system schedules no replacement FULL and keeps the configured intervals
+
+#### Scenario: Incremental interrupted by promotion
+- **WHEN** the latest incremental ends as `ERROR` with reason `FAILOVER_DURING_BACKUP`
+- **THEN** no immediate replacement FULL is scheduled and the next incremental runs at its configured time
 
 #### Scenario: FULL was interrupted by promotion
 - **WHEN** the latest FULL ends as `ERROR` with reason `FAILOVER_DURING_BACKUP`
@@ -98,9 +130,11 @@ The system SHALL keep orphan cleanup from deleting WAL for a database while a FU
 - **WHEN** orphan cleanup starts before the scheduler starts a FULL for the same database
 - **THEN** the FULL starts only after cleanup finishes
 
-### Requirement: Same-timeline PITR remains available during a newer FULL
+### Requirement: PITR follows the timeline line across promotions
 
-The system SHALL allow a point-in-time restore from an older FULL when the target comes before a newer FULL completes on the same timeline. It SHALL NOT use a FULL completed after the target to make that target reachable. A target after promotion and before the first FULL on the promoted timeline completes SHALL remain unreachable when reaching it from an eligible earlier FULL would require replay across timelines, including after the replacement FULL has completed.
+The system SHALL restore a point in time along the line of the newest timeline: the timelines the newest verified history lists as ancestors, each up to the fork point's LSN at which the line leaves it, followed by the newest timeline. A target on that line SHALL be reachable from the newest completed FULL on the line that completed at or before the target, through that chain's eligible incrementals and contiguous WAL, also when the WAL crosses one or more fork points. Reaching the target SHALL require the published verified history of every timeline after the FULL's timeline on the line, in the FULL's storage. The system SHALL NOT use a FULL completed after the target to make that target reachable.
+
+WAL of a former timeline that starts at or after the fork point's LSN at which the line leaves it SHALL NOT be included in a restore set and SHALL NOT extend the reachable time. A target that only such WAL covers SHALL be refused. A fork point SHALL stop the line there when its timeline's history is not published, is marked conflicting, was published by a Databasus version that did not record fork points, or lies outside the FULL's storage, or when WAL the line needs beyond it lies only in another storage. Targets beyond a stopped fork point SHALL be refused from that chain with `409` and code `target_time_unreachable`. A FULL whose start LSN is at or after the fork point's LSN of every descendant of its timeline does not lie on the line of the newest timeline; it stays restorable by its backup identifier and is not used for targets by time or for the latest restore.
 
 #### Scenario: Target falls during the newer FULL
 
@@ -109,14 +143,42 @@ The system SHALL allow a point-in-time restore from an older FULL when the targe
 
 #### Scenario: Target crosses a promotion
 
-- **WHEN** reaching the target would require WAL from more than one timeline
-- **THEN** the system reports that the target is not restorable
+- **WHEN** a target lies one minute after a promotion, before any backup on the promoted timeline has completed, and the WAL from the chain's latest eligible backup through the fork point and on the promoted timeline through the target is archived without a gap
+- **THEN** the restore token is issued
+- **AND** the restore set contains the chain's FULL and eligible incrementals, the former timeline's WAL up to the fork point, the promoted timeline's history and its WAL through the target
+- **AND** the recovered cluster contains rows committed before and after the promotion up to the target
 
 #### Scenario: A replacement FULL does not fill the earlier recovery gap
 
-- **WHEN** a FULL on the promoted timeline has completed and a user requests a target between promotion and that FULL's completion that cannot be reached on one timeline
+- **WHEN** a replacement FULL on the promoted timeline has completed and the target lies between the promotion and that FULL's completion
+- **THEN** the restore does not use the replacement FULL, because it completed after the target
+- **AND** the restore uses the earlier chain across the fork point, and a restore token is issued
+
+#### Scenario: Target covered only by the former primary's lost WAL
+
+- **WHEN** Databasus archived WAL of the former timeline beyond the fork point and a target is covered by that WAL alone
 - **THEN** the request returns `409` with code `target_time_unreachable`
 - **AND** no restore token is issued for that target
+
+#### Scenario: Promoted timeline history is not published
+
+- **WHEN** reaching the target requires WAL of a promoted timeline whose verified history is not published in the FULL's storage
+- **THEN** the request returns `409` with code `target_time_unreachable`
+
+#### Scenario: Promoted timeline history published without a fork point
+
+- **WHEN** the promoted timeline's history was published by a Databasus version that did not record fork points and the target lies after that promotion
+- **THEN** the request returns `409` with code `target_time_unreachable`
+
+#### Scenario: Promoted timeline history or WAL in another storage
+
+- **WHEN** the promoted timeline's history, or WAL the target needs after the fork point, is present only in a storage other than the FULL's
+- **THEN** the request returns `409` with code `target_time_unreachable`
+
+#### Scenario: Two promotions before the target
+
+- **WHEN** the target lies after a second promotion, both promoted timelines have published history, and WAL along the line is archived without a gap
+- **THEN** the restore set crosses both fork points and the recovered cluster contains rows written on all three timelines up to the target
 
 ### Requirement: An immediate replacement FULL starts on the next pass that evaluates its database
 
@@ -151,13 +213,14 @@ While no system identifier mismatch is unresolved, an immediate replacement FULL
 
 ### Requirement: Promotion recovery works with the provisioned backup role
 
-On PostgreSQL 17 and 18, a source standby promoted while Databasus uses its provisioned backup role SHALL have its new timeline history archived and cataloged. The replacement FULL and contiguous WAL after it SHALL restore committed rows from before promotion, after promotion and after that FULL. Recovery SHALL remain on the replacement FULL's timeline.
+On PostgreSQL 17 and 18, a source standby promoted while Databasus uses its provisioned backup role SHALL have its new timeline history archived and cataloged. The chain that existed before promotion SHALL restore committed rows from before promotion and after promotion, before any backup on the promoted timeline completes. After an incremental backup on the promoted timeline extends that chain, its restore SHALL include rows written after that incremental backup.
 
 #### Scenario: Recovery after promotion on each supported version
 
-- **WHEN** Databasus provisions the backup role on a primary, that role is replicated to its standby, physical backup and WAL reception use the role, and the standby is promoted
-- **THEN** Databasus archives the new timeline's history and completes a replacement FULL
-- **AND** PostgreSQL started from the downloaded restore set contains committed rows written before promotion, after promotion and after the replacement FULL
+- **WHEN** Databasus provisions the backup role on a primary, that role is replicated to its standby, `summarize_wal` is on for the standby, physical backup and WAL reception use the role, and the standby is promoted
+- **THEN** Databasus archives the new timeline's history
+- **AND** PostgreSQL started from a restore set for a target after promotion and before any backup on the promoted timeline contains committed rows written before and after promotion
+- **AND** an incremental backup on the promoted timeline extends the existing chain, and a later restore contains rows written after it
 - **AND** no administrative or server-file read privileges are added to the backup role
 
 ### Requirement: A FULL can archive history independently of WAL reception
@@ -178,24 +241,28 @@ A successful FULL on a timeline above 1 SHALL attempt to acquire and publish tha
 
 ### Requirement: WAL identity enforcement permits promotion of the original cluster
 
-When an unchanged source address moves from a primary to its real physical replica after promotion, Databasus SHALL accept the retained system identifier for WAL reception and apply its existing timeline rules. An equal system identifier SHALL NOT authorize an incremental backup to extend a root FULL from another timeline. The existing timeline-related failure and immediate replacement FULL policy SHALL remain in effect. Recovery after the switch SHALL use the new FULL and the existing recovery policy, without promising PITR across timelines.
+When an unchanged source address moves from a primary to its real physical replica after promotion, Databasus SHALL accept the retained system identifier for WAL reception and archive WAL of the promoted timeline. An equal system identifier SHALL NOT by itself authorize an incremental backup to extend a chain from another timeline; the rules for continuing along the timeline line decide that. Recovery after the switch SHALL follow the timeline line.
 
 #### Scenario: Address switches to a promoted replica
 
-- **WHEN** a primary and its real replica have equal system identifiers, the replica is promoted to a newer timeline, and the unchanged address starts routing new connections to that replica
-- **THEN** WAL reception accepts the replica's identity and can archive WAL from its timeline
-- **AND** an incremental against the original timeline is refused as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`
-- **AND** the existing policy produces a replacement FULL on the promoted source
+- **WHEN** a primary and its real replica have equal system identifiers, `summarize_wal` is on for the replica, the replica is promoted to a newer timeline, and the unchanged address starts routing new connections to that replica
+- **THEN** WAL reception accepts the replica's identity and archives WAL from its timeline
+- **AND** the next incremental backup extends the existing chain
+
+#### Scenario: Recovery after the switch
+
+- **WHEN** WAL of the promoted timeline is archived after the same-cluster endpoint switch
+- **THEN** a restore set for a target on the promoted timeline can be downloaded and restored with control rows from both sides of the switch
 
 #### Scenario: Replacement FULL is recovered
 
-- **WHEN** a replacement FULL completes after the same-cluster endpoint switch
+- **WHEN** the chain could not continue across the switch and a replacement FULL completes after the same-cluster endpoint switch
 - **THEN** its recovery bundle can be downloaded and restored with control rows from the promoted source
-- **AND** successful recovery does not depend on replay across the promotion boundary
+- **AND** recovery from it does not depend on replay across the promotion boundary
 
 ### Requirement: Patroni sources recover through an unchanged primary address
 
-On PostgreSQL 17 and 18, Databasus SHALL support a source whose primary is selected by Patroni and exposed through a stable HAProxy address. When that address changes from the primary to its promoted physical replica, Databasus SHALL reconnect without an operator changing its address, restarting Databasus or restarting its backup modules. The same-cluster identity and existing incremental-chain and replacement-FULL policies SHALL apply after every switch.
+On PostgreSQL 17 and 18, Databasus SHALL support a source whose primary is selected by Patroni and exposed through a stable HAProxy address. When that address changes from the primary to its promoted physical replica, Databasus SHALL reconnect without an operator changing its address, restarting Databasus or restarting its backup modules. The same-cluster identity, the rules for continuing a chain along the timeline line and the replacement-FULL fallback SHALL apply after every switch.
 
 #### Scenario: Initial recovery through the primary address
 
@@ -204,11 +271,12 @@ On PostgreSQL 17 and 18, Databasus SHALL support a source whose primary is selec
 
 #### Scenario: Two consecutive planned switches
 
-- **WHEN** Patroni performs two consecutive switchovers between the two source nodes and each switch follows a control transaction replayed by the future primary
+- **WHEN** `summarize_wal` is on for both source nodes, Patroni performs two consecutive switchovers between them and each switch follows a control transaction replayed by the future primary
 - **THEN** the unchanged address reaches a different PostgreSQL node with a newer timeline after each switch, while the system identifier stays unchanged
 - **AND** WAL reception resumes against that node without restarting Databasus or its backup modules
-- **AND** an INCREMENTAL requested against the preceding timeline ends as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`, followed by a FULL under the existing immediate-replacement policy
-- **AND** a restore from each replacement FULL and subsequent archived WAL includes control rows written before the switch, after the switch and after that FULL
+- **AND** an INCREMENTAL requested after each switch completes as part of the chain that existed before it, with no replacement FULL
+- **AND** a restore to a target one minute after each switch, before that INCREMENTAL completes, includes control rows written before and after the switch
+- **AND** a restore after each INCREMENTAL includes control rows written before the switch, after the switch and after that INCREMENTAL
 
 ### Requirement: Patroni crash recovery preserves transactions replayed by the elected replica
 
@@ -217,13 +285,13 @@ For a durability-enabled source on PostgreSQL 17 and 18, recovery after a Patron
 #### Scenario: Abrupt loss after confirmed replica replay
 
 - **WHEN** a control transaction is confirmed on the future primary, the old primary node stops abruptly, and Patroni elects that replica
-- **THEN** Databasus reconnects through the same address and follows its existing timeline and replacement-FULL policy
-- **AND** an independent restore from the promoted source's replacement FULL and subsequent WAL preserves the control transaction, committed schema changes and usable generated IDs
+- **THEN** Databasus reconnects through the same address and follows its timeline-line policy
+- **AND** an independent restore to a target after the failover preserves the control transaction, committed schema changes and usable generated IDs
 - **AND** the former primary remains unavailable during recovery
 
 ### Requirement: Patroni switches during transfer preserve physical backup failure semantics
 
-On PostgreSQL 17 and 18, a Patroni switch while a physical backup is actively transmitting SHALL NOT publish a partial copy as a completed backup. The interrupted operation SHALL reach a terminal result and follow the existing identity-recheck, retry and replacement-FULL policies. Detecting an active backup record alone SHALL NOT establish that the switch interrupted data transfer.
+On PostgreSQL 17 and 18, a Patroni switch while a physical backup is actively transmitting SHALL NOT publish a partial copy as a completed backup. The interrupted operation SHALL reach a terminal result and follow the existing identity-recheck and retry policies, the rules for continuing a chain along the timeline line and the replacement-FULL fallback. Detecting an active backup record alone SHALL NOT establish that the switch interrupted data transfer.
 
 #### Scenario: A switchover interrupts a FULL transfer
 
@@ -234,9 +302,9 @@ On PostgreSQL 17 and 18, a Patroni switch while a physical backup is actively tr
 
 #### Scenario: A switchover interrupts an INCREMENTAL transfer
 
-- **WHEN** an INCREMENTAL is transferring data, Patroni switches the primary before that transfer completes, and the failure recheck observes the newer timeline
-- **THEN** the old INCREMENTAL ends as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`
-- **AND** the existing policy schedules one immediate replacement FULL whose downloaded recovery set starts a writable cluster with the control rows and schema
+- **WHEN** `summarize_wal` is on for both source nodes, an INCREMENTAL is transferring data, Patroni switches the primary before that transfer completes, and the failure recheck observes the newer timeline
+- **THEN** the old INCREMENTAL ends as `ERROR` with reason `FAILOVER_DURING_BACKUP`
+- **AND** the next INCREMENTAL extends the same chain on the promoted timeline, and its downloaded recovery set starts a writable cluster with the control rows and schema
 - **AND** the partial old copy cannot be selected as a completed backup
 
 #### Scenario: The failure recheck runs during the routing outage
@@ -276,13 +344,13 @@ On PostgreSQL 17 and 18, a source configured to ignore the exact name and physic
 
 ### Requirement: Patroni timeline history is published for the recovery storage
 
-After each Patroni switch on PostgreSQL 17 and 18, Databasus SHALL validate and publish the promoted timeline's history with its catalog entry in the storage used by the corresponding FULL. Archive-based recovery after that FULL SHALL include and use the required published history while remaining on that FULL's timeline. The existence of a history file SHALL NOT imply support for replay across timelines.
+After each Patroni switch on PostgreSQL 17 and 18, Databasus SHALL validate and publish the promoted timeline's history with its catalog entry in the storage used by the chain that continues across the switch. Archive-based recovery that crosses the switch SHALL include and use that history.
 
 #### Scenario: History after the second switchover
 
-- **WHEN** two Patroni switchovers have advanced the timeline twice and a replacement FULL and subsequent WAL are available after each
-- **THEN** each promoted timeline has valid history matching its source history and catalog metadata in the corresponding FULL's storage
-- **AND** a downloaded recovery set uses its required history to restore rows written after the selected FULL without replaying across the promotion boundary
+- **WHEN** two Patroni switchovers have advanced the timeline twice and WAL is archived after each
+- **THEN** each promoted timeline has valid history matching its source history and catalog metadata in the chain's storage
+- **AND** a downloaded recovery set for a target after the second switch includes both histories and restores rows written on all three timelines
 
 ### Requirement: Patroni backup access preserves limited-user security
 
@@ -296,7 +364,7 @@ Databasus SHALL acquire FULL backups, INCREMENTAL backups, WAL and required time
 
 ### Requirement: CloudNativePG sources recover through an unchanged Kubernetes Service address
 
-On PostgreSQL 17 and 18, Databasus SHALL support a source whose primary is selected by CloudNativePG and reached through a Kubernetes Service that follows CloudNativePG's primary selection. When CloudNativePG moves the primary role to the other PostgreSQL node and the Kubernetes Service starts routing to it, Databasus SHALL reconnect without an administrator changing its address, restarting Databasus or restarting its backup modules. The same-cluster identity and the existing incremental-chain and replacement-FULL policies SHALL apply after every switch.
+On PostgreSQL 17 and 18, Databasus SHALL support a source whose primary is selected by CloudNativePG and reached through a Kubernetes Service that follows CloudNativePG's primary selection. When CloudNativePG moves the primary role to the other PostgreSQL node and the Kubernetes Service starts routing to it, Databasus SHALL reconnect without an administrator changing its address, restarting Databasus or restarting its backup modules. The same-cluster identity, the rules for continuing a chain along the timeline line and the replacement-FULL fallback SHALL apply after every switch.
 
 #### Scenario: Initial recovery through the Kubernetes Service address
 
@@ -306,17 +374,16 @@ On PostgreSQL 17 and 18, Databasus SHALL support a source whose primary is selec
 
 #### Scenario: Two consecutive planned switches
 
-- **WHEN** CloudNativePG performs two consecutive switchovers between the two PostgreSQL nodes and each switch follows a control transaction replayed by the future primary
+- **WHEN** `summarize_wal` is on for both PostgreSQL nodes, CloudNativePG performs two consecutive switchovers between them and each switch follows a control transaction replayed by the future primary
 - **THEN** after each switch the Kubernetes Service routes to the other PostgreSQL node, the timeline is newer and the system identifier is unchanged
 - **AND** WAL reception resumes against that node without restarting Databasus or its backup modules
-- **AND** an INCREMENTAL requested against the preceding timeline ends as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`, followed by a FULL under the existing immediate-replacement policy
-- **AND** a restore from each replacement FULL and subsequent archived WAL includes control rows written before the switch, after the switch and after that FULL
+- **AND** an INCREMENTAL requested after each switch completes as part of the chain that existed before it, with no replacement FULL
+- **AND** a restore after each INCREMENTAL includes control rows written before the switch, after the switch and after that INCREMENTAL
 
 #### Scenario: Recovery points around a switch
 
-- **WHEN** a target before a switch and a target after its replacement FULL are both archived and protected by retention
-- **THEN** both targets restore to running clusters with their recorded rows, schema and usable generated IDs, also after the physical cleaner and the storage deletion worker have run
-- **AND** a target between the promotion and the completion of the replacement FULL gets `409 target_time_unreachable` and no restore token, before and after that FULL completes
+- **WHEN** a target before a switch, a target one minute after the switch and before the next INCREMENTAL completes, and a target after that INCREMENTAL are archived and protected by retention
+- **THEN** all three targets restore to running clusters with their recorded rows, schema and usable generated IDs, also after the physical cleaner and the storage deletion worker have run
 
 ### Requirement: CloudNativePG crash recovery preserves transactions replayed by the elected node
 
@@ -326,12 +393,12 @@ For a durability-enabled CloudNativePG source on PostgreSQL 17 and 18, recovery 
 
 - **WHEN** a control transaction is confirmed as replayed on the future primary, the primary node is removed without a clean shutdown, and CloudNativePG promotes the other PostgreSQL node
 - **THEN** the Kubernetes Service routes to a different node on a newer timeline with the same system identifier
-- **AND** Databasus reconnects through the same address and follows its existing timeline and replacement-FULL policy
-- **AND** an independent restore from the replacement FULL and subsequent WAL preserves the control transaction, committed schema changes and usable generated IDs without contacting the source cluster
+- **AND** Databasus reconnects through the same address and follows its timeline-line policy
+- **AND** an independent restore to a target after the failover preserves the control transaction, committed schema changes and usable generated IDs without contacting the source cluster
 
 ### Requirement: CloudNativePG switches during transfer preserve physical backup failure semantics
 
-On PostgreSQL 17 and 18, a CloudNativePG switch while a physical backup is actively transmitting SHALL NOT publish a partial copy as a completed backup. The interrupted operation SHALL reach a terminal result and follow the existing identity-recheck, retry and replacement-FULL policies. Detecting an active backup record alone SHALL NOT establish that the switch interrupted data transfer.
+On PostgreSQL 17 and 18, a CloudNativePG switch while a physical backup is actively transmitting SHALL NOT publish a partial copy as a completed backup. The interrupted operation SHALL reach a terminal result and follow the existing identity-recheck and retry policies, the rules for continuing a chain along the timeline line and the replacement-FULL fallback. Detecting an active backup record alone SHALL NOT establish that the switch interrupted data transfer.
 
 #### Scenario: A switchover interrupts a FULL transfer
 
@@ -342,9 +409,9 @@ On PostgreSQL 17 and 18, a CloudNativePG switch while a physical backup is activ
 
 #### Scenario: A switchover interrupts an INCREMENTAL transfer
 
-- **WHEN** an INCREMENTAL is transferring data, CloudNativePG switches the primary before that transfer completes, and the failure recheck observes the newer timeline
-- **THEN** the old INCREMENTAL ends as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED`
-- **AND** the existing policy schedules one immediate replacement FULL whose downloaded recovery set starts a writable cluster with the control rows and schema
+- **WHEN** `summarize_wal` is on for both PostgreSQL nodes, an INCREMENTAL is transferring data, CloudNativePG switches the primary before that transfer completes, and the failure recheck observes the newer timeline
+- **THEN** the old INCREMENTAL ends as `ERROR` with reason `FAILOVER_DURING_BACKUP`
+- **AND** the next INCREMENTAL extends the same chain on the promoted timeline, and its downloaded recovery set starts a writable cluster with the control rows and schema
 - **AND** the partial old copy cannot be selected as a completed backup
 
 #### Scenario: The failure recheck runs during a routing outage
@@ -384,13 +451,13 @@ On PostgreSQL 17 and 18, when CloudNativePG synchronizes user-defined physical r
 
 ### Requirement: CloudNativePG timeline history is published for the recovery storage
 
-After each CloudNativePG switch on PostgreSQL 17 and 18, Databasus SHALL validate and publish the promoted timeline's history with its catalog entry in the storage used by the corresponding FULL. Archive-based recovery after that FULL SHALL include and use the required published history while remaining on that FULL's timeline. The existence of a history file SHALL NOT imply support for replay across timelines.
+After each CloudNativePG switch on PostgreSQL 17 and 18, Databasus SHALL validate and publish the promoted timeline's history with its catalog entry in the storage used by the chain that continues across the switch. Archive-based recovery that crosses the switch SHALL include and use that history.
 
 #### Scenario: History after the second switchover
 
-- **WHEN** two CloudNativePG switchovers have advanced the timeline twice and a replacement FULL and subsequent WAL are available after each
-- **THEN** each promoted timeline has valid history matching its source history and catalog metadata in the corresponding FULL's storage
-- **AND** a downloaded recovery set uses its required history to restore rows written after the selected FULL without replaying across the promotion boundary
+- **WHEN** two CloudNativePG switchovers have advanced the timeline twice and WAL is archived after each
+- **THEN** each promoted timeline has valid history matching its source history and catalog metadata in the chain's storage
+- **AND** a downloaded recovery set for a target after the second switch includes both histories and restores rows written on all three timelines
 
 ### Requirement: Recovery from a CloudNativePG source is independent of the source cluster
 
@@ -447,3 +514,25 @@ Databasus SHALL acquire FULL backups, INCREMENTAL backups, WAL and required time
 
 - **WHEN** the declared role attempts a replication connection without TLS to a source configured as documented
 - **THEN** the source rejects the connection
+
+### Requirement: WAL reception continues after a failover that lost the former primary's tail
+
+On PostgreSQL 17 and 18, when Databasus archived WAL of the former timeline beyond the fork point's LSN at which the promoted node's history leaves it, WAL reception SHALL resume on the promoted timeline from the fork point without an operator action. The former timeline's WAL beyond the fork point SHALL NOT be treated as the continuation of the line. Archiving SHALL NOT report a gap between the fork point and the promoted timeline's WAL when that WAL is archived.
+
+#### Scenario: The standby missed the former primary's last writes
+
+- **WHEN** the standby stops receiving WAL, the primary commits further transactions that Databasus archives, the primary is lost and the standby is promoted
+- **THEN** WAL reception resumes against the promoted node and archives its timeline from the segment holding the fork point's LSN, without an operator action
+- **AND** no WAL gap notification is sent for the fork point, and no slot rebuild or replacement FULL is triggered by the resumption
+- **AND** a restore to a target after the promotion contains the rows the promoted node had and none of the transactions only the former primary committed
+- **AND** restore coverage does not extend on the former timeline past the fork point, and a token request for a target that only the former primary's WAL covers returns `409` with code `target_time_unreachable`
+
+### Requirement: Incremental backups across a promotion require WAL summaries on standbys
+
+An incremental backup can extend a chain across a promotion only when the promoted node summarized WAL before it was promoted. Databasus SHALL NOT enable WAL summarization on standbys itself. Without the required summaries, the fallback replacement FULL SHALL keep backups going, and restores to targets after the promotion SHALL still follow the timeline line from the existing chain.
+
+#### Scenario: Summarization was off on the standby
+
+- **WHEN** `summarize_wal` was off on the standby before its promotion and an incremental backup is due on the promoted timeline
+- **THEN** the incremental backup ends as `CHAIN_BROKEN` with reason `TIMELINE_SWITCH_DETECTED` and one immediate replacement FULL follows
+- **AND** a target between the promotion and that FULL's completion remains restorable from the existing chain across the fork point

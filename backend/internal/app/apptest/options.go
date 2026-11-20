@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"time"
 
+	"databasus-backend/internal/lib/diskusage"
+	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
 )
@@ -18,24 +20,47 @@ type settings struct {
 	isPhysicalBackupLoopsEnabled bool
 	physicalBackupStopTimeout    time.Duration
 	isMailServerMissing          bool
-	isTurnstileEnabled           bool
-	isGitHubEnabled              bool
-	isGoogleEnabled              bool
-	publicURL                    string
-	clientToolsDir               string
-	agentBinariesDir             string
-	logSink                      slog.Handler
+	// instanceMailServer is nil for the recorder that stands in for the operator's mail server.
+	instanceMailServer  *mailer.Settings
+	isTurnstileEnabled  bool
+	isGitHubEnabled     bool
+	isGoogleEnabled     bool
+	isRecoveryPublished bool
+	// recoveryMaxArchiveBytes is zero for the configured limit.
+	recoveryMaxArchiveBytes int64
+	publicURL               string
+	clientToolsDir          string
+	agentBinariesDir        string
+	logSink                 slog.Handler
 	// notificationDeliveryTimeout is zero for the timeout the server uses.
 	notificationDeliveryTimeout time.Duration
 	notifierEndpoints           NotifierEndpoints
 	walStreamTimings            *backups.WalStreamTimings
 	storageFileTimings          *storages.FileTimings
+	// inspectDisk is nil for the real free space of the disk.
+	inspectDisk func(path string) (diskusage.Usage, error)
 }
 
 // NotifierEndpoints are the addresses a test points the Slack and Telegram notifiers at.
 type NotifierEndpoints struct {
 	SlackPostMessageURL string
 	TelegramBotAPIURL   string
+}
+
+// WithInstanceMailServer sends the instance's own mail through a real SMTP server, such as Mailpit,
+// instead of the recorder in App.Mail, which then stays empty.
+func WithInstanceMailServer(mailServer mailer.Settings) Option {
+	return func(applied *settings) {
+		applied.instanceMailServer = &mailServer
+	}
+}
+
+// WithRecoveryMaxArchiveBytes lowers the size limit of a recovery upload, so a test reaches it
+// with a small file.
+func WithRecoveryMaxArchiveBytes(maxBytes int64) Option {
+	return func(applied *settings) {
+		applied.recoveryMaxArchiveBytes = maxBytes
+	}
 }
 
 func WithClientToolsDir(directory string) Option {
@@ -126,6 +151,12 @@ func WithStorageFileTimings(timings storages.FileTimings) Option {
 	return func(applied *settings) {
 		applied.storageFileTimings = &timings
 	}
+}
+
+// WithDiskUsage replaces the free-space reading of the disk a Databasus backup is staged on, so a
+// test reaches a full disk without filling one.
+func WithDiskUsage(inspectDisk func(path string) (diskusage.Usage, error)) Option {
+	return func(applied *settings) { applied.inspectDisk = inspectDisk }
 }
 
 // The real agent keeps its own time, so serving its binaries also selects the system clock.

@@ -5,6 +5,7 @@ package users
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -21,6 +22,8 @@ import (
 	"databasus-backend/internal/modules/users/internal/accounts"
 	usershttpapi "databasus-backend/internal/modules/users/internal/httpapi"
 	"databasus-backend/internal/modules/users/internal/identity"
+	"databasus-backend/internal/modules/users/internal/identityproof"
+	"databasus-backend/internal/modules/users/internal/instancerecovery"
 	"databasus-backend/internal/modules/users/internal/module"
 	"databasus-backend/internal/modules/users/internal/oauth"
 	"databasus-backend/internal/modules/users/internal/passwordreset"
@@ -41,6 +44,11 @@ type (
 	ConsoleUserRequest    = accounts.ConsoleUserRequest
 	ConsoleUserOutcome    = accounts.ConsoleUserOutcome
 	ConsolePasswordChange = accounts.ConsolePasswordChange
+	// IdentityProofBinding names what an emailed confirmation code authorizes: a purpose and the
+	// operation's subject.
+	IdentityProofBinding = identityproof.Binding
+	// RecoveryTargetState is what the users tables of a startup recovery target hold.
+	RecoveryTargetState = instancerecovery.State
 )
 
 const (
@@ -48,7 +56,23 @@ const (
 	RoleMember = identity.RoleMember
 
 	StatusInvited = identity.StatusInvited
+
+	IdentityProofPurposeMasterKeyExport  = identityproof.PurposeMasterKeyExport
+	IdentityProofPurposeInstanceRecovery = identityproof.PurposeInstanceRecovery
 )
+
+// InspectRecoveryTarget reads the users tables of a startup recovery target before any migration
+// runs, so recovery can refuse a target that holds accounts or changed settings. The database may
+// be fresh or of an older schema; it is not changed.
+func InspectRecoveryTarget(ctx context.Context, db *gorm.DB) (RecoveryTargetState, error) {
+	return instancerecovery.NewService(instancerecovery.NewRepositories(db)).Inspect(ctx)
+}
+
+// NormalizeRecoveredState ends, in a database a recovery staged, every session and code of the lost
+// instance.
+func NormalizeRecoveredState(ctx context.Context, db *gorm.DB) error {
+	return instancerecovery.NewService(instancerecovery.NewRepositories(db)).NormalizeRecoveredState(ctx)
+}
 
 func WithActor(ctx context.Context, actor Actor) context.Context {
 	return identity.WithActor(ctx, actor)
@@ -73,6 +97,18 @@ type Module interface {
 	// GetUsers leaves out the IDs that match no user.
 	GetUsers(ctx context.Context, userIDs []uuid.UUID) ([]User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, bool, error)
+	// RequireRootAdmin answers permission_denied unless the actor is the active root admin. Root
+	// admin is the persisted bootstrap designation; the global role ADMIN alone does not grant it.
+	RequireRootAdmin(ctx context.Context, actor Actor) (User, error)
+	// GetRootAdmin reports false when the instance has no root admin yet.
+	GetRootAdmin(ctx context.Context) (User, bool, error)
+	// SendIdentityCode emails root admin a five-minute code bound to the session and the binding. It
+	// answers identity_proof_unavailable while two-factor sign-in is off or mail cannot reach root
+	// admin, and rate_limited within a minute of another.
+	SendIdentityCode(ctx context.Context, actor Actor, binding IdentityProofBinding) (time.Time, error)
+	// VerifyIdentityCode consumes a code emailed for this session and binding. Any other code
+	// answers identity_proof_invalid.
+	VerifyIdentityCode(ctx context.Context, actor Actor, binding IdentityProofBinding, code *string) error
 	// InviteUser creates a user who finishes sign-up later. It answers permission_denied when the
 	// instance settings forbid the actor to invite and email_taken when the address has a user.
 	InviteUser(ctx context.Context, actor Actor, invitation Invitation) (User, error)
@@ -80,6 +116,8 @@ type Module interface {
 	// instance admin always may.
 	CanCreateWorkspaces(ctx context.Context, actor Actor) (bool, error)
 	GetUserCount(ctx context.Context) (int64, error)
+	// IsTwoFactorAuthRequired answers whether the instance requires two-factor sign-in.
+	IsTwoFactorAuthRequired(ctx context.Context) (bool, error)
 
 	// The console methods serve the commands an operator runs inside the instance. They take no
 	// actor: whoever runs them can already run anything there.
@@ -183,6 +221,18 @@ func New(deps Deps) Module {
 		Logger:       deps.Logger,
 	})
 
+	identityProofService := identityproof.NewService(identityproof.Deps{
+		Repositories: identityproof.NewRepositories(deps.DB),
+		Transactor:   deps.Transactor,
+		Clock:        deps.Clock,
+		Accounts:     accountsService,
+		Directory:    directory,
+		Settings:     settingsService,
+		Mailer:       deps.Mailer,
+		AuditLog:     deps.AuditLog,
+		Logger:       deps.Logger,
+	})
+
 	passwordResetService := passwordreset.NewService(passwordreset.Deps{
 		Repositories: passwordreset.NewRepositories(deps.DB),
 		Transactor:   deps.Transactor,
@@ -201,6 +251,7 @@ func New(deps Deps) Module {
 		PasswordReset: passwordResetService,
 		Settings:      settingsService,
 		SignIn:        signInService,
+		IdentityProof: identityProofService,
 		Access:        usershttpapi.NewAccess(signInService, deps.Logger),
 		Handler: usershttpapi.NewHandler(usershttpapi.Deps{
 			SignIn:        signInService,

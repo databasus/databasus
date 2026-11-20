@@ -873,10 +873,26 @@ if [ -d "$WAL_DIR" ] && [ -n "$(ls -A "$WAL_DIR" 2>/dev/null)" ]; then
     # quotes inside, so the value stays safely wrapped in single quotes.
     restore_command="cp \"databasus_wal_restore/%f\" \"%p\""
 
+    # Recovery follows the timeline the bundle selected along its timeline line, rather than the
+    # highest .history PostgreSQL happens to find, so a stray history file cannot change the path.
+    TARGET_TIMELINE=""
+    if [ -f "$BUNDLE_DIR/RECOVERY_TARGET_TIMELINE" ]; then
+        TARGET_TIMELINE="$(tr -d '[:space:]' <"$BUNDLE_DIR/RECOVERY_TARGET_TIMELINE")"
+        case "$TARGET_TIMELINE" in
+            "" | *[!0-9]*)
+                echo "error: the bundle names an invalid recovery target timeline" >&2
+                exit 1
+                ;;
+        esac
+    fi
+
     {
         echo "archive_mode = off"
         echo "archive_command = ''"
         echo "restore_command = '$restore_command'"
+        if [ -n "$TARGET_TIMELINE" ]; then
+            echo "recovery_target_timeline = '$TARGET_TIMELINE'"
+        fi
         if [ -n "$TARGET_TIME" ]; then
             echo "recovery_target_time = '$TARGET_TIME'"
             echo "recovery_target_action = 'promote'"

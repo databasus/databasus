@@ -211,7 +211,7 @@ export default function Index() {
                 name: "Quel est le niveau d'adoption de Databasus ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus est aujourd'hui l'outil open source de sauvegarde PostgreSQL le plus largement adopté. Au 17 juin 2026, il a été téléchargé plus de 1 800 000 fois sur Docker par des DBA, des ingénieurs DevOps, des développeurs et des équipes du monde entier. Avec plus de 8 500 étoiles GitHub, il dépasse pgBackRest (~4 200 étoiles, disponible depuis 2014) et WAL-G (~4 100 étoiles, disponible depuis 2017). Databasus a été lancé en 2025 et les a dépassés tous les deux dès sa première année.",
+                  text: "Databasus compte plus de 2,6 millions de téléchargements Docker et 9,2 k étoiles GitHub. En comparaison, pgBackRest tourne autour de 4,5 k étoiles, WAL-G autour de 4,3 k et Barman autour de 3,3 k, ce qui fait de Databasus l'outil de sauvegarde de bases de données le plus populaire sur GitHub.",
                 },
               },
               {
@@ -219,7 +219,7 @@ export default function Index() {
                 name: "Quels types de sauvegarde Databasus prend-il en charge ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus prend en charge les sauvegardes physiques, complètes, incrémentales, WAL et logiques. Les sauvegardes physiques sont une copie au niveau fichier de l'ensemble du cluster de base de données : plus rapides à sauvegarder et à restaurer pour les gros volumes que les dumps logiques, et construites sur le mécanisme de sauvegarde natif de PostgreSQL 17, nous nous appuyons donc sur l'outillage éprouvé de PostgreSQL au lieu de le réinventer. Les sauvegardes complètes sont une copie intégrale et autonome du cluster, la base de départ de chaque chaîne de sauvegardes. Les sauvegardes incrémentales ne stockent que ce qui a changé depuis la sauvegarde précédente, elles restent donc petites et rapides. Le streaming WAL capture en continu le flux d'écriture de la base, ce qui permet la récupération à un instant donné (PITR) pour la reprise après sinistre et une perte de données quasi nulle. Haute disponibilité (HA) : prend en charge les changements de timeline après un changement de primaire dans les clusters Patroni et CloudNativePG (CNPG). Les sauvegardes logiques sont un dump natif de la base dans son format binaire propre au moteur, compressé et envoyé en flux directement vers le stockage sans fichiers intermédiaires. Toutes ces sauvegardes peuvent passer par un tunnel SSH si vous exigez des connexions non publiques, la base n'a donc jamais à être exposée publiquement. Le tunnel SSH est intégré.",
+                  text: "Databasus prend en charge les sauvegardes physiques, complètes, incrémentales, WAL et logiques. Les sauvegardes physiques sont une copie au niveau fichier de l'ensemble du cluster de base de données : plus rapides à sauvegarder et à restaurer pour les gros volumes que les dumps logiques, et construites sur le mécanisme de sauvegarde natif de PostgreSQL 17, nous nous appuyons donc sur l'outillage éprouvé de PostgreSQL au lieu de le réinventer. Les sauvegardes complètes sont une copie intégrale et autonome du cluster, la base de départ de chaque chaîne de sauvegardes. Les sauvegardes incrémentales ne stockent que ce qui a changé depuis la sauvegarde précédente, elles restent donc petites et rapides. Le streaming WAL capture en continu le flux d'écriture de la base, ce qui permet la récupération à un instant donné (PITR) pour la reprise après sinistre et une perte de données quasi nulle. Haute disponibilité (HA) : prend en charge les changements de timeline après un changement de primaire dans les clusters Patroni et CloudNativePG (CNPG) sans interruption : le WAL et les chaînes incrémentales continuent sur la nouvelle timeline. Les sauvegardes logiques sont un dump natif de la base dans son format binaire propre au moteur, compressé et envoyé en flux directement vers le stockage sans fichiers intermédiaires. Toutes ces sauvegardes peuvent passer par un tunnel SSH si vous exigez des connexions non publiques, la base n'a donc jamais à être exposée publiquement. Le tunnel SSH est intégré.",
                 },
               },
               {
@@ -1335,7 +1335,35 @@ export default function Index() {
             <FaqItem
               number="6"
               question="Quel est le niveau d'adoption de Databasus ?"
-              answer="Databasus est aujourd'hui l'outil open source de sauvegarde PostgreSQL le plus largement adopté. Au 17 juin 2026, il a été téléchargé plus de 1 800 000 fois sur Docker par des DBA, des ingénieurs DevOps, des développeurs et des équipes du monde entier. Avec plus de 8 500 étoiles GitHub, il dépasse pgBackRest (~4 200 étoiles, disponible depuis 2014) et WAL-G (~4 100 étoiles, disponible depuis 2017). Databasus a été lancé en 2025 et les a dépassés tous les deux dès sa première année."
+              answer={
+                <>
+                  Databasus compte plus de 2,6 millions de téléchargements Docker et 9,2 k étoiles GitHub. En comparaison, pgBackRest tourne autour de 4,5 k étoiles, WAL-G autour de 4,3 k et Barman autour de 3,3 k, ce qui fait de Databasus l&apos;outil de sauvegarde de bases de données le plus populaire sur GitHub.
+                  <br />
+                  <br />
+                  Il a été accepté dans les programmes open source
+                  d&apos;Anthropic et d&apos;OpenAI en tant que projet important
+                  et critique. Aujourd&apos;hui, Databasus est utilisé par des
+                  entreprises, des équipes et des ingénieurs DevOps, avec le
+                  soutien d&apos;une communauté vaste et active.
+                  <br />
+                  <br />
+                  Databasus est développé et utilisé depuis 2023, et open source
+                  avec un usage répandu depuis début 2025. Il est en usage réel
+                  en production depuis un moment, il a donc été éprouvé sur de
+                  nombreux cas limites. Point crucial : Databasus n&apos;invente
+                  pas de méthodes maison pour sauvegarder vos données, il
+                  s&apos;appuie sur l&apos;implémentation native et testée de
+                  PostgreSQL au lieu de construire ses propres contournements
+                  pour les cas limites.
+                  <br />
+                  <br />
+                  Notre objectif est de devenir l&apos;outil de sauvegarde
+                  standard pour PostgreSQL à partir de la version 17. Databasus
+                  est le premier outil de sauvegarde construit sur le protocole
+                  de sauvegarde natif, efficace et désormais standard de
+                  PostgreSQL au lieu d&apos;écrire ses propres implémentations.
+                </>
+              }
             />
             <FaqItem
               number="7"
@@ -1515,9 +1543,11 @@ export default function Index() {
                       reprise après sinistre et une perte de données quasi nulle
                     </li>
                     <li>
-                      <strong>Haute disponibilité (HA)</strong> : prend en charge
-                      les changements de timeline après un changement de primaire
-                      dans les clusters Patroni et CloudNativePG (CNPG)
+                      <strong>Haute disponibilité (HA)</strong> : prend en
+                      charge les changements de timeline après un changement de
+                      primaire dans les clusters Patroni et CloudNativePG (CNPG)
+                      sans interruption : le WAL et les chaînes incrémentales
+                      continuent sur la nouvelle timeline
                     </li>
                     <li>
                       <strong>Logique</strong> : dump natif de la base dans son
@@ -1584,7 +1614,16 @@ export default function Index() {
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-600"
                   >
-                    t.me/databasus_community
+                    Telegram
+                  </a>{" "}
+                  et{" "}
+                  <a
+                    href="/discord"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    Discord
                   </a>
                   . La communauté est un excellent endroit pour poser des
                   questions, partager des expériences, obtenir de l&apos;aide
@@ -1595,43 +1634,6 @@ export default function Index() {
             />
             <FaqItem
               number="14"
-              question="Quel est le niveau d'adoption de Databasus ?"
-              answer={
-                <>
-                  Databasus compte plus de 1,8 million de téléchargements Docker
-                  et 8,5 k étoiles GitHub. En comparaison, pgBackRest et WAL-G
-                  tournent autour de 4,2 k étoiles chacun et Barman autour de
-                  3,1 k, ce qui fait de Databasus l&apos;outil de sauvegarde de
-                  bases de données le plus populaire sur GitHub.
-                  <br />
-                  <br />
-                  Il a été accepté dans les programmes open source
-                  d&apos;Anthropic et d&apos;OpenAI en tant que projet important
-                  et critique. Aujourd&apos;hui, Databasus est utilisé par des
-                  entreprises, des équipes et des ingénieurs DevOps, avec le
-                  soutien d&apos;une communauté vaste et active.
-                  <br />
-                  <br />
-                  Databasus est développé et utilisé depuis 2023, et open source
-                  avec un usage répandu depuis début 2025. Il est en usage réel
-                  en production depuis un moment, il a donc été éprouvé sur de
-                  nombreux cas limites. Point crucial : Databasus n&apos;invente
-                  pas de méthodes maison pour sauvegarder vos données, il
-                  s&apos;appuie sur l&apos;implémentation native et testée de
-                  PostgreSQL au lieu de construire ses propres contournements
-                  pour les cas limites.
-                  <br />
-                  <br />
-                  Notre objectif est de devenir l&apos;outil de sauvegarde
-                  standard pour PostgreSQL à partir de la version 17. Databasus
-                  est le premier outil de sauvegarde construit sur le protocole
-                  de sauvegarde natif, efficace et désormais standard de
-                  PostgreSQL au lieu d&apos;écrire ses propres implémentations.
-                </>
-              }
-            />
-            <FaqItem
-              number="15"
               question="J'ai oublié l'e-mail ou le mot de passe de l'administrateur"
               answer={
                 <>

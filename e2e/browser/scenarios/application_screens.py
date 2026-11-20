@@ -3,16 +3,21 @@ import re
 from dataclasses import dataclass
 
 from api_response import get_api_object
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Locator, Page, expect
 
 GITHUB_REPOSITORY_ADDRESS = "https://api.github.com/repos/databasus/databasus"
 ADMINISTERS_NOTICE = "This is the first account on this instance, so it will administer it."
+
+
+MASTER_KEY_ONBOARDING_TITLE = "Save the master key"
+INSTANCE_BACKUP_STATUS_PATH = "/api/v1/instance-backup-statuses"
 
 
 @dataclass(frozen=True)
 class Account:
     email: str
     password: str
+    is_root_admin: bool = False
 
 
 def open_application(page: Page) -> None:
@@ -22,6 +27,12 @@ def open_application(page: Page) -> None:
         lambda route: route.fulfill(json={"tag_name": "dev"}),
     )
     page.goto("/")
+
+
+def application_banner(page: Page) -> Locator:
+    """A dialog header is a banner too, and dialogs are portalled to the end of the page, so the
+    application header is the first banner."""
+    return page.get_by_role("banner").first
 
 
 def register_first_account(page: Page, account: Account) -> None:
@@ -34,7 +45,8 @@ def register_first_account(page: Page, account: Account) -> None:
     page.get_by_label("Confirm password").fill(account.password)
     page.get_by_role("button", name="Sign up", exact=True).click()
 
-    expect(page.get_by_role("banner")).to_be_visible()
+    expect(application_banner(page).or_(_master_key_onboarding(page))).to_be_visible()
+    download_master_key(page)
 
 
 def sign_in(page: Page, account: Account) -> None:
@@ -42,12 +54,55 @@ def sign_in(page: Page, account: Account) -> None:
     page.get_by_placeholder("********", exact=True).fill(account.password)
     page.get_by_role("button", name="Sign in", exact=True).click()
 
-    expect(page.get_by_role("banner")).to_be_visible()
+    if not account.is_root_admin:
+        expect(application_banner(page)).to_be_visible()
+        return
+
+    expect(application_banner(page).or_(_master_key_onboarding(page))).to_be_visible()
+    download_master_key(page)
+
+
+def _master_key_onboarding(page: Page) -> Locator:
+    return page.get_by_role("heading", name=MASTER_KEY_ONBOARDING_TITLE, exact=True, level=1)
+
+
+def _is_master_key_acknowledged(page: Page) -> bool:
+    is_acknowledged = read_api(page, INSTANCE_BACKUP_STATUS_PATH).get("isMasterKeyAcknowledged")
+    assert isinstance(is_acknowledged, bool)
+    return is_acknowledged
+
+
+def download_master_key(page: Page) -> None:
+    """Root admin sees the onboarding screen instead of the application until they copy or
+    download the current key and confirm saving it; the confirmation unlocks 15 seconds after the
+    screen appears and records the key as saved, so no browser shows onboarding for that key
+    again."""
+    onboarding = _master_key_onboarding(page)
+
+    if _is_master_key_acknowledged(page):
+        expect(onboarding).to_be_hidden()
+        return
+
+    expect(onboarding).to_be_visible()
+    confirmation = page.get_by_role("button", name="I've saved it in a safe place")
+    expect(confirmation).to_be_disabled()
+    with page.expect_download() as download_info:
+        page.get_by_role("button", name="Download", exact=True).click()
+    assert download_info.value.failure() is None
+    assert download_info.value.suggested_filename == "databasus-master-key.txt"
+
+    expect(confirmation).to_have_text("I've saved it in a safe place", timeout=20_000)
+    expect(confirmation).to_be_enabled()
+    confirmation.click()
+
+    expect(onboarding).to_be_hidden()
+    expect(application_banner(page)).to_be_visible()
+    assert _is_master_key_acknowledged(page)
 
 
 def create_workspace(page: Page, name: str) -> None:
     workspace_selector = page.get_by_role("combobox", name="Selected workspace")
-    create_workspace_button = page.get_by_role("banner").get_by_role(
+    create_workspace_button = application_banner(page).get_by_role(
         "button", name="Create workspace", exact=True
     )
 

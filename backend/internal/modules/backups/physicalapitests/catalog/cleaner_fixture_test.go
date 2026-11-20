@@ -74,6 +74,7 @@ func (catalog *cleanerCatalog) clean(t *testing.T, policy apiclient.PhysicalRete
 func cleanerLSN(segment int) fixtureLSN { return fixtureLSN(segment * segmentBytes) }
 
 type chainFullSpec struct {
+	TimelineID   int
 	StartSegment int
 	AgeHours     int
 }
@@ -84,7 +85,7 @@ func (catalog *cleanerCatalog) seedChainFull(t *testing.T, spec chainFullSpec) *
 		fullSeedSpec{
 			DatabaseID: catalog.DatabaseID,
 			StorageID:  catalog.StorageID,
-			TimelineID: 1,
+			TimelineID: max(1, spec.TimelineID),
 			StartLSN:   cleanerLSN(spec.StartSegment),
 			StopLSN:    cleanerLSN(spec.StartSegment + 1),
 		},

@@ -104,7 +104,9 @@ export const installHttpFixtures = async ({
       body: fixture
         ? request.headers()['content-type']?.startsWith('application/x-www-form-urlencoded')
           ? Object.fromEntries(new URLSearchParams(request.postData() ?? ''))
-          : request.postDataJSON()
+          : request.headers()['content-type']?.startsWith('multipart/form-data')
+            ? request.postData()
+            : request.postDataJSON()
         : request.postData(),
     });
     if (!fixture) {

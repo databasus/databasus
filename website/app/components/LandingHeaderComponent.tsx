@@ -1,4 +1,5 @@
 import { getLocalizedHref, type Locale } from "@/app/i18n";
+import CommunityDropdownComponent from "./CommunityDropdownComponent";
 import LanguageSelectorComponent from "./LanguageSelectorComponent";
 import { LANDING_LABELS } from "./landingLabels";
 
@@ -58,14 +59,10 @@ export default function LandingHeaderComponent({
               {labels.docs}
             </a>
 
-            <a
-              href="https://t.me/databasus_community"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-2 hover:text-gray-300 transition-colors"
-            >
-              {labels.community}
-            </a>
+            <CommunityDropdownComponent
+              label={labels.community}
+              triggerClassName="py-2 hover:text-gray-300 transition-colors"
+            />
           </div>
 
           {/* GitHub + language split button */}

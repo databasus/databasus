@@ -53,29 +53,37 @@ remain unavailable, including after a later full backup succeeds.
 
 ## Backup chains and recovery
 
-A promotion starts a new PostgreSQL timeline. An incremental backup cannot
-continue a chain rooted on the old timeline. Databasus rejects that continuation
-and requests a replacement full backup. WAL reception reconnects and archives
-the new timeline's history alongside its WAL.
+A promotion starts a new PostgreSQL timeline. WAL reception reconnects,
+archives the new timeline's history alongside its WAL and continues from the
+fork point, even when Databasus had archived writes of the former primary that
+the promoted replica never received. The next incremental backup continues the
+existing chain on the new timeline, so a promotion costs no full backup.
 
-When a primary changes during an active full backup and the failure recheck
-reaches the new primary, the attempt ends with `ERROR` /
-`FAILOVER_DURING_BACKUP`. An interrupted incremental ends with `CHAIN_BROKEN` /
-`TIMELINE_SWITCH_DETECTED`. Each requests one immediate replacement full backup.
-When the route is still unavailable during the recheck, Databasus retains the
-original stream failure and uses its existing scheduled retry behavior.
+That continuation needs `summarize_wal = on` on every node that can become
+primary. Without WAL summaries on the promoted node, or when PostgreSQL refuses
+the incremental backup across the timeline change, the incremental ends with
+`CHAIN_BROKEN` / `TIMELINE_SWITCH_DETECTED` and Databasus requests one immediate
+replacement full backup.
 
-An archived target on the old timeline remains recoverable while retention
-protects its files. A target between promotion and completion of the replacement
-full backup is unavailable: restore-token creation returns
-`409 target_time_unreachable`. A later full backup does not fill that gap.
+When a primary changes during an active backup and the failure recheck reaches
+the new primary, the attempt ends with `ERROR` / `FAILOVER_DURING_BACKUP`. An
+interrupted full backup requests one immediate replacement full backup. An
+interrupted incremental does not: the archived WAL already covers the switch,
+and the next incremental runs at its scheduled time. When the route is still
+unavailable during the recheck, Databasus retains the original stream failure
+and uses its existing scheduled retry behavior.
 
-PITR eligibility follows source transaction timestamps in the selected
-timeline's contiguous published WAL. A delayed upload of old WAL cannot extend
-that timeline into the promotion gap. Inclusive recovery needs a transaction
-strictly later than the target to confirm coverage. WAL without that evidence
-does not extend the time bound beyond a completed backup; latest recovery and
-explicit completed-backup recovery remain available. [Physical backup
+A restore to a target after the promotion replays the chain across the fork
+point once the new timeline's history is published, also before any backup runs
+on the new timeline. Commits only the former primary made after the fork point
+are never restored, and a target that only they cover returns
+`409 target_time_unreachable`.
+
+PITR eligibility follows source transaction timestamps in the published WAL on
+the chain's timeline line. Inclusive recovery needs a transaction strictly later
+than the target to confirm coverage. WAL without that evidence does not extend
+the time bound beyond a completed backup; latest recovery and explicit
+completed-backup recovery remain available. [Physical backup
 operations](../openspec/specs/physical-backups/operations/spec.md) define the
 exact coverage and failure behavior.
 

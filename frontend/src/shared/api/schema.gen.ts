@@ -404,7 +404,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a workspace with its notifiers, storages and members
-         * @description Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
+         * @description Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`. Next, a storage of the workspace selected as a Databasus backup destination gets 409 `databasus_backup_in_use`. Retained storage references take priority over cleanup and get 409 `in_use`. Otherwise outstanding file cleanup on any affected storage gets 409 `cleanup_pending`; wait for cleanup or explicitly delete those storages individually. No bulk abandonment is available. Outsiders get 404 `not_found`, insufficient roles get 403 `permission_denied`. Instance admins retain workspace access. The deletion happens completely or not at all.
          */
         delete: operations["deleteWorkspace"];
         options?: never;
@@ -674,7 +674,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a storage
-         * @description Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. A storage selected as a Databasus backup destination gets 409 `databasus_backup_in_use` until root admin deselects it, even when database backups also use it. Otherwise a storage that a backup config uses or that still holds backups gets 409 `in_use`, even with explicit abandonment. Otherwise pending file cleanup returns 409 `cleanup_pending` unless shouldAbandonCleanup is true. Explicit abandonment atomically removes the storage and its queue, recording a bounded audit snapshot. This request never contacts the provider or deletes its bucket or directory. Outsiders get 404 `not_found`, viewers get 403 `permission_denied`; instance admins retain workspace access.
          */
         delete: operations["deleteStorage"];
         options?: never;
@@ -1344,7 +1344,7 @@ export interface paths {
         };
         /**
          * Download the file of a logical backup
-         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length.
+         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
          */
         get: operations["downloadLogicalBackup"];
         put?: never;
@@ -1557,7 +1557,10 @@ export interface paths {
          */
         get: operations["listVerifications"];
         put?: never;
-        /** Start a manual backup verification */
+        /**
+         * Start a manual backup verification
+         * @description Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
+         */
         post: operations["startVerification"];
         delete?: never;
         options?: never;
@@ -1631,6 +1634,352 @@ export interface paths {
         get: operations["listHealthcheckAttempts"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-backup-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the Databasus backup settings
+         * @description Only root admin reads them; another instance admin gets 403 `permission_denied`. A new installation has no destinations, an hourly schedule and 30-day retention.
+         */
+        get: operations["getInstanceBackupSettings"];
+        /**
+         * Replace the Databasus backup settings
+         * @description Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
+         */
+        put: operations["updateInstanceBackupSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-backup-statuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the protection state of the instance
+         * @description Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
+         */
+        get: operations["getInstanceBackupStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-backup-destinations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the storages root admin can select as destinations
+         * @description Only root admin lists them. Every storage of every workspace is a choice, ordered by workspace name, then storage name, then storage ID. `query` keeps the storages whose name or workspace name contains it, ignoring case. No provider settings or secrets are returned.
+         */
+        get: operations["listInstanceBackupDestinations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the Databasus backups
+         * @description Only root admin lists them. The newest snapshot comes first, then the higher ID; a backup whose dump has not finished sorts by its start time.
+         */
+        get: operations["listInstanceBackups"];
+        put?: never;
+        /**
+         * Start a Databasus backup now
+         * @description Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
+         */
+        post: operations["startInstanceBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-backups/{instanceBackupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the Databasus backup */
+                instanceBackupId: components["parameters"]["InstanceBackupId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a Databasus backup with the outcome of each copy
+         * @description Only root admin reads it.
+         */
+        get: operations["getInstanceBackup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-backups/{instanceBackupId}/download-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the Databasus backup */
+                instanceBackupId: components["parameters"]["InstanceBackupId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a single-use token to download a stored copy
+         * @description Only root admin gets one. The copy must have been stored successfully and its storage must still exist; otherwise the answer is 409 `storage_unavailable` or 404 `not_found` for an unknown copy. The token downloads the encrypted file once and expires after five minutes.
+         */
+        post: operations["createInstanceBackupDownloadToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-backup-downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the encrypted file of a Databasus backup copy
+         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createInstanceBackupDownloadToken` is the credential. The file stays encrypted with the master key and needs no separate metadata to be recovered. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`.
+         */
+        get: operations["downloadInstanceBackup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-key-confirmations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email root admin a code that confirms a master-key export
+         * @description Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+         */
+        post: operations["requestMasterKeyConfirmation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-key-exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get a single-use token that downloads the master key
+         * @description Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+         */
+        post: operations["createMasterKeyExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-key-downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the master key once
+         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createMasterKeyExport` is the credential. Returns exactly the bytes of the existing master key as an attachment with `Cache-Control: no-store`. An expired, used, unknown or wrong-purpose token gets 401 `unauthenticated`. The download records no acknowledgment; `acknowledgeMasterKey` does.
+         */
+        get: operations["downloadMasterKey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-key-acknowledgments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Record that root admin saved the current master key
+         * @description Only root admin acknowledges. The acknowledgment belongs to the current key, so every browser and session stops showing key onboarding for it. Exporting or downloading the key alone never counts as an acknowledgment.
+         */
+        put: operations["acknowledgeMasterKey"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-recoveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a Databasus backup file and its master key to prepare a replacement
+         * @description Only root admin of this installation uploads; another administrator gets 403 `permission_denied` before any byte is staged. The multipart body carries the encrypted `archive` file and the source installation's master key as the text field `masterKey`, whose exact UTF-8 bytes are kept without trimming. Neither a matching history entry, a destination nor this installation's own key is needed. The archive is streamed into private staging and refused with 413 `archive_too_large` beyond the configured limit, 10 GiB by default, even without a declared length; the key is limited to 64 KiB. Missing disk space gets 409 `insufficient_disk_space`, another pending recovery gets 409 `already_running`. The answer is 202 with the recovery validating; the active installation stays usable until an explicit apply. A prepared recovery expires after one hour.
+         */
+        post: operations["createInstanceRecovery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-recoveries/{instanceRecoveryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the recovery */
+                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a recovery from the local recovery journal
+         * @description Only the current root admin reads it, including root admin restored by this recovery. It exposes the authenticated snapshot time and source release, the archive fingerprint and a safe failure reason, never the key or the decrypted dump.
+         */
+        get: operations["getInstanceRecovery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-recoveries/{instanceRecoveryId}/confirmations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the recovery */
+                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email root admin a code that confirms applying this recovery
+         * @description Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+         */
+        post: operations["requestInstanceRecoveryConfirmation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-recoveries/{instanceRecoveryId}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the recovery */
+                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace this installation with the prepared recovery
+         * @description Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+         */
+        post: operations["applyInstanceRecovery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-recoveries/{instanceRecoveryId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the recovery */
+                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a recovery that was not applied
+         * @description Only root admin cancels. The answer comes after the staged archive, key and staging database are released, with the recovery `CANCELLED`; cancelling it again returns the same answer. Once apply was accepted, or for a recovery that already failed or completed, the answer is 409 `recovery_not_ready`.
+         */
+        post: operations["cancelInstanceRecovery"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1933,6 +2282,8 @@ export interface components {
              * @description The ID of the user
              */
             id: string;
+            /** @description Whether the user is root admin, the instance's bootstrap administrator who alone manages Databasus backups, master-key export and recovery; the role `ADMIN` alone does not grant it */
+            isRootAdmin: boolean;
             /** @description The address the user signs in with */
             email: string;
             /** @description The name other users see */
@@ -2855,15 +3206,15 @@ export interface components {
              */
             type: "MYSQL";
             version?: components["schemas"]["MysqlVersion"];
-            /** @description The host of the server */
+            /** @description The host of the server. Must not contain a line break or another control character. */
             host: string;
             /** @description The port of the server */
             port: number;
-            /** @description The user name */
+            /** @description The user name. Must not contain a line break or another control character. */
             username: string;
-            /** @description The password */
+            /** @description The password. Must not contain a line break or another control character. */
             password?: string;
-            /** @description The database the dump reads, absent until one is picked */
+            /** @description The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character. */
             database?: string;
             /** @description Whether the connection is encrypted, without verifying the server certificate */
             isHttps: boolean;
@@ -2886,15 +3237,15 @@ export interface components {
              */
             type: "MARIADB";
             version?: components["schemas"]["MariadbVersion"];
-            /** @description The host of the server */
+            /** @description The host of the server. Must not contain a line break or another control character. */
             host: string;
             /** @description The port of the server */
             port: number;
-            /** @description The user name */
+            /** @description The user name. Must not contain a line break or another control character. */
             username: string;
-            /** @description The password */
+            /** @description The password. Must not contain a line break or another control character. */
             password?: string;
-            /** @description The database the dump reads, absent until one is picked */
+            /** @description The database the dump reads, absent until one is picked. Must not start with `-` or contain a line break or another control character. */
             database?: string;
             /** @description Whether the connection is encrypted, without verifying the server certificate */
             isHttps: boolean;
@@ -3046,6 +3397,347 @@ export interface components {
             /** @description Every registered job in name order */
             jobs: components["schemas"]["JobHealth"][];
         };
+        /** @description How and where Databasus backs up its own internal database */
+        InstanceBackupSettings: {
+            schedule: components["schemas"]["Schedule"];
+            /** @description How many days a stored copy is kept; the newest successful copy of a destination is always kept */
+            retentionDays: number;
+            /** @description The selected destinations, as IDs of existing storages of any workspace */
+            storageIds: string[];
+        };
+        /**
+         * @description How well the instance is protected. `NOT_CONFIGURED` before any destination was selected, `INITIALIZING` until the first copy succeeds, `RESUMING` after destinations return following `STOPPED`, `PARTIAL` when some current destinations lack a fresh copy, `FAILED` when none has one, `OVERDUE` when a scheduled copy is more than 15 minutes late
+         * @enum {string}
+         */
+        InstanceBackupHealth: "NOT_CONFIGURED" | "INITIALIZING" | "HEALTHY" | "PARTIAL" | "FAILED" | "OVERDUE" | "STOPPED" | "RESUMING";
+        /** @description The protection state of one selected destination */
+        InstanceBackupDestinationHealth: {
+            /**
+             * Format: uuid
+             * @description The selected storage
+             */
+            storageId: string;
+            /** @description The current name of the storage */
+            storageName: string;
+            storageType?: components["schemas"]["StorageType"];
+            /**
+             * Format: uuid
+             * @description The workspace the storage belongs to now
+             */
+            workspaceId: string;
+            /** @description The current name of that workspace */
+            workspaceName: string;
+            health: components["schemas"]["InstanceBackupHealth"];
+            /**
+             * Format: date-time
+             * @description The snapshot time of the newest successful copy in this destination
+             */
+            lastSuccessfulSnapshotAt?: string | null;
+            /**
+             * Format: date-time
+             * @description When the earliest uncovered scheduled occurrence becomes overdue
+             */
+            overdueAt?: string | null;
+            /** @description The sanitized error of the latest failed delivery */
+            lastError?: string | null;
+        };
+        /**
+         * @description The protection problem an incident reports
+         * @enum {string}
+         */
+        InstanceBackupIncidentKind: "FAILED" | "PARTIAL" | "OVERDUE" | "STOPPED";
+        /**
+         * @description Mail delivery of an incident. `NOT_ELIGIBLE` without a system mail server or a usable root admin address
+         * @enum {string}
+         */
+        InstanceBackupMailStatus: "NOT_ELIGIBLE" | "PENDING" | "SENT" | "RETRYING";
+        /** @description An unresolved protection problem */
+        InstanceBackupIncident: {
+            /**
+             * Format: uuid
+             * @description The ID of the incident
+             */
+            id: string;
+            kind: components["schemas"]["InstanceBackupIncidentKind"];
+            /**
+             * Format: date-time
+             * @description When the problem began
+             */
+            startedAt: string;
+            mailStatus: components["schemas"]["InstanceBackupMailStatus"];
+            /**
+             * Format: date-time
+             * @description When the mail server last accepted an email about it
+             */
+            lastMailedAt?: string | null;
+            /** @description The sanitized error of the latest failed mail attempt */
+            lastMailError?: string | null;
+        };
+        /** @description The initial setup reminder */
+        InstanceBackupReminder: {
+            /** @description Whether the instance has a user database or storage, so setup should be suggested. The reminder cannot be deferred: it shows while no destination is selected. */
+            isEligible: boolean;
+        };
+        /** @description The protection state of the instance for root admin */
+        InstanceBackupStatus: {
+            health: components["schemas"]["InstanceBackupHealth"];
+            /** @description Every selected destination */
+            destinations: components["schemas"]["InstanceBackupDestinationHealth"][];
+            /** @description The open incident, null when protection has no problem */
+            incident?: components["schemas"]["InstanceBackupIncident"] | null;
+            /** @description Whether the operator configured the system mail server */
+            isEmailConfigured: boolean;
+            /** @description Whether root admin's address can receive mail */
+            isRootEmailUsable: boolean;
+            /** @description Whether root admin confirmed saving the current master key */
+            isMasterKeyAcknowledged: boolean;
+            /** @description Whether a master-key export and a recovery apply need a code emailed to root admin, because the instance requires two-factor sign-in */
+            isConfirmationCodeRequired: boolean;
+            reminder: components["schemas"]["InstanceBackupReminder"];
+            /** @description The latest recovery of the local journal, null when there was none */
+            recovery?: components["schemas"]["InstanceRecovery"] | null;
+        };
+        /** @description A storage root admin can select as a destination, without its settings */
+        InstanceBackupDestinationChoice: {
+            /**
+             * Format: uuid
+             * @description The ID of the storage
+             */
+            storageId: string;
+            /** @description The name of the storage */
+            storageName: string;
+            storageType: components["schemas"]["StorageType"];
+            /**
+             * Format: uuid
+             * @description The workspace the storage belongs to
+             */
+            workspaceId: string;
+            /** @description The name of that workspace */
+            workspaceName: string;
+            /** @description Whether the storage is a current destination */
+            isSelected: boolean;
+        };
+        /** @description One page of destination choices, ordered by workspace name, storage name and ID */
+        InstanceBackupDestinationPage: {
+            /** @description The choices on the page */
+            items: components["schemas"]["InstanceBackupDestinationChoice"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /**
+         * @description Where a Databasus backup is in its life. `PARTIAL` when some copies succeeded and others failed, `INTERRUPTED` when Databasus stopped before it ended
+         * @enum {string}
+         */
+        InstanceBackupStatusValue: "IN_PROGRESS" | "COMPLETED" | "PARTIAL" | "FAILED" | "INTERRUPTED";
+        /**
+         * @description What started a Databasus backup
+         * @enum {string}
+         */
+        InstanceBackupTrigger: "SCHEDULE" | "MANUAL" | "DESTINATION_ADDED";
+        /**
+         * @description Where the delivery of one copy is
+         * @enum {string}
+         */
+        InstanceBackupCopyStatus: "PENDING" | "UPLOADING" | "RETRYING" | "STORED" | "FAILED" | "INTERRUPTED" | "DELETED";
+        /** @description The delivery of one Databasus backup to one storage */
+        InstanceBackupCopy: {
+            /**
+             * Format: uuid
+             * @description The ID of the copy
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The storage, null after the storage was deleted
+             */
+            storageId?: string | null;
+            /** @description The storage's name when the copy was made */
+            storageName: string;
+            /** @description The workspace's name when the copy was made */
+            workspaceName: string;
+            status: components["schemas"]["InstanceBackupCopyStatus"];
+            /** @description How many delivery attempts were made */
+            attemptCount: number;
+            /**
+             * Format: date-time
+             * @description When the copy was stored
+             */
+            storedAt?: string | null;
+            /** @description The sanitized error of the latest failed attempt */
+            lastError?: string | null;
+            /** @description Whether a download token can be issued for the copy now */
+            isDownloadable: boolean;
+        };
+        /** @description One encrypted snapshot of the internal database and its copies */
+        InstanceBackup: {
+            /**
+             * Format: uuid
+             * @description The ID of the Databasus backup, also the ID inside its file
+             */
+            id: string;
+            status: components["schemas"]["InstanceBackupStatusValue"];
+            trigger: components["schemas"]["InstanceBackupTrigger"];
+            /** @description The Databasus release that made the backup; recovery needs exactly this release */
+            sourceRelease: string;
+            /**
+             * Format: date-time
+             * @description When the backup started
+             */
+            startedAt: string;
+            /**
+             * Format: date-time
+             * @description The moment the snapshot represents, null until the dump finished
+             */
+            snapshotAt?: string | null;
+            /**
+             * Format: date-time
+             * @description When the last copy reached its final state
+             */
+            completedAt?: string | null;
+            /**
+             * Format: int64
+             * @description The size of the encrypted file
+             */
+            sizeBytes?: number | null;
+            /** @description The sanitized reason the dump failed */
+            failureReason?: string | null;
+            /** @description One entry per destination of the run */
+            copies: components["schemas"]["InstanceBackupCopy"][];
+        };
+        /** @description One page of Databasus backups, the newest snapshot first */
+        InstanceBackupPage: {
+            /** @description The backups on the page */
+            items: components["schemas"]["InstanceBackup"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description The stored copy to download */
+        InstanceBackupDownloadTokenCreate: {
+            /**
+             * Format: uuid
+             * @description The copy of this backup to download
+             */
+            copyId: string;
+        };
+        /** @description A single-use token that downloads one encrypted copy within five minutes */
+        InstanceBackupDownloadToken: {
+            /** @description The token, returned only in this response */
+            token: string;
+            /** @description The name the downloaded file gets */
+            fileName: string;
+            /**
+             * Format: date-time
+             * @description When the token stops working
+             */
+            expiresAt: string;
+        };
+        /** @description An emailed identity code that was sent */
+        IdentityConfirmation: {
+            /**
+             * Format: date-time
+             * @description When the code stops working
+             */
+            expiresAt: string;
+        };
+        /** @description The confirmation for a master-key export */
+        MasterKeyExportCreate: {
+            /** @description The emailed confirmation code; required when the instance requires two-factor sign-in */
+            code?: string;
+        };
+        /** @description A single-use token that downloads the master key within 60 seconds */
+        MasterKeyExport: {
+            /** @description The token, returned only in this response */
+            token: string;
+            /** @description The name the downloaded file gets */
+            fileName: string;
+            /**
+             * Format: date-time
+             * @description When the token stops working
+             */
+            expiresAt: string;
+        };
+        /** @description Whether root admin saved the current master key */
+        MasterKeyAcknowledgment: {
+            /** @description `true` records that the current key is saved outside the server */
+            isSaved: boolean;
+        };
+        /**
+         * @description Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can be applied, `APPLYING` once apply was accepted, `COMPLETED` once the recovered installation is published
+         * @enum {string}
+         */
+        InstanceRecoveryStatus: "VALIDATING" | "READY" | "APPLYING" | "COMPLETED" | "FAILED" | "CANCELLED";
+        /**
+         * @description How the recovery inputs arrived
+         * @enum {string}
+         */
+        InstanceRecoveryOrigin: "STARTUP" | "UPLOAD";
+        /**
+         * @description The safe reason a recovery failed
+         * @enum {string}
+         */
+        InstanceRecoveryFailure: "ARCHIVE_INVALID" | "ARCHIVE_INCOMPLETE" | "MASTER_KEY_INVALID" | "RELEASE_MISMATCH" | "SCHEMA_INCOMPATIBLE" | "INSUFFICIENT_DISK_SPACE" | "IMPORT_FAILED" | "EXPIRED" | "QUIESCENCE_FAILED" | "INTERRUPTED";
+        /** @description A recovery of the instance's internal state from a Databasus backup file */
+        InstanceRecovery: {
+            /**
+             * Format: uuid
+             * @description The ID of the recovery
+             */
+            id: string;
+            status: components["schemas"]["InstanceRecoveryStatus"];
+            origin: components["schemas"]["InstanceRecoveryOrigin"];
+            /** @description Lowercase hexadecimal SHA-256 of the whole encrypted file */
+            archiveSha256: string;
+            /** @description The release of this installation */
+            runningRelease: string;
+            /** @description The authenticated release of the archive, null until validated */
+            sourceRelease?: string | null;
+            /**
+             * Format: date-time
+             * @description The authenticated snapshot time, null until validated
+             */
+            snapshotAt?: string | null;
+            /**
+             * Format: date-time
+             * @description When the recovery started
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description When an unapplied recovery stops being applicable
+             */
+            expiresAt?: string | null;
+            /**
+             * Format: date-time
+             * @description When publication completed
+             */
+            completedAt?: string | null;
+            /** @description Why the recovery failed, null otherwise */
+            failure?: components["schemas"]["InstanceRecoveryFailure"] | null;
+            /** @description Unfinished file writes and deletions of the source instance that were discarded instead of replayed; their files may need manual cleanup */
+            discardedCleanupCount: number;
+        };
+        /** @description The recovery inputs */
+        InstanceRecoveryUpload: {
+            /**
+             * Format: binary
+             * @description The encrypted Databasus backup file
+             */
+            archive: string;
+            /** @description The source installation's master key as text; its exact UTF-8 bytes are used */
+            masterKey: string;
+        };
+        /** @description The replacement confirmation, with the emailed code while two-factor sign-in is required */
+        InstanceRecoveryApply: {
+            /** @description Root admin accepted that current users, settings and backup catalog are replaced */
+            isReplacementConfirmed: boolean;
+            /** @description The code emailed for this recovery; required while the instance requires two-factor sign-in and ignored otherwise */
+            code?: string;
+        };
+        /**
+         * @description The provider of a storage
+         * @enum {string}
+         */
+        StorageType: "LOCAL" | "S3" | "NAS" | "AZURE_BLOB" | "FTP" | "SFTP";
         /** @description An error in the RFC 9457 format. The client chooses its text by `code` */
         Problem: {
             /** @description A URI that identifies the kind of error */
@@ -3064,7 +3756,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "email_not_found" | "password_incorrect" | "registration_incomplete" | "password_not_set" | "password_not_set_google" | "password_not_set_github" | "password_not_set_google_github" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "cleanup_pending" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "instance_unhealthy" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "email_not_found" | "password_incorrect" | "registration_incomplete" | "password_not_set" | "password_not_set_google" | "password_not_set_github" | "password_not_set_google_github" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "cleanup_pending" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "instance_unhealthy" | "databasus_backup_in_use" | "storage_unavailable" | "recovery_incompatible" | "recovery_not_ready" | "identity_proof_invalid" | "identity_proof_unavailable" | "archive_too_large" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -4036,15 +4728,15 @@ export interface components {
              * @enum {string}
              */
             type: "MYSQL";
-            /** @description The host of the server */
+            /** @description The host of the server. Must not contain a line break or another control character. */
             host: string;
             /** @description The port of the server */
             port: number;
-            /** @description The user name */
+            /** @description The user name. Must not contain a line break or another control character. */
             username: string;
-            /** @description The password */
+            /** @description The password. Must not contain a line break or another control character. */
             password: string;
-            /** @description The database the restore writes into */
+            /** @description The database the restore writes into. Must not start with `-` or contain a line break or another control character. */
             database: string;
             /** @description Whether the connection is encrypted, without verifying the server certificate */
             isHttps: boolean;
@@ -4057,15 +4749,15 @@ export interface components {
              * @enum {string}
              */
             type: "MARIADB";
-            /** @description The host of the server */
+            /** @description The host of the server. Must not contain a line break or another control character. */
             host: string;
             /** @description The port of the server */
             port: number;
-            /** @description The user name */
+            /** @description The user name. Must not contain a line break or another control character. */
             username: string;
-            /** @description The password */
+            /** @description The password. Must not contain a line break or another control character. */
             password: string;
-            /** @description The database the restore writes into */
+            /** @description The database the restore writes into. Must not start with `-` or contain a line break or another control character. */
             database: string;
             /** @description Whether the connection is encrypted, without verifying the server certificate */
             isHttps: boolean;
@@ -4133,6 +4825,10 @@ export interface components {
         BackupConfigDatabaseId: string;
         /** @description The ID of a full or incremental physical backup */
         PhysicalBackupId: string;
+        /** @description The ID of the Databasus backup */
+        InstanceBackupId: string;
+        /** @description The ID of the recovery */
+        InstanceRecoveryId: string;
         /** @description The ID of the logical backup */
         BackupId: string;
         /** @description The ID of the restore */
@@ -5187,6 +5883,7 @@ export interface operations {
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -5249,6 +5946,7 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -5456,6 +6154,7 @@ export interface operations {
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -5518,6 +6217,7 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -5916,6 +6616,7 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -6134,6 +6835,7 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -6483,6 +7185,7 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
@@ -7044,6 +7747,527 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInstanceBackupSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Databasus backup settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceBackupSettings"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateInstanceBackupSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every Databasus backup setting. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceBackupSettings"];
+            };
+        };
+        responses: {
+            /** @description The settings after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceBackupSettings"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInstanceBackupStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The protection state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceBackupStatus"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listInstanceBackupDestinations: {
+        parameters: {
+            query?: {
+                /** @description The largest number of choices on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+                /** @description The text the storage name or the workspace name contains */
+                query?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of choices */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceBackupDestinationPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listInstanceBackups: {
+        parameters: {
+            query?: {
+                /** @description The largest number of backups on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of Databasus backups */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceBackupPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    startInstanceBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The backup in progress */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceBackup"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInstanceBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the Databasus backup */
+                instanceBackupId: components["parameters"]["InstanceBackupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Databasus backup */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceBackup"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createInstanceBackupDownloadToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the Databasus backup */
+                instanceBackupId: components["parameters"]["InstanceBackupId"];
+            };
+            cookie?: never;
+        };
+        /** @description The copy to download. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceBackupDownloadTokenCreate"];
+            };
+        };
+        responses: {
+            /** @description The issued token */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceBackupDownloadToken"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    downloadInstanceBackup: {
+        parameters: {
+            query: {
+                /** @description The download token issued for the copy */
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The encrypted Databasus backup file */
+            200: {
+                headers: {
+                    /** @description The file name of the Databasus backup */
+                    "Content-Disposition"?: string;
+                    /** @description Always `no-store` */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    requestMasterKeyConfirmation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The code was sent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityConfirmation"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createMasterKeyExport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The emailed code, when the instance requires two-factor sign-in. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MasterKeyExportCreate"];
+            };
+        };
+        responses: {
+            /** @description The single-use download token */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasterKeyExport"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    downloadMasterKey: {
+        parameters: {
+            query: {
+                /** @description The token issued by `createMasterKeyExport` */
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The master key file */
+            200: {
+                headers: {
+                    /** @description The file name of the master key */
+                    "Content-Disposition"?: string;
+                    /** @description Always `no-store` */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    acknowledgeMasterKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The acknowledgment. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MasterKeyAcknowledgment"];
+            };
+        };
+        responses: {
+            /** @description The acknowledgment as stored */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasterKeyAcknowledgment"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createInstanceRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The archive file and the source master key. */
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["InstanceRecoveryUpload"];
+            };
+        };
+        responses: {
+            /** @description The recovery being validated */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceRecovery"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            413: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInstanceRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the recovery */
+                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The recovery */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceRecovery"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    requestInstanceRecoveryConfirmation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the recovery */
+                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The code was sent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityConfirmation"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    applyInstanceRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the recovery */
+                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
+            };
+            cookie?: never;
+        };
+        /** @description The replacement confirmation and, with two-factor sign-in, the emailed code. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceRecoveryApply"];
+            };
+        };
+        responses: {
+            /** @description The recovery being applied */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceRecovery"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    cancelInstanceRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the recovery */
+                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The cancelled recovery */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceRecovery"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

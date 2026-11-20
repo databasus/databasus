@@ -36,3 +36,16 @@ func getCurrentSegment(t *testing.T, conn *pgx.Conn) string {
 	require.NoError(t, conn.QueryRow(t.Context(), "SELECT pg_walfile_name(pg_current_wal_lsn())").Scan(&segment))
 	return segment
 }
+
+func getLiveTimeline(t *testing.T, conn *pgx.Conn) int {
+	t.Helper()
+
+	var timelineID int
+	require.NoError(
+		t,
+		conn.QueryRow(t.Context(), "SELECT ('x'||substr(pg_walfile_name(pg_current_wal_lsn()),1,8))::bit(32)::int").
+			Scan(&timelineID),
+	)
+
+	return timelineID
+}

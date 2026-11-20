@@ -26,6 +26,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/configsave"
 	"databasus-backend/internal/modules/backups/internal/download"
 	backupshttpapi "databasus-backend/internal/modules/backups/internal/httpapi"
+	"databasus-backend/internal/modules/backups/internal/instancerecovery"
 	"databasus-backend/internal/modules/backups/internal/logical"
 	"databasus-backend/internal/modules/backups/internal/module"
 	"databasus-backend/internal/modules/backups/internal/physical"
@@ -133,6 +134,12 @@ type Deps struct {
 	Notifiers  notifiers.Module
 	Storages   storages.Module
 	Databases  databases.Module
+}
+
+// NormalizeRecoveredState ends, in a database a recovery staged, the work the lost instance had
+// running and revokes the credentials it had issued.
+func NormalizeRecoveredState(ctx context.Context, db *gorm.DB, now time.Time) error {
+	return instancerecovery.NewService(instancerecovery.NewRepositories(db)).NormalizeRecoveredState(ctx, now)
 }
 
 func New(deps Deps) Module {

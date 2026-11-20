@@ -1,6 +1,7 @@
 "use client";
 
 import { getLocalizedHref, type Locale } from "@/app/i18n";
+import CommunityDropdownComponent from "./CommunityDropdownComponent";
 import LanguageSelectorComponent from "./LanguageSelectorComponent";
 import { LANDING_LABELS } from "./landingLabels";
 
@@ -56,14 +57,10 @@ export default function DocsNavbarComponent({ lang = "en" }: { lang?: Locale | "
         </a>
 
         <div className="ml-auto mr-4 hidden gap-3 sm:mr-6 md:mr-10 lg:flex lg:gap-5">
-          <a
-            className="text-gray-300 hover:text-white transition-colors"
-            href="https://t.me/databasus_community"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {labels.community}
-          </a>
+          <CommunityDropdownComponent
+            label={labels.community}
+            triggerClassName="text-gray-300 hover:text-white transition-colors"
+          />
         </div>
 
         <div className="ml-auto lg:ml-0 flex items-stretch">

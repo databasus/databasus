@@ -16,6 +16,9 @@
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)](https://github.com/databasus/databasus)
 [![Self Hosted](https://img.shields.io/badge/self--hosted-yes-brightgreen)](https://github.com/databasus/databasus)
 [![Open Source](https://img.shields.io/badge/open%20source-❤️-red)](https://github.com/databasus/databasus)
+<br />
+[![Discord](https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white)](https://databasus.com/discord)
+[![Telegram](https://img.shields.io/badge/Telegram-join%20us-26A5E4?logo=telegram&logoColor=white)](https://t.me/databasus_community)
 
   <p>
     <a href="../../README.md">English</a> •
@@ -53,7 +56,7 @@
   - **Penuh**: salinan lengkap dan mandiri dari cluster
   - **Inkremental**: hanya menyimpan perubahan sejak backup penuh sebelumnya, jadi backup tetap kecil dan cepat
   - **WAL streaming**: menangkap aliran tulis database secara terus-menerus, sehingga Point-in-Time Recovery (PITR) bisa dilakukan. Dirancang untuk disaster recovery dan kehilangan data mendekati nol
-  - **Ketersediaan tinggi (HA)**: mendukung perubahan timeline setelah pergantian primary pada cluster Patroni dan CloudNativePG (CNPG)
+  - **Ketersediaan tinggi (HA)**: mendukung perubahan timeline setelah pergantian primary pada cluster Patroni dan CloudNativePG (CNPG) tanpa celah: WAL dan rantai backup inkremental berlanjut di timeline baru
 - **Logis**: dump native database dalam format biner khas engine-nya (terkompresi, cocok untuk restore paralel)
 
 ### 🔄 **Backup terjadwal**
@@ -289,7 +292,15 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 ### 💾 Backup Databasus itu sendiri
 
-Setelah instalasi, sebaiknya kamu juga <a href="https://databasus.com/id/faq/#backup-databasus">backup Databasus itu sendiri</a> atau setidaknya menyalin secret key yang dipakai untuk enkripsi (butuh 30 detik). Dengan begitu kamu bisa restore dari backup terenkripsi kalau kehilangan akses ke server Databasus atau server-nya rusak.
+Databasus dirancang agar tetap bisa dipulihkan meski server-nya sendiri hilang atau rusak. Databasus bisa membackup dirinya sendiri dan membantu kamu menyimpan kunci dengan aman:
+
+**Aktifkan backup Databasus** di **Databasus settings → Databasus backups**. Databasus lalu menyimpan salinan terenkripsi database internalnya setiap jam ke penyimpanan yang kamu pilih. Selama belum diaktifkan, kamu akan melihat pengingat mengambang begitu database atau penyimpanan pertama ditambahkan.
+
+**Simpan kunci utama secara terpisah.** Databasus meminta kamu mengunduhnya pada kunjungan pertama, dan kunci ini juga tersimpan di `./databasus-data/secret.key`. Tanpa kunci ini, backup Databasus maupun backup database tidak bisa didekripsi.
+
+Utamakan penyimpanan remote daripada disk lokal di server yang sama.
+
+Lihat [cara membuat backup dan memulihkan Databasus](https://databasus.com/id/faq/#backup-databasus).
 
 ---
 
@@ -303,7 +314,7 @@ Sebelum setiap rilis, Databasus menjalankan pemeriksaan otomatis untuk mengurang
 - **Pengujian restore** menjalankan siklus backup dan restore lengkap pada container database sungguhan untuk setiap engine dan versi mayor yang didukung.
 - **Syarat rilis** mewajibkan pengujian, build, dan pemeriksaan keamanan lolos. Temuan CodeQL kritis yang masih terbuka pada analisis rilis memblokir publikasi.
 
-Audit berkala Codex Security dari OpenAI melengkapi pemeriksaan ini. Laporkan kerentanan secara privat melalui [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); laporan keamanan ditangani lebih dahulu.
+Audit berkala Codex Security dari OpenAI melengkapi pemeriksaan ini. Laporkan kerentanan secara privat melalui [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); laporan keamanan ditangani lebih dahulu. Kerentanan yang sudah diperbaiki dipublikasikan sebagai advisory, beserta CVE bila sudah ditetapkan, di [halaman Security repositori](https://github.com/databasus/databasus/security).
 
 ---
 
@@ -313,4 +324,4 @@ Proyek ini menggunakan lisensi Apache 2.0 License. Lihat file [LICENSE](../../LI
 
 ## 💬 Komunitas
 
-Bergabunglah dengan komunitas besar developer, DBA, dan engineer DevOps kami di Telegram [@databasus_community](https://t.me/databasus_community).
+Bergabunglah dengan komunitas besar developer, DBA, dan engineer DevOps kami. Mari berdiskusi bersama kami di Telegram [@databasus_community](https://t.me/databasus_community) dan [Discord](https://databasus.com/discord).

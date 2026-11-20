@@ -9,6 +9,7 @@ import { verificationRunsApi } from '@/pages/databases/verification/api/verifica
 import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
+import { followFileLink } from '@/shared/lib';
 import { useFeedback } from '@/shared/lib/feedback';
 
 interface Params {
@@ -18,19 +19,6 @@ interface Params {
   reloadBackups: () => Promise<void>;
   onNavigateToVerifications?: () => void;
 }
-
-// The file is served with Content-Disposition, so following the link downloads it and leaves the
-// page in place.
-const openFileLink = (url: string, fileName: string) => {
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  link.style.display = 'none';
-
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
 
 export const useLogicalBackupActions = ({
   databaseId,
@@ -123,7 +111,7 @@ export const useLogicalBackupActions = ({
     try {
       const downloadToken = await createDownloadTokenMutation.mutateAsync([backupId]);
       if (isActive()) {
-        openFileLink(
+        followFileLink(
           logicalBackupApi.getLogicalBackupFileUrl(backupId, downloadToken.token),
           downloadToken.fileName,
         );

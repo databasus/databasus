@@ -5,6 +5,7 @@ export const es: typeof en = {
     nativeName: 'Español',
   },
   common: {
+    dateTimeWithRelativeTime: '{{time}} ({{relativeTime}})',
     calendar: {
       monthLevelControl: 'Elegir mes',
       yearLevelControl: 'Elegir año',
@@ -84,6 +85,8 @@ export const es: typeof en = {
       docs: 'Documentación',
       documentation: 'Documentación',
       community: 'Comunidad',
+      discord: 'Discord',
+      telegram: 'Telegram',
       newVersionAvailable: 'Nueva versión disponible',
     },
     diskUsage: {
@@ -133,6 +136,16 @@ export const es: typeof en = {
     targetTimeUnreachable:
       'Los backups y el WAL disponibles no permiten restaurar al momento solicitado.',
     notRunning: 'Ya no está en curso, así que no hay nada que cancelar.',
+    databasusBackupInUse:
+      'Este almacenamiento se usa para las copias de seguridad de Databasus. Quítelo primero de la configuración de copias de seguridad de Databasus o pida al administrador del servidor que lo haga.',
+    storageUnavailable: 'El almacenamiento no puede proporcionar este archivo.',
+    recoveryIncompatible:
+      'Esta versión de Databasus no puede recuperar este archivo de copia de seguridad de Databasus.',
+    recoveryNotReady: 'Esta recuperación no admite esa acción en su estado actual.',
+    identityProofInvalid: 'El código de confirmación es incorrecto, ha caducado o ya se usó.',
+    identityProofUnavailable:
+      'No se puede enviar un código de confirmación: no hay un servidor de correo ni una dirección que pueda recibirlo.',
+    archiveTooLarge: 'El archivo supera el límite de carga configurado.',
     instanceUnhealthy: 'La instancia presenta problemas.',
     insufficientDiskSpace:
       'El servidor de Databasus no tiene suficiente espacio libre en disco: {{detail}}',
@@ -261,6 +274,7 @@ export const es: typeof en = {
   },
   auditLogs: {
     title: 'Registros de auditoría',
+    open: 'Abrir',
     columns: {
       user: 'Usuario',
       message: 'Mensaje',
@@ -2064,6 +2078,226 @@ export const es: typeof en = {
       },
     },
   },
+  instanceBackups: {
+    title: 'Copias de seguridad de Databasus',
+    description:
+      'Guarda Databasus en sí: usuarios, configuración, conexiones a bases de datos y la lista de copias de seguridad. Si este servidor falla, podrá recuperar Databasus desde estas copias en otro servidor.',
+    retainSeparately:
+      'Para recuperar Databasus necesita un archivo de copia de seguridad de Databasus y la clave maestra con la que se cifró. Guarde la clave y el acceso a al menos un almacenamiento de destino fuera de este servidor.',
+    health: {
+      notConfigured: 'Sin configurar',
+      initializing: 'Esperando la primera copia',
+      healthy: 'Protegido',
+      partial: 'Protegido parcialmente',
+      failed: 'Con fallos',
+      overdue: 'Atrasado',
+      stopped: 'Detenido',
+      resuming: 'Reanudando',
+    },
+    status: {
+      titles: {
+        notConfigured: 'Databasus no tiene copias de seguridad',
+        initializing: 'Esperando la primera copia de seguridad de Databasus',
+        healthy: 'Databasus tiene copias de seguridad',
+        partial: 'Algunos almacenamientos no tienen una copia reciente de Databasus',
+        failed: 'Las copias de seguridad de Databasus están fallando',
+        overdue: 'Una copia de seguridad de Databasus está atrasada',
+        stopped: 'Las copias de seguridad de Databasus están detenidas',
+        resuming: 'Las copias de seguridad de Databasus se están reanudando',
+      },
+      lastBackup: 'Última copia de seguridad <time/>',
+      noSuccessfulBackup: 'Todavía no hay ninguna copia de seguridad correcta.',
+      storageError: '{{storage}}: {{error}}',
+      refreshFailed: 'No se pudo actualizar el estado, así que puede no estar al día: {{reason}}',
+    },
+    incidents: {
+      failed: 'Las copias de seguridad de Databasus están fallando',
+      partial:
+        'Algunos destinos de las copias de seguridad de Databasus no tienen una copia reciente',
+      overdue: 'Una copia de seguridad de Databasus está atrasada',
+      stopped:
+        'Las copias de seguridad de Databasus están detenidas porque no hay ningún destino seleccionado',
+      since: 'Desde {{time}}',
+      mailFailed: 'No se pudo enviar el correo sobre este problema: {{error}}',
+    },
+    setup: {
+      description: 'Elija un almacenamiento para empezar a hacer copias de seguridad de Databasus.',
+      start: 'Configurar copias de seguridad',
+    },
+    smtp: {
+      missingTitle: 'El servidor de correo no está configurado',
+      missingDescription:
+        'Para enviar correos sobre copias de seguridad de Databasus fallidas o atrasadas hace falta el servidor de correo del sistema.',
+      configure: 'Configurar SMTP',
+      addressMissing:
+        'Su cuenta no tiene una dirección de correo que pueda recibir alertas. Añádala en su perfil.',
+    },
+    destinations: {
+      description:
+        'Elija almacenamientos existentes de cualquier espacio de trabajo. Cada copia de seguridad de Databasus se guarda en todos los almacenamientos seleccionados.',
+      picker: 'Almacenamientos de destino',
+      pickerPlaceholder: 'Seleccione almacenamientos',
+      choice: '{{storage}} ({{workspace}}, {{provider}})',
+      none: 'No hay ningún destino seleccionado, así que no se hacen copias de seguridad de Databasus.',
+      unknownStorage: 'Almacenamiento desconocido',
+      storageInWorkspace: '<storage/> <details>(espacio de trabajo: <workspace/>)</details>',
+      lastSuccess: 'Última copia correcta: {{time}}',
+      remove: 'Quitar {{storage}}',
+      create: 'Crear un almacenamiento',
+      localWarning:
+        'Un almacenamiento local está en el mismo servidor, así que no le protege si pierde este servidor.',
+    },
+    createDestination: {
+      title: 'Crear un almacenamiento de destino',
+      workspace: 'Espacio de trabajo del nuevo almacenamiento',
+      newWorkspace: 'Crear un espacio de trabajo nuevo',
+      createWorkspace: 'Crear espacio de trabajo',
+      continue: 'Continuar',
+      storageStep:
+        'El almacenamiento se crea en el espacio de trabajo {{workspace}} y se selecciona como destino.',
+    },
+    settings: {
+      title: 'Configuración',
+      storages: 'Almacenamientos',
+      schedule: 'Programación de las copias de seguridad',
+      retentionDays: 'Conservar copias, días',
+      save: 'Guardar',
+      saved: 'Configuración de las copias de seguridad de Databasus guardada',
+      firstBackupRequested:
+        'Configuración guardada. Ha comenzado la primera copia de seguridad de Databasus.',
+      stopped:
+        'Configuración guardada. Las copias de seguridad de Databasus están detenidas porque no hay ningún destino seleccionado.',
+    },
+    history: {
+      title: 'Copias de seguridad recientes',
+      start: 'Hacer copia ahora',
+      started: 'Copia de seguridad de Databasus iniciada',
+      startNeedsDestination:
+        'Seleccione y guarde un destino antes de iniciar una copia de seguridad.',
+      empty: 'Todavía no hay copias de seguridad de Databasus.',
+      copy: '{{storage}} ({{workspace}}): {{status}}',
+      showAll: 'Mostrar todas',
+      downloadBackup: 'Descargar la copia de seguridad del {{time}}',
+      showMore: 'Mostrar más',
+    },
+    backupStatuses: {
+      inProgress: 'En curso',
+      completed: 'Correcta',
+      partial: 'Parcialmente correcta',
+      failed: 'Fallida',
+      interrupted: 'Interrumpida',
+    },
+    copyStatuses: {
+      pending: 'en espera',
+      uploading: 'subiendo',
+      retrying: 'reintentando',
+      stored: 'guardada',
+      failed: 'fallida',
+      interrupted: 'interrumpida',
+      deleted: 'eliminada',
+    },
+  },
+  instanceRecovery: {
+    open: 'Recuperar desde una copia de seguridad',
+    form: {
+      title: 'Recuperar desde un archivo de copia de seguridad de Databasus',
+      description:
+        'Sustituye esta instalación por el estado guardado en una copia de seguridad de Databasus.',
+      archive: 'Archivo de copia de seguridad de Databasus',
+      archivePlaceholder: 'Elija o arrastre un archivo',
+      archiveHint:
+        'Descárguelo de las copias de seguridad recientes o tómelo de un almacenamiento.',
+      archiveClear: 'Quitar el archivo',
+      archiveMissing: 'Elija un archivo de copia de seguridad de Databasus.',
+      masterKey: 'Clave maestra de la instalación de origen',
+      masterKeyDescription:
+        'Péguela exactamente como se guardó. La clave de esta instalación solo abre sus propias copias de seguridad.',
+      masterKeyMissing: 'Introduzca la clave maestra.',
+      upload: 'Subir y comprobar',
+      uploading: 'Subiendo el archivo...',
+      preparing: 'Comprobando y preparando la copia de seguridad de Databasus...',
+      ready: 'La copia de seguridad de Databasus está lista para sustituir esta instalación.',
+      snapshot: 'Instantánea del {{time}}, creada con Databasus {{version}}.',
+      releaseMismatch:
+        'Este archivo se creó con Databasus {{sourceRelease}} y esta instalación ejecuta {{runningRelease}}. Recupérelo con Databasus {{sourceRelease}}.',
+      correctAndRetry:
+        'Esta instalación no se ha modificado. Elija otro archivo o corrija la clave e inténtelo de nuevo.',
+      applying:
+        'Databasus está restaurando la copia de seguridad y puede no estar disponible durante un momento. Esta página no significa que la recuperación haya terminado.',
+      signInWithRestored:
+        'Cuando aparezca la página de inicio de sesión, entre con una cuenta y una contraseña de la copia de seguridad de Databasus.',
+    },
+    apply: {
+      title: 'Sustituir esta instalación',
+      description:
+        'Las cuentas, la configuración y el historial de copias de seguridad actuales se sustituyen por la instantánea. Su sesión actual termina y deberá entrar con una cuenta de la copia de seguridad de Databasus.',
+      confirmReplacement: 'Entiendo que el estado actual de esta instalación se sustituirá',
+      submit: 'Sustituir',
+    },
+    discardedCleanup:
+      'Las escrituras y eliminaciones de archivos sin terminar de la instancia anterior se descartaron en lugar de repetirse: {{count}}. Puede que tenga que limpiar esos archivos manualmente.',
+    restoredSignIn:
+      'Databasus se ha recuperado desde una copia de seguridad. Inicie sesión con una cuenta y una contraseña de esa copia.',
+    failures: {
+      archiveInvalid:
+        'El archivo no es una copia de seguridad de Databasus válida o la clave maestra no le corresponde.',
+      archiveIncomplete: 'El archivo de copia de seguridad de Databasus está incompleto.',
+      masterKeyInvalid:
+        'La clave maestra no descifra este archivo de copia de seguridad de Databasus.',
+      releaseMismatch: 'La copia de seguridad de Databasus se creó con otra versión de Databasus.',
+      schemaIncompatible:
+        'La copia de seguridad de Databasus no coincide con el esquema de base de datos de esta versión.',
+      insufficientDiskSpace:
+        'El servidor no tiene suficiente espacio libre en disco para preparar la recuperación.',
+      importFailed: 'No se pudo importar la copia de seguridad de Databasus.',
+      expired: 'La recuperación preparada caducó antes de aplicarse.',
+      quiescenceFailed: 'Databasus no pudo detener su trabajo para aplicar la recuperación.',
+      interrupted: 'La recuperación se interrumpió.',
+    },
+  },
+  masterKey: {
+    title: 'Clave maestra',
+    open: 'Descargar la clave maestra',
+    description:
+      'Databasus cifra las copias de seguridad con esta clave. Si pierde este servidor, necesitará la clave para descifrar sus copias de seguridad, incluida la copia de seguridad del propio Databasus',
+    loading: 'Obteniendo la clave…',
+    copy: 'Copiar',
+    copied: 'Copiada',
+    copyFailed: 'El navegador no permitió copiar. Descargue la clave en su lugar.',
+    download: 'Descargar',
+    downloaded: 'Descargada',
+    codeRequired:
+      'Esta instalación exige el inicio de sesión en dos pasos, así que confirme el acceso a la clave con un código enviado a su correo.',
+    codeFailed: 'Si el código sigue sin llegar, copie la clave del servidor manualmente.',
+    proof: {
+      sendCode: 'Enviarme un código de confirmación por correo',
+      resendCode: 'Enviar un código nuevo',
+      code: 'Código de confirmación',
+      confirm: 'Continuar',
+      wrongCode: 'El código no es correcto o ha caducado. Envíe uno nuevo.',
+    },
+    host: {
+      toggle: 'Copiar la clave directamente desde el servidor',
+      location:
+        'También puede copiar el archivo de la clave desde el servidor: es <code>databasus-data/secret.key</code> en la carpeta donde está instalado Databasus.',
+    },
+    onboarding: {
+      title: 'Guarde la clave maestra',
+      close: 'La guardé en un lugar seguro',
+      closeIn: 'La guardé en un lugar seguro ({{seconds}})',
+    },
+  },
+  instanceBackupNotices: {
+    label: 'Aviso sobre las copias de seguridad de Databasus',
+    resuming:
+      'Las copias de seguridad de Databasus se están reanudando. No hay protección hasta que una nueva copia se complete correctamente.',
+    setup: 'No se hacen copias de seguridad del propio Databasus',
+    setupDescription:
+      'Elija un almacenamiento para las copias de seguridad de Databasus, para poder recuperar la instancia si pierde este servidor',
+    configure: 'Configurar',
+    open: 'Abrir las copias de seguridad de Databasus',
+    stale: 'No se pudo actualizar el estado.',
+  },
   storages: {
     usageUnavailable: 'No se pudo actualizar el espacio ocupado por las copias de seguridad.',
     cleanup: {
@@ -2124,6 +2358,7 @@ export const es: typeof en = {
         '¿Seguro que desea eliminar este almacenamiento? Esta acción no se puede deshacer.',
       removeBlockedByBackups:
         'Una configuración de copias de seguridad usa este almacenamiento o aún contiene copias de seguridad. Primero asigne otro almacenamiento a esas configuraciones y elimine sus copias de seguridad.',
+      openDatabasusBackups: 'Abrir las copias de seguridad de Databasus',
     },
     actions: {
       testConnection: 'Probar conexión',

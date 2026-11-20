@@ -24,6 +24,7 @@ const account = {
   email: 'owner@example.com',
   role: 'ADMIN' as const,
   status: 'ACTIVE' as const,
+  isRootAdmin: false,
   createdAt: '2026-10-01T00:00:00Z',
 };
 const workspace = {

@@ -66,6 +66,7 @@ export function usePagedList<TItem, TCursor, TMetadata = undefined>({
   }, [controller, scrollContainerRef]);
 
   const reload = useCallback(() => controller.reload(), [controller]);
+  const loadNextPage = useCallback(() => controller.loadNextPage(), [controller]);
   const refreshFirstPage = useCallback(() => controller.refreshFirstPage(), [controller]);
   const replaceOrPrependItem = useCallback(
     (item: TItem) => controller.replaceOrPrependItem(item),
@@ -80,6 +81,7 @@ export function usePagedList<TItem, TCursor, TMetadata = undefined>({
     firstLoadError: state.firstLoadError,
     hasMore: state.list.nextCursor !== undefined,
     reload,
+    loadNextPage,
     refreshFirstPage,
     replaceOrPrependItem,
   };

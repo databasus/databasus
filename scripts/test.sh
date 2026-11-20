@@ -9,6 +9,45 @@ if [[ "${1:-}" == --full ]]; then
     is_full_run=true
 fi
 
+# The run restarts itself with its output copied to temp/, so a long run can be read after the
+# terminal scrolled past it. The copying tee processes stay outside the run, whose cleanup kills every
+# child it has, and they ignore Ctrl+C, so the cleanup output of an interrupted run reaches the file.
+if [[ ! -v DATABASUS_TEST_LOG_PATH ]]; then
+    log_name="test"
+    if [[ "$is_full_run" == true ]]; then
+        log_name=test-full
+    fi
+    mkdir -p "$root/temp"
+    DATABASUS_TEST_LOG_PATH="$root/temp/$log_name-$(date +%Y%m%d-%H%M%S).txt"
+    export DATABASUS_TEST_LOG_PATH
+    echo "writing the output to $DATABASUS_TEST_LOG_PATH"
+    : >"$DATABASUS_TEST_LOG_PATH"
+
+    # Each stream gets its own tee, so the console keeps stdout and stderr apart.
+    exec {stdout_copy_fd}> >(tee -i -a --output-error=warn "$DATABASUS_TEST_LOG_PATH")
+    stdout_copy_process_id=$!
+    exec {stderr_copy_fd}> >(tee -i -a --output-error=warn "$DATABASUS_TEST_LOG_PATH" >&2)
+    stderr_copy_process_id=$!
+
+    # A background command ignores SIGINT, so Ctrl+C reaches the run as SIGTERM; either signal
+    # then runs its cleanup.
+    bash "${BASH_SOURCE[0]}" "$@" >&"$stdout_copy_fd" 2>&"$stderr_copy_fd" \
+        {stdout_copy_fd}>&- {stderr_copy_fd}>&- &
+    run_process_id=$!
+    trap 'kill -TERM "$run_process_id" 2>/dev/null || true' INT TERM
+
+    run_status=0
+    wait "$run_process_id" || run_status=$?
+    while kill -0 "$run_process_id" 2>/dev/null; do
+        run_status=0
+        wait "$run_process_id" || run_status=$?
+    done
+
+    exec {stdout_copy_fd}>&- {stderr_copy_fd}>&-
+    wait "$stdout_copy_process_id" "$stderr_copy_process_id" || true
+    exit "$run_status"
+fi
+
 lock_directory=${TMPDIR:-/tmp}
 # `mise run test` and `mise run test-full` take turns; a single package run never takes this lock.
 full_run_lock="$lock_directory/databasus-full-test.lock"
@@ -102,7 +141,7 @@ mise run backend:pull-testcontainers
 
 cd "$root/backend"
 discovered_packages=$(go list ./...)
-excluded_packages='^databasus-backend/(e2e/upgrade|internal/agent/e2e|internal/modules/backups/e2e)(/|$)'
+excluded_packages='^databasus-backend/(e2e/upgrade|internal/agent/e2e|internal/modules/(backups|instancebackups)/e2e)(/|$)'
 if [[ "$is_full_run" == true ]]; then
     excluded_packages='^databasus-backend/e2e/upgrade(/|$)'
 fi
@@ -202,9 +241,20 @@ pnpm --dir "$root/frontend" install --frozen-lockfile
 # fails and leaks clusters, and it takes longer. -parallel=16 is no faster and failed a recovery
 # scenario. Eight packages at once keep the longest package on the critical path; a higher package
 # limit adds memory without shortening the group. The others mostly compute.
+#
+# The full run adds the end-to-end packages, and the limit queues the CNPG scenarios: that package
+# took 918 seconds alone under it, against 391 with Go's default, and beside the other suites the
+# Patroni and agent packages take 13 to 15 minutes. The group gets 30 minutes in that run. Running
+# CNPG with the default limit beside the group instead makes Docker cleanups of both packages outlast
+# their deadlines.
+slow_package_timeout=15m
+if [[ "$is_full_run" == true ]]; then
+    slow_package_timeout=30m
+fi
 if ((${#slow_packages[@]} > 0)); then
     start_suite backend-slow env TESTCONTAINERS_RYUK_DISABLED=true \
-        go test ${CI:+-race} -p=8 -parallel=8 -count=1 -timeout 15m "${slow_packages[@]}"
+        go test ${CI:+-race} -p=8 -parallel=8 -count=1 -timeout "$slow_package_timeout" \
+        "${slow_packages[@]}"
 fi
 
 if ((${#other_packages[@]} > 0)); then

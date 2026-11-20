@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { useRef } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { InstanceAuditLogs } from '@/pages/instance-settings/ui/InstanceAuditLogs';
@@ -19,19 +18,8 @@ const buildAuditEvent = (message: string): ApiComponents['schemas']['AuditEvent'
   workspace: { id: 'workspace-id', name: null },
 });
 
-// The settings page scrolls the log inside its own container and hands that container in.
-function ScrollingSettingsPage() {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <div ref={scrollContainerRef} className="settings-scroll-container">
-      <InstanceAuditLogs scrollContainerRef={scrollContainerRef} />
-    </div>
-  );
-}
-
 describe('InstanceAuditLogs', () => {
-  it('loads the next page by the cursor and stops after the last page when the log is scrolled down', async () => {
+  it('opens the log in a sidebar that loads the next page by the cursor when scrolled down', async () => {
     const requestedCursors: (string | null)[] = [];
     mockServer.use(
       http.get(`*${API_BASE_PATH}/audit-events`, ({ request }) => {
@@ -49,9 +37,16 @@ describe('InstanceAuditLogs', () => {
         return HttpResponse.json(auditEventPage);
       }),
     );
-    const { container } = renderScreen(<ScrollingSettingsPage />);
-    await screen.findByText('Workspace created: first');
-    const scrollContainer = container.querySelector('.settings-scroll-container') as Element;
+    const { user } = renderScreen(<InstanceAuditLogs />);
+
+    expect(requestedCursors).toEqual([]);
+
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    const drawer = await screen.findByRole('dialog', { name: 'Audit Logs' });
+    await within(drawer).findByText('Workspace created: first');
+    const scrollContainer = within(drawer)
+      .getByText('Workspace created: first')
+      .closest('.overflow-y-auto') as Element;
 
     fireEvent.scroll(scrollContainer);
     expect(await screen.findByText('Workspace created: second')).toBeTruthy();

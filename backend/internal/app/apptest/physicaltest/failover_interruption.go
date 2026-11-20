@@ -54,7 +54,7 @@ func RunFailoverInterruptedBackup(t *testing.T, spec FailoverInterruptionSpec) {
 		waitForWalSummaries(t, connection, chainTipStopLSN(t, chain))
 	}
 
-	gate := source.Proxy.HoldTransfer(t)
+	gate := source.Proxy.HoldTransfer(t, containers.SlowestPostgresTransferRate)
 	source.Team.call(
 		t,
 		physicalResponseSpec{
@@ -138,15 +138,18 @@ func RunFailoverInterruptedBackup(t *testing.T, spec FailoverInterruptionSpec) {
 		}
 		require.True(t, hasRefusedConnection, "failure recheck must observe the controlled outage")
 		scheduledRetryID = source.requireScheduledRetry(t, retrySpec{AttemptID: attempt.ID, Events: events})
-	case spec.Kind == "FULL":
+	default:
 		require.Equal(t, "ERROR", failure.Status)
 		require.Equal(t, "FAILOVER_DURING_BACKUP", failure.Reason)
-	default:
-		require.Equal(t, "CHAIN_BROKEN", failure.Status)
-		require.Equal(t, "TIMELINE_SWITCH_DETECTED", failure.Reason)
 	}
 
 	source.requirePartialBackupRefused(t, attempt.ID)
+
+	if spec.Kind == "INCREMENTAL" && !spec.ShouldHoldOutage {
+		source.requireChainExtendedAfterInterruption(t, chain[0], attempt.ID, promoted.Timeline)
+
+		return
+	}
 
 	var replacement backupRow
 	if spec.ShouldHoldOutage {
@@ -201,4 +204,34 @@ func (source failoverSource) requirePartialBackupRefused(t *testing.T, id uuid.U
 	status, body := source.Team.App.CallPhysicalAPI(t, source.Team.Owner, apptest.PhysicalBackupTokenRequest(id))
 	require.Equal(t, http.StatusConflict, status, "%s", body)
 	require.NotContains(t, string(body), "\"token\"")
+}
+
+// requireChainExtendedAfterInterruption checks that an INCREMENTAL interrupted by a switch leaves the
+// chain extendable: no immediate FULL follows, and the next INCREMENTAL continues the chain on the
+// promoted timeline.
+func (source failoverSource) requireChainExtendedAfterInterruption(
+	t *testing.T,
+	full backupRow,
+	attemptID uuid.UUID,
+	promotedTimeline int,
+) {
+	t.Helper()
+
+	source.Team.App.RunJobPass(t, "backups_physical_scheduler")
+	require.Empty(t, source.getFullsCreatedAfter(t, attemptID), "an interrupted INCREMENTAL gets no immediate FULL")
+
+	connection := source.connect(t)
+	source.Team.waitForTimelineHistory(t, promotedTimeline)
+	generateWalActivity(t, connection, 32*1024*1024)
+	_, err := connection.Exec(t.Context(), "CHECKPOINT")
+	require.NoError(t, err)
+	forceWalRotation(t, connection)
+	waitForWalSummaries(t, connection, parseLSN(t, full.StopLSN))
+	source.Team.triggerIncremental(t)
+	incremental := source.waitForNewIncremental(t, attemptID)
+
+	require.Equal(t, promotedTimeline, incremental.TimelineID)
+	require.Empty(t, source.getFullsCreatedAfter(t, attemptID))
+	point := source.captureRecoveryPoint(t, []backupRow{full, incremental}, "after-interrupted-INCREMENTAL")
+	source.restoreRecoveryPoint(t, point)
 }

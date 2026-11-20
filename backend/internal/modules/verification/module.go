@@ -3,6 +3,7 @@ package verification
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -21,6 +22,7 @@ import (
 	"databasus-backend/internal/modules/verification/internal/agents"
 	"databasus-backend/internal/modules/verification/internal/configs"
 	verificationhttpapi "databasus-backend/internal/modules/verification/internal/httpapi"
+	"databasus-backend/internal/modules/verification/internal/instancerecovery"
 	"databasus-backend/internal/modules/verification/internal/module"
 	"databasus-backend/internal/modules/verification/internal/verifications"
 	"databasus-backend/internal/modules/workspaces"
@@ -60,6 +62,12 @@ type Deps struct {
 	Backups     backups.Module
 	Notifiers   notifiers.Module
 	RateLimiter ratelimit.Counter
+}
+
+// NormalizeRecoveredState ends, in a database a recovery staged, the work the lost instance had
+// running and revokes the credentials it had issued.
+func NormalizeRecoveredState(ctx context.Context, db *gorm.DB, now time.Time) error {
+	return instancerecovery.NewService(instancerecovery.NewRepositories(db)).NormalizeRecoveredState(ctx, now)
 }
 
 func New(deps Deps) Module {

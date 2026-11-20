@@ -44,6 +44,7 @@ export const applicationFixtures = (): HttpFixture[] => [
       name: 'Owner',
       role: 'ADMIN',
       status: 'ACTIVE',
+      isRootAdmin: false,
       createdAt: '2026-10-01T00:00:00Z',
     },
   }),

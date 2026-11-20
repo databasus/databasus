@@ -15,6 +15,9 @@
   [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)](https://github.com/databasus/databasus)
   [![Self Hosted](https://img.shields.io/badge/self--hosted-yes-brightgreen)](https://github.com/databasus/databasus)
   [![Open Source](https://img.shields.io/badge/open%20source-❤️-red)](https://github.com/databasus/databasus)
+  <br />
+  [![Discord](https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white)](https://databasus.com/discord)
+  [![Telegram](https://img.shields.io/badge/Telegram-join%20us-26A5E4?logo=telegram&logoColor=white)](https://t.me/databasus_community)
 
   <p>
     <a href="../../README.md">English</a> •
@@ -52,7 +55,7 @@
   - **Completa**: una copia íntegra y autocontenida del clúster
   - **Incremental**: guarda solo lo que cambió desde la última copia completa, así los respaldos se mantienen pequeños y rápidos
   - **Streaming de WAL**: captura de forma continua el flujo de escritura de la base de datos y habilita la recuperación a un punto en el tiempo (PITR). Pensado para la recuperación ante desastres y una pérdida de datos casi nula
-  - **Alta disponibilidad (HA)**: admite cambios de timeline tras un cambio de primario en clústeres Patroni y CloudNativePG (CNPG)
+  - **Alta disponibilidad (HA)**: admite cambios de timeline tras un cambio de primario en clústeres Patroni y CloudNativePG (CNPG) sin huecos: el WAL y las cadenas incrementales continúan en la nueva timeline
 - **Lógica**: volcado nativo de la base de datos en el formato binario propio del motor (comprimido y apto para restauración en paralelo)
 
 ### 🔄 **Copias de seguridad programadas**
@@ -288,7 +291,15 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 ### 💾 Respaldar el propio Databasus
 
-Después de instalarlo, conviene también <a href="https://databasus.com/es/faq/#backup-databasus">respaldar su propio Databasus</a> o, al menos, copiar la clave secreta que se usa para el cifrado (bastan 30 segundos). Así podrá restaurar desde sus copias cifradas si pierde el acceso al servidor con Databasus o si este se corrompe.
+Databasus está pensado para poder recuperarse aunque se pierda o se corrompa su propio servidor. Puede respaldarse a sí mismo y le ayuda a guardar la clave a salvo:
+
+**Active las copias de seguridad de Databasus** en **Databasus settings → Databasus backups**. Databasus guardará cada hora una copia cifrada de su base de datos interna en los almacenamientos que elija. Mientras no las active, verá un recordatorio flotante en cuanto se añada la primera base de datos o el primer almacenamiento.
+
+**Guarde la clave maestra por separado.** Databasus le pide que la descargue en su primera visita, y también se guarda en `./databasus-data/secret.key`. Sin ella no se puede descifrar ninguna copia: ni las de Databasus ni las de sus bases de datos.
+
+Es preferible un almacenamiento remoto a un disco local del mismo servidor.
+
+Consulte [cómo respaldar y recuperar Databasus](https://databasus.com/es/faq/#backup-databasus).
 
 ---
 
@@ -302,7 +313,7 @@ Antes de cada versión, Databasus ejecuta comprobaciones automáticas para reduc
 - **Pruebas de restauración:** ejecutan ciclos completos de copia de seguridad y restauración en contenedores reales para cada motor y versión principal compatibles.
 - **Requisitos de publicación:** las pruebas, las compilaciones y las comprobaciones de seguridad deben pasar. Los hallazgos críticos de CodeQL abiertos en el análisis de la versión bloquean su publicación.
 
-Las auditorías periódicas de Codex Security de OpenAI complementan estas comprobaciones. Comunique las vulnerabilidades de forma privada siguiendo [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); estos informes tienen prioridad.
+Las auditorías periódicas de Codex Security de OpenAI complementan estas comprobaciones. Comunique las vulnerabilidades de forma privada siguiendo [SECURITY.md](https://github.com/databasus/databasus?tab=security-ov-file#readme); estos informes tienen prioridad. Las vulnerabilidades corregidas se publican como avisos, con CVE cuando se asigna, en la [página Security del repositorio](https://github.com/databasus/databasus/security).
 
 ---
 
@@ -312,4 +323,4 @@ Este proyecto está publicado bajo la licencia Apache 2.0. Consulte el archivo [
 
 ## 💬 Comunidad
 
-Únase a nuestra gran comunidad de desarrolladores, DBA e ingenieros DevOps en Telegram [@databasus_community](https://t.me/databasus_community).
+Únase a nuestra gran comunidad de desarrolladores, DBA e ingenieros DevOps. Converse con nosotros en Telegram [@databasus_community](https://t.me/databasus_community) y en [Discord](https://databasus.com/discord).

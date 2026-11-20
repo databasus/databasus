@@ -210,3 +210,68 @@ func TestWalReceiverClientArguments(t *testing.T) {
 		})
 	}
 }
+
+// capturedForkRefusal is what pg_receivewal printed in TestTimelineCrossing when it resumed beyond
+// the fork point of a promoted standby that never received the former primary's last writes.
+const capturedForkRefusal = `pg_receivewal: starting log streaming at 0/7000000 (timeline 1)
+pg_receivewal: error: could not send replication command "START_REPLICATION": ERROR:  requested starting point 0/7000000 on timeline 1 is not in this server's history`
+
+func TestWalReceiverForkRealignment(t *testing.T) {
+	t.Parallel()
+
+	_, standbyEndpoint := containers.StartPhysicalPrimaryWithStandby(t, "postgres:17")
+	standby := testServer{endpoint: standbyEndpoint, image: "postgres:17", version: pgshared.Version17}
+	promoteCrossingStandby(t, standby.connectAs(t, getAdminRole()))
+	fork := standby.newSource(getAdminRole()).mustReadFork(t, standby.readSystemIdentifier(t))
+
+	for _, scenario := range []struct {
+		name         string
+		stderr       string
+		disposition  WalReceiverDisposition
+		expectedFork *WalReceiverFork
+	}{
+		{
+			name:         "returns fork realignment with the fork point when the server refuses a start beyond it",
+			stderr:       capturedForkRefusal,
+			disposition:  WalReceiverForkRealignment,
+			expectedFork: &WalReceiverFork{LeftTimelineID: 1, ForkLSN: fork.ForkLSN},
+		},
+		{
+			name:        "returns retryable when the refused timeline is not in the server's history",
+			stderr:      "ERROR:  requested starting point 0/7000000 on timeline 5 is not in this server's history",
+			disposition: WalReceiverRetryable,
+		},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			spec := newWalReceiverTestSpec(t)
+			spec.ExpectedSystemIdentifier = standby.readSystemIdentifier(t)
+			toolPath := spec.ClientTools.GetExecutable(spec.Version, pgshared.ExecutablePgReceivewal)
+			toolstub.Write(
+				t,
+				toolPath,
+				toolstub.Spec{Script: fmt.Sprintf("cat >&2 <<'REFUSAL'\n%s\nREFUSAL\nexit 1", scenario.stderr)},
+			)
+
+			receiver := standby.newSource(getAdminRole()).runWalReceiver(
+				t.Context(),
+				walReceiverProcessSpec{Receiver: spec, ToolPath: toolPath, SocketDirectory: t.TempDir()},
+			)
+
+			require.Equal(t, scenario.disposition, receiver.Disposition)
+			require.Equal(t, scenario.expectedFork, receiver.Fork)
+		})
+	}
+}
+
+func (s *Source) mustReadFork(t *testing.T, systemIdentifier string) TimelineFork {
+	t.Helper()
+
+	history, err := s.GetTimelineHistory(
+		t.Context(),
+		TimelineHistoryRequest{ExpectedSystemIdentifier: systemIdentifier, TimelineID: 2},
+	)
+	require.NoError(t, err)
+
+	return history.Fork
+}

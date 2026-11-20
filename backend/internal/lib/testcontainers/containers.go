@@ -189,7 +189,7 @@ func newLabelledNetwork(t *testing.T) (*testcontainers.DockerNetwork, error) {
 	t.Helper()
 	var createdNetwork *testcontainers.DockerNetwork
 
-	err := WithFreeSubnet(func(ipam *dockernetwork.IPAM) error {
+	err := WithFreeSubnet(t.Context(), func(ipam *dockernetwork.IPAM) error {
 		var err error
 		createdNetwork, err = network.New(
 			t.Context(),

@@ -51,5 +51,8 @@ func (h *Handler) TestStorageSettings(
 }
 
 func toTestResultBody(testResult storage.TestResult) StorageTestResult {
-	return StorageTestResult{IsConnected: testResult.IsConnected, Error: toOptionalString(testResult.Error)}
+	return StorageTestResult{
+		IsConnected: testResult.IsConnected,
+		Error:       toOptionalString(testResult.Error),
+	}
 }

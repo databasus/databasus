@@ -16,10 +16,16 @@ import { ResourceCollectionList, ResourceListDetail, LoadFailure } from '@/share
 interface Props {
   workspace: Workspace;
   onUnavailable?: (workspaceId: string) => void;
+  onOpenDatabasusBackups?: () => void;
   isCanManageStorages: boolean;
 }
 
-export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailable }: Props) => {
+export const StoragesComponent = ({
+  workspace,
+  isCanManageStorages,
+  onUnavailable,
+  onOpenDatabasusBackups,
+}: Props) => {
   const [isShowAddStorage, setIsShowAddStorage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const collection = useResourceCollection({
@@ -132,6 +138,7 @@ export const StoragesComponent = ({ workspace, isCanManageStorages, onUnavailabl
                 key={selectedStorageId}
                 storageId={selectedStorageId}
                 onUnavailable={() => loadStorages(true)}
+                onOpenDatabasusBackups={onOpenDatabasusBackups}
                 onStorageChanged={acceptStorage}
                 onStorageDeleted={removeSelected}
                 onStorageTransferred={removeSelected}
