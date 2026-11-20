@@ -11,11 +11,35 @@ ref=$2
 commit=$3
 
 release_analysis_key=".github/workflows/ci-release.yml:analyze"
+github_api_attempts=3
+retry_delay_seconds=${CODEQL_GATE_RETRY_DELAY_SECONDS:-5}
+
+# A request to the GitHub API can fail on a network timeout or a transient server error, so it is
+# repeated; a failure that persists through every attempt still stops the gate. A response is printed
+# only once complete, so a page read before a failure is not printed twice.
+read_github_api() {
+    local attempt
+    local response
+
+    for ((attempt = 1; attempt <= github_api_attempts; attempt++)); do
+        if response=$(gh api "$@"); then
+            printf '%s\n' "$response"
+            return 0
+        fi
+
+        if ((attempt < github_api_attempts)); then
+            sleep $((attempt * retry_delay_seconds))
+        fi
+    done
+
+    return 1
+}
+
 categories=(/language:go /language:javascript-typescript /language:actions)
 
 # The newest page is enough: the analysis of the released commit was uploaded moments ago. The key of a
 # called workflow is built by CodeQL, so a wrong one has to stop the release instead of matching no alert.
-analyses=$(gh api "repos/$repository/code-scanning/analyses?ref=$ref&tool_name=CodeQL&sort=created&direction=desc&per_page=100")
+analyses=$(read_github_api "repos/$repository/code-scanning/analyses?ref=$ref&tool_name=CodeQL&sort=created&direction=desc&per_page=100")
 
 for category in "${categories[@]}"; do
     release_analysis_count=$(jq --arg key "$release_analysis_key" --arg commit "$commit" --arg category "$category" \
@@ -36,7 +60,7 @@ list_alerts_open_in_release_analysis() {
     local instances
     local is_open_in_release_analysis
 
-    alerts=$(gh api --paginate "repos/$repository/code-scanning/alerts?ref=$ref&state=open&tool_name=CodeQL&severity=$severity&per_page=100" |
+    alerts=$(read_github_api --paginate "repos/$repository/code-scanning/alerts?ref=$ref&state=open&tool_name=CodeQL&severity=$severity&per_page=100" |
         jq -c -s 'add // [] | .[] | {number, description: "\(.rule.id) \(.html_url)"}')
 
     while IFS= read -r alert; do
@@ -47,7 +71,7 @@ list_alerts_open_in_release_analysis() {
         alert_number=$(jq -r '.number' <<<"$alert")
         alert_description=$(jq -r '.description' <<<"$alert")
 
-        instances=$(gh api --paginate "repos/$repository/code-scanning/alerts/$alert_number/instances?ref=$ref&per_page=100")
+        instances=$(read_github_api --paginate "repos/$repository/code-scanning/alerts/$alert_number/instances?ref=$ref&per_page=100")
 
         is_open_in_release_analysis=$(jq -s --arg key "$release_analysis_key" \
             'add // [] | any(.analysis_key == $key and .state == "open")' <<<"$instances")

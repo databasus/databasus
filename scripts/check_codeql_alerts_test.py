@@ -21,8 +21,13 @@ STUB_GH = """\
     import json, os, sys
 
     endpoint = next(argument for argument in sys.argv[1:] if argument.startswith("repos/"))
+    with open(os.environ["STUB_GH_CALLS"]) as calls:
+        previous_call_count = len(calls.readlines())
     with open(os.environ["STUB_GH_CALLS"], "a") as calls:
         calls.write(endpoint + "\\n")
+    if previous_call_count < int(os.environ.get("STUB_GH_FAILED_CALL_COUNT", "0")):
+        print("dial tcp 140.82.112.5:443: i/o timeout", file=sys.stderr)
+        sys.exit(1)
 
     responses = json.load(open(os.environ["STUB_GH_RESPONSES"]))
     for fragment, response in responses.items():
@@ -97,6 +102,7 @@ class CheckCodeqlAlertsTest(unittest.TestCase):
             "PATH": f"{stubs_directory}:{os.environ['PATH']}",
             "STUB_GH_CALLS": str(self.calls_path),
             "STUB_GH_RESPONSES": str(self.responses_path),
+            "CODEQL_GATE_RETRY_DELAY_SECONDS": "0",
         }
 
     def run_severity_gate(
@@ -196,6 +202,32 @@ class CheckCodeqlAlertsTest(unittest.TestCase):
         )
 
         self.assertNotEqual(severity_gate.returncode, 0)
+
+    def test_passes_when_a_request_succeeds_after_network_failures(self) -> None:
+        self.environment["STUB_GH_FAILED_CALL_COUNT"] = "2"
+
+        severity_gate = self.run_severity_gate()
+
+        self.assertEqual(severity_gate.returncode, 0, severity_gate.stderr)
+        self.assertIn("No open critical CodeQL alert", severity_gate.stdout)
+
+    def test_fails_when_a_request_fails_on_every_attempt(self) -> None:
+        self.environment["STUB_GH_FAILED_CALL_COUNT"] = "3"
+
+        severity_gate = self.run_severity_gate()
+
+        self.assertNotEqual(severity_gate.returncode, 0)
+        self.assertEqual(len(self.calls_path.read_text().splitlines()), 3)
+
+    def test_prints_a_paginated_response_once_after_a_retry(self) -> None:
+        self.environment["STUB_GH_FAILED_CALL_COUNT"] = "1"
+
+        severity_gate = self.run_severity_gate(
+            critical=[get_alert(7)], instances={7: [get_instance(RELEASE_ANALYSIS_KEY)]}
+        )
+
+        self.assertEqual(severity_gate.returncode, 1, severity_gate.stderr)
+        self.assertEqual(severity_gate.stdout.count("https://example.test/alerts/7"), 1)
 
     def test_fails_when_critical_alerts_cannot_be_read(self) -> None:
         severity_gate = self.run_severity_gate_with_responses(
