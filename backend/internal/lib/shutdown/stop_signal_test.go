@@ -2,6 +2,7 @@ package shutdown
 
 import (
 	"context"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ func TestListenForStopSignal(t *testing.T) {
 		stopSignalCtx, stopListening := ListenForStopSignal(t.Context())
 		defer stopListening()
 
-		require.NoError(t, syscall.Kill(syscall.Getpid(), syscall.SIGTERM))
+		sendStopSignalToThisThread(t)
 
 		select {
 		case <-stopSignalCtx.Done():
@@ -24,8 +25,20 @@ func TestListenForStopSignal(t *testing.T) {
 			t.Fatal("the context did not end after the stop signal")
 		}
 
-		require.NoError(t, syscall.Kill(syscall.Getpid(), syscall.SIGTERM))
+		sendStopSignalToThisThread(t)
 
 		assert.ErrorIs(t, stopSignalCtx.Err(), context.Canceled)
 	})
+}
+
+// A signal sent to the whole process reaches one of its threads later, so a late one could arrive
+// after stopListening and kill the test binary. A signal sent to the calling thread is delivered
+// before the system call returns.
+func sendStopSignalToThisThread(t *testing.T) {
+	t.Helper()
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	require.NoError(t, syscall.Tgkill(syscall.Getpid(), syscall.Gettid(), syscall.SIGTERM))
 }
