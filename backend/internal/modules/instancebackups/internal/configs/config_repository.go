@@ -14,7 +14,7 @@ import (
 const configColumns = "schedule_type, schedule_time_of_day, schedule_weekday, schedule_day_of_month, " +
 	"schedule_cron_expression, retention_days, protection_state, next_selection_generation, is_run_requested, " +
 	"acknowledged_master_key_sha256, master_key_acknowledged_at, " +
-	"recovery_paused_operation_id, recovery_paused_at, archive_namespace"
+	"recovered_by_operation_id, recovered_at, archive_namespace"
 
 // Repositories are the repositories of the package. module.go builds them from the pool, so the
 // services never hold it.
@@ -138,19 +138,19 @@ func (r *configRepository) countRows(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-// updateRecoveryPause sets both columns in one statement, because the schema requires them to be
+// updateRecoveryMarker sets both columns in one statement, because the schema requires them to be
 // set together.
-func (r *configRepository) updateRecoveryPause(
+func (r *configRepository) updateRecoveryMarker(
 	ctx context.Context,
 	operationID *uuid.UUID,
-	pausedAt *time.Time,
+	recoveredAt *time.Time,
 ) error {
 	err := database.Conn(ctx, r.db).Exec(`UPDATE instancebackups_configs
-		SET recovery_paused_operation_id = ?, recovery_paused_at = ? WHERE id`,
-		operationID, pausedAt,
+		SET recovered_by_operation_id = ?, recovered_at = ? WHERE id`,
+		operationID, recoveredAt,
 	).Error
 	if err != nil {
-		return fmt.Errorf("update the recovery pause: %w", err)
+		return fmt.Errorf("update the recovery marker: %w", err)
 	}
 
 	return nil

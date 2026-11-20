@@ -340,24 +340,6 @@ func (e HealthReportStatus) Valid() bool {
 	}
 }
 
-// Defines values for IdentityProofMethod.
-const (
-	IdentityProofMethodEMAILCODE IdentityProofMethod = "EMAIL_CODE"
-	IdentityProofMethodPASSWORD  IdentityProofMethod = "PASSWORD"
-)
-
-// Valid indicates whether the value is a known member of the IdentityProofMethod enum.
-func (e IdentityProofMethod) Valid() bool {
-	switch e {
-	case IdentityProofMethodEMAILCODE:
-		return true
-	case IdentityProofMethodPASSWORD:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for InstanceBackupCopyStatus.
 const (
 	InstanceBackupCopyStatusDELETED     InstanceBackupCopyStatus = "DELETED"
@@ -585,11 +567,10 @@ func (e InstanceRecoveryOrigin) Valid() bool {
 
 // Defines values for InstanceRecoveryStatus.
 const (
-	InstanceRecoveryStatusACTIVE     InstanceRecoveryStatus = "ACTIVE"
 	InstanceRecoveryStatusAPPLYING   InstanceRecoveryStatus = "APPLYING"
 	InstanceRecoveryStatusCANCELLED  InstanceRecoveryStatus = "CANCELLED"
+	InstanceRecoveryStatusCOMPLETED  InstanceRecoveryStatus = "COMPLETED"
 	InstanceRecoveryStatusFAILED     InstanceRecoveryStatus = "FAILED"
-	InstanceRecoveryStatusPAUSED     InstanceRecoveryStatus = "PAUSED"
 	InstanceRecoveryStatusREADY      InstanceRecoveryStatus = "READY"
 	InstanceRecoveryStatusVALIDATING InstanceRecoveryStatus = "VALIDATING"
 )
@@ -597,15 +578,13 @@ const (
 // Valid indicates whether the value is a known member of the InstanceRecoveryStatus enum.
 func (e InstanceRecoveryStatus) Valid() bool {
 	switch e {
-	case InstanceRecoveryStatusACTIVE:
-		return true
 	case InstanceRecoveryStatusAPPLYING:
 		return true
 	case InstanceRecoveryStatusCANCELLED:
 		return true
-	case InstanceRecoveryStatusFAILED:
+	case InstanceRecoveryStatusCOMPLETED:
 		return true
-	case InstanceRecoveryStatusPAUSED:
+	case InstanceRecoveryStatusFAILED:
 		return true
 	case InstanceRecoveryStatusREADY:
 		return true
@@ -1352,7 +1331,6 @@ const (
 	ProblemCodeRateLimited                ProblemCode = "rate_limited"
 	ProblemCodeRecoveryIncompatible       ProblemCode = "recovery_incompatible"
 	ProblemCodeRecoveryNotReady           ProblemCode = "recovery_not_ready"
-	ProblemCodeRecoveryPaused             ProblemCode = "recovery_paused"
 	ProblemCodeRegistrationClosed         ProblemCode = "registration_closed"
 	ProblemCodeRegistrationIncomplete     ProblemCode = "registration_incomplete"
 	ProblemCodeSignInCodeIncorrect        ProblemCode = "sign_in_code_incorrect"
@@ -1444,8 +1422,6 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeRecoveryIncompatible:
 		return true
 	case ProblemCodeRecoveryNotReady:
-		return true
-	case ProblemCodeRecoveryPaused:
 		return true
 	case ProblemCodeRegistrationClosed:
 		return true
@@ -1711,24 +1687,6 @@ const (
 func (e StorageMovedWithDatabaseType) Valid() bool {
 	switch e {
 	case StorageMovedWithDatabaseTypeMOVEWITHDATABASE:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for StorageRecoveryValidationStatus.
-const (
-	StorageRecoveryValidationStatusAVAILABLE          StorageRecoveryValidationStatus = "AVAILABLE"
-	StorageRecoveryValidationStatusREQUIRESVALIDATION StorageRecoveryValidationStatus = "REQUIRES_VALIDATION"
-)
-
-// Valid indicates whether the value is a known member of the StorageRecoveryValidationStatus enum.
-func (e StorageRecoveryValidationStatus) Valid() bool {
-	switch e {
-	case StorageRecoveryValidationStatusAVAILABLE:
-		return true
-	case StorageRecoveryValidationStatusREQUIRESVALIDATION:
 		return true
 	default:
 		return false
@@ -2784,18 +2742,6 @@ type IdentityConfirmation struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
-// IdentityProof Root admin's current password or an emailed code; exactly one is sent
-type IdentityProof struct {
-	// Code The emailed confirmation code
-	Code *string `json:"code,omitempty"`
-
-	// Password Root admin's current password
-	Password *string `json:"password,omitempty"`
-}
-
-// IdentityProofMethod A way root admin can confirm identity
-type IdentityProofMethod string
-
 // InstanceBackup One encrypted snapshot of the internal database and its copies
 type InstanceBackup struct {
 	// CompletedAt When the last copy reached its final state
@@ -3005,11 +2951,11 @@ type InstanceBackupStatus struct {
 	// Health How well the instance is protected. `NOT_CONFIGURED` before any destination was selected, `INITIALIZING` until the first copy succeeds, `RESUMING` after destinations return following `STOPPED`, `PARTIAL` when some current destinations lack a fresh copy, `FAILED` when none has one, `OVERDUE` when a scheduled copy is more than 15 minutes late
 	Health InstanceBackupHealth `json:"health"`
 
-	// IdentityProofMethods The identity confirmations root admin can give now; empty means only the host file remains
-	IdentityProofMethods []IdentityProofMethod `json:"identityProofMethods"`
-
 	// Incident The open incident, null when protection has no problem
 	Incident *InstanceBackupIncident `json:"incident,omitempty"`
+
+	// IsConfirmationCodeRequired Whether a master-key export and a recovery apply need a code emailed to root admin, because the instance requires two-factor sign-in
+	IsConfirmationCodeRequired bool `json:"isConfirmationCodeRequired"`
 
 	// IsEmailConfigured Whether the operator configured the system mail server
 	IsEmailConfigured bool `json:"isEmailConfigured"`
@@ -3017,17 +2963,8 @@ type InstanceBackupStatus struct {
 	// IsMasterKeyAcknowledged Whether root admin confirmed saving the current master key
 	IsMasterKeyAcknowledged bool `json:"isMasterKeyAcknowledged"`
 
-	// IsMasterKeyExportCodeRequired Whether a master-key export needs an emailed code, because the instance requires two-factor sign-in
-	IsMasterKeyExportCodeRequired bool `json:"isMasterKeyExportCodeRequired"`
-
-	// IsRecoveryPaused Whether the instance is paused after a recovery until root admin activates it
-	IsRecoveryPaused bool `json:"isRecoveryPaused"`
-
 	// IsRootEmailUsable Whether root admin's address can receive mail
 	IsRootEmailUsable bool `json:"isRootEmailUsable"`
-
-	// MasterKeyPath Where the master key file lives inside the container, for saving it from the host
-	MasterKeyPath string `json:"masterKeyPath"`
 
 	// Recovery The latest recovery of the local journal, null when there was none
 	Recovery *InstanceRecovery `json:"recovery,omitempty"`
@@ -3077,23 +3014,17 @@ type InstanceRecovery struct {
 	// SourceRelease The authenticated release of the archive, null until validated
 	SourceRelease *string `json:"sourceRelease,omitempty"`
 
-	// Status Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can be applied, `APPLYING` once apply was accepted, `PAUSED` after publication until activation, `ACTIVE` after activation
+	// Status Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can be applied, `APPLYING` once apply was accepted, `COMPLETED` once the recovered installation is published
 	Status InstanceRecoveryStatus `json:"status"`
 }
 
-// InstanceRecoveryActivation The confirmation that ends the recovery pause
-type InstanceRecoveryActivation struct {
-	// IsOldInstanceStopped Root admin confirms the old instance is stopped
-	IsOldInstanceStopped bool `json:"isOldInstanceStopped"`
-}
-
-// InstanceRecoveryApply The replacement confirmation and identity proof
+// InstanceRecoveryApply The replacement confirmation, with the emailed code while two-factor sign-in is required
 type InstanceRecoveryApply struct {
+	// Code The code emailed for this recovery; required while the instance requires two-factor sign-in and ignored otherwise
+	Code *string `json:"code,omitempty"`
+
 	// IsReplacementConfirmed Root admin accepted that current users, settings and backup catalog are replaced
 	IsReplacementConfirmed bool `json:"isReplacementConfirmed"`
-
-	// Proof Root admin's current password or an emailed code; exactly one is sent
-	Proof IdentityProof `json:"proof"`
 }
 
 // InstanceRecoveryFailure The safe reason a recovery failed
@@ -3102,7 +3033,7 @@ type InstanceRecoveryFailure string
 // InstanceRecoveryOrigin How the recovery inputs arrived
 type InstanceRecoveryOrigin string
 
-// InstanceRecoveryStatus Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can be applied, `APPLYING` once apply was accepted, `PAUSED` after publication until activation, `ACTIVE` after activation
+// InstanceRecoveryStatus Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can be applied, `APPLYING` once apply was accepted, `COMPLETED` once the recovered installation is published
 type InstanceRecoveryStatus string
 
 // InstanceRecoveryUpload The recovery inputs
@@ -4452,9 +4383,6 @@ type Storage struct {
 	// Name The name of the storage
 	Name string `json:"name"`
 
-	// RecoveryValidationStatus `REQUIRES_VALIDATION` for a local storage recovered from a Databasus backup until an editor's saved connection test succeeds on this host; every other storage is `AVAILABLE`
-	RecoveryValidationStatus StorageRecoveryValidationStatus `json:"recoveryValidationStatus"`
-
 	// Settings The settings of the storage's provider; `type` tells the providers apart
 	Settings StorageSettings `json:"settings"`
 
@@ -4498,9 +4426,6 @@ type StoragePage struct {
 	NextCursor *string `json:"nextCursor,omitempty"`
 }
 
-// StorageRecoveryValidationStatus `REQUIRES_VALIDATION` for a local storage recovered from a Databasus backup until an editor's saved connection test succeeds on this host; every other storage is `AVAILABLE`
-type StorageRecoveryValidationStatus string
-
 // StorageSettings The settings of the storage's provider; `type` tells the providers apart
 type StorageSettings struct {
 	union json.RawMessage
@@ -4537,9 +4462,6 @@ type StorageTestResult struct {
 
 	// IsConnected Whether the storage could be reached and written
 	IsConnected bool `json:"isConnected"`
-
-	// RecoveryValidationStatus `REQUIRES_VALIDATION` for a local storage recovered from a Databasus backup until an editor's saved connection test succeeds on this host; every other storage is `AVAILABLE`
-	RecoveryValidationStatus *StorageRecoveryValidationStatus `json:"recoveryValidationStatus,omitempty"`
 }
 
 // StorageTransfer The workspace a storage moves to
@@ -5637,9 +5559,6 @@ type CreateInstanceBackupDownloadTokenJSONRequestBody = InstanceBackupDownloadTo
 
 // CreateInstanceRecoveryMultipartRequestBody defines body for CreateInstanceRecovery for multipart/form-data ContentType.
 type CreateInstanceRecoveryMultipartRequestBody = InstanceRecoveryUpload
-
-// ActivateInstanceRecoveryJSONRequestBody defines body for ActivateInstanceRecovery for application/json ContentType.
-type ActivateInstanceRecoveryJSONRequestBody = InstanceRecoveryActivation
 
 // ApplyInstanceRecoveryJSONRequestBody defines body for ApplyInstanceRecovery for application/json ContentType.
 type ApplyInstanceRecoveryJSONRequestBody = InstanceRecoveryApply
@@ -7216,7 +7135,7 @@ type ClientInterface interface {
 
 	// DeleteDatabase Delete a database with its backups
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
 	//
 	// Corresponds with DELETE /databases/{databaseId} (the `DeleteDatabase` operationId).
 	DeleteDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7381,7 +7300,7 @@ type ClientInterface interface {
 
 	// UpdateInstanceBackupSettingsWithBody Replace the Databasus backup settings
 	//
-	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7390,7 +7309,7 @@ type ClientInterface interface {
 
 	// UpdateInstanceBackupSettings Replace the Databasus backup settings
 	//
-	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7399,7 +7318,7 @@ type ClientInterface interface {
 
 	// GetInstanceBackupStatus Get the protection state of the instance
 	//
-	// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery with its pause.
+	// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
 	//
 	// Corresponds with GET /instance-backup-statuses (the `GetInstanceBackupStatus` operationId).
 	GetInstanceBackupStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7413,7 +7332,7 @@ type ClientInterface interface {
 
 	// StartInstanceBackup Start a Databasus backup now
 	//
-	// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`; while the instance is paused after a recovery it is 409 `recovery_paused`.
+	// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
 	//
 	// Corresponds with POST /instance-backups (the `StartInstanceBackup` operationId).
 	StartInstanceBackup(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7459,27 +7378,9 @@ type ClientInterface interface {
 	// Corresponds with GET /instance-recoveries/{instanceRecoveryId} (the `GetInstanceRecovery` operationId).
 	GetInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ActivateInstanceRecoveryWithBody Confirm the old instance is stopped and end the recovery pause
-	//
-	// Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets 409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local storages stay unavailable until an editor validates them.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/activate (the `ActivateInstanceRecovery` operationId).
-	ActivateInstanceRecoveryWithBody(ctx context.Context, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ActivateInstanceRecovery Confirm the old instance is stopped and end the recovery pause
-	//
-	// Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets 409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local storages stay unavailable until an editor validates them.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/activate (the `ActivateInstanceRecovery` operationId).
-	ActivateInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, body ActivateInstanceRecoveryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// ApplyInstanceRecoveryWithBody Replace this installation with the prepared recovery
 	//
-	// Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code proof bound to this recovery; a master-key export proof or a proof for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation paused in the same process; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7488,7 +7389,7 @@ type ClientInterface interface {
 
 	// ApplyInstanceRecovery Replace this installation with the prepared recovery
 	//
-	// Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code proof bound to this recovery; a master-key export proof or a proof for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation paused in the same process; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7504,7 +7405,7 @@ type ClientInterface interface {
 
 	// RequestInstanceRecoveryConfirmation Email root admin a code that confirms applying this recovery
 	//
-	// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. Without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+	// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
 	//
 	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/confirmations (the `RequestInstanceRecoveryConfirmation` operationId).
 	RequestInstanceRecoveryConfirmation(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7554,7 +7455,7 @@ type ClientInterface interface {
 
 	// CreateLimitedUserWithBody Create a limited user on the database's server
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7563,7 +7464,7 @@ type ClientInterface interface {
 
 	// CreateLimitedUser Create a limited user on the database's server
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7579,7 +7480,7 @@ type ClientInterface interface {
 
 	// StartLogicalBackupWithBody Start a backup of a database
 	//
-	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7588,7 +7489,7 @@ type ClientInterface interface {
 
 	// StartLogicalBackup Start a backup of a database
 	//
-	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7597,7 +7498,7 @@ type ClientInterface interface {
 
 	// DeleteLogicalBackup Delete a logical backup and its file
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
 	//
 	// Corresponds with DELETE /logical-backups/{backupId} (the `DeleteLogicalBackup` operationId).
 	DeleteLogicalBackup(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7618,7 +7519,7 @@ type ClientInterface interface {
 
 	// DownloadLogicalBackup Download the file of a logical backup
 	//
-	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A recovered local storage not yet validated on this host gets 409 `storage_unavailable`, and a file its storage no longer holds gets 404 `not_found`.
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
 	//
 	// Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
 	DownloadLogicalBackup(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7675,7 +7576,7 @@ type ClientInterface interface {
 
 	// TestNotifierSettingsWithBody Send a test message with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7684,7 +7585,7 @@ type ClientInterface interface {
 
 	// TestNotifierSettings Send a test message with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7750,7 +7651,7 @@ type ClientInterface interface {
 
 	// TestNotifier Send a test message through a saved notifier
 	//
-	// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
 	//
 	// Corresponds with POST /notifiers/{notifierId}/test (the `TestNotifier` operationId).
 	TestNotifier(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7854,7 +7755,7 @@ type ClientInterface interface {
 
 	// StartPhysicalBackupWithBody Request a physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused.
+	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7863,7 +7764,7 @@ type ClientInterface interface {
 
 	// StartPhysicalBackup Request a physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused.
+	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7872,7 +7773,7 @@ type ClientInterface interface {
 
 	// DeletePhysicalBackup Delete a physical backup and its descendants
 	//
-	// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing. While the instance is paused after a recovery the answer is 409 recovery_paused.
+	// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
 	//
 	// Corresponds with DELETE /physical-backups/{backupId} (the `DeletePhysicalBackup` operationId).
 	DeletePhysicalBackup(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7925,7 +7826,7 @@ type ClientInterface interface {
 
 	// StartRestoreWithBody Restore a logical backup into a target database
 	//
-	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7934,7 +7835,7 @@ type ClientInterface interface {
 
 	// StartRestore Restore a logical backup into a target database
 	//
-	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7982,7 +7883,7 @@ type ClientInterface interface {
 
 	// TestStorageSettingsWithBody Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409 `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7991,7 +7892,7 @@ type ClientInterface interface {
 
 	// TestStorageSettings Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409 `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -8064,7 +7965,7 @@ type ClientInterface interface {
 
 	// TestStorage Test the connection of a saved storage
 	//
-	// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage. For a local storage that is `REQUIRES_VALIDATION` after a recovery, the test also writes, reads, verifies and removes a probe in the actual backup directory. Only when every step succeeds, the tester may edit the storage and its saved settings did not change during the test, the storage becomes `AVAILABLE`; a viewer's success stays diagnostic. That status is the only saved value a test may change. While the instance is paused after a recovery the test gets 409 `recovery_paused`.
+	// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
 	//
 	// Corresponds with POST /storages/{storageId}/test (the `TestStorage` operationId).
 	TestStorage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -8296,7 +8197,7 @@ type ClientInterface interface {
 
 	// StartVerificationWithBody Start a manual backup verification
 	//
-	// While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -8305,7 +8206,7 @@ type ClientInterface interface {
 
 	// StartVerification Start a manual backup verification
 	//
-	// While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -8646,7 +8547,7 @@ func (c *Client) CreateDatabase(ctx context.Context, body CreateDatabaseJSONRequ
 
 // DeleteDatabase Delete a database with its backups
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
 //
 // Corresponds with DELETE /databases/{databaseId} (the `DeleteDatabase` operationId).
 func (c *Client) DeleteDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9021,7 +8922,7 @@ func (c *Client) GetInstanceBackupSettings(ctx context.Context, reqEditors ...Re
 
 // UpdateInstanceBackupSettingsWithBody Replace the Databasus backup settings
 //
-// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9040,7 +8941,7 @@ func (c *Client) UpdateInstanceBackupSettingsWithBody(ctx context.Context, conte
 
 // UpdateInstanceBackupSettings Replace the Databasus backup settings
 //
-// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9059,7 +8960,7 @@ func (c *Client) UpdateInstanceBackupSettings(ctx context.Context, body UpdateIn
 
 // GetInstanceBackupStatus Get the protection state of the instance
 //
-// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery with its pause.
+// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
 //
 // Corresponds with GET /instance-backup-statuses (the `GetInstanceBackupStatus` operationId).
 func (c *Client) GetInstanceBackupStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9093,7 +8994,7 @@ func (c *Client) ListInstanceBackups(ctx context.Context, params *ListInstanceBa
 
 // StartInstanceBackup Start a Databasus backup now
 //
-// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`; while the instance is paused after a recovery it is 409 `recovery_paused`.
+// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
 //
 // Corresponds with POST /instance-backups (the `StartInstanceBackup` operationId).
 func (c *Client) StartInstanceBackup(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9199,47 +9100,9 @@ func (c *Client) GetInstanceRecovery(ctx context.Context, instanceRecoveryId Ins
 	return c.Client.Do(req)
 }
 
-// ActivateInstanceRecoveryWithBody Confirm the old instance is stopped and end the recovery pause
-//
-// Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets 409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local storages stay unavailable until an editor validates them.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/activate (the `ActivateInstanceRecovery` operationId).
-func (c *Client) ActivateInstanceRecoveryWithBody(ctx context.Context, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewActivateInstanceRecoveryRequestWithBody(c.Server, instanceRecoveryId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// ActivateInstanceRecovery Confirm the old instance is stopped and end the recovery pause
-//
-// Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets 409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local storages stay unavailable until an editor validates them.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/activate (the `ActivateInstanceRecovery` operationId).
-func (c *Client) ActivateInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, body ActivateInstanceRecoveryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewActivateInstanceRecoveryRequest(c.Server, instanceRecoveryId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 // ApplyInstanceRecoveryWithBody Replace this installation with the prepared recovery
 //
-// Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code proof bound to this recovery; a master-key export proof or a proof for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation paused in the same process; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9258,7 +9121,7 @@ func (c *Client) ApplyInstanceRecoveryWithBody(ctx context.Context, instanceReco
 
 // ApplyInstanceRecovery Replace this installation with the prepared recovery
 //
-// Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code proof bound to this recovery; a master-key export proof or a proof for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation paused in the same process; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9294,7 +9157,7 @@ func (c *Client) CancelInstanceRecovery(ctx context.Context, instanceRecoveryId 
 
 // RequestInstanceRecoveryConfirmation Email root admin a code that confirms applying this recovery
 //
-// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. Without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
 //
 // Corresponds with POST /instance-recoveries/{instanceRecoveryId}/confirmations (the `RequestInstanceRecoveryConfirmation` operationId).
 func (c *Client) RequestInstanceRecoveryConfirmation(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9404,7 +9267,7 @@ func (c *Client) CheckLimitedUser(ctx context.Context, body CheckLimitedUserJSON
 
 // CreateLimitedUserWithBody Create a limited user on the database's server
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9423,7 +9286,7 @@ func (c *Client) CreateLimitedUserWithBody(ctx context.Context, contentType stri
 
 // CreateLimitedUser Create a limited user on the database's server
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9459,7 +9322,7 @@ func (c *Client) ListLogicalBackups(ctx context.Context, params *ListLogicalBack
 
 // StartLogicalBackupWithBody Start a backup of a database
 //
-// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9478,7 +9341,7 @@ func (c *Client) StartLogicalBackupWithBody(ctx context.Context, contentType str
 
 // StartLogicalBackup Start a backup of a database
 //
-// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9497,7 +9360,7 @@ func (c *Client) StartLogicalBackup(ctx context.Context, body StartLogicalBackup
 
 // DeleteLogicalBackup Delete a logical backup and its file
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
 //
 // Corresponds with DELETE /logical-backups/{backupId} (the `DeleteLogicalBackup` operationId).
 func (c *Client) DeleteLogicalBackup(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9548,7 +9411,7 @@ func (c *Client) CancelLogicalBackup(ctx context.Context, backupId BackupId, req
 
 // DownloadLogicalBackup Download the file of a logical backup
 //
-// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A recovered local storage not yet validated on this host gets 409 `storage_unavailable`, and a file its storage no longer holds gets 404 `not_found`.
+// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
 //
 // Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
 func (c *Client) DownloadLogicalBackup(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9675,7 +9538,7 @@ func (c *Client) CreateMasterKeyExport(ctx context.Context, body CreateMasterKey
 
 // TestNotifierSettingsWithBody Send a test message with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9694,7 +9557,7 @@ func (c *Client) TestNotifierSettingsWithBody(ctx context.Context, contentType s
 
 // TestNotifierSettings Send a test message with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9840,7 +9703,7 @@ func (c *Client) UpdateNotifier(ctx context.Context, notifierId NotifierId, body
 
 // TestNotifier Send a test message through a saved notifier
 //
-// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
 //
 // Corresponds with POST /notifiers/{notifierId}/test (the `TestNotifier` operationId).
 func (c *Client) TestNotifier(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10064,7 +9927,7 @@ func (c *Client) ListPhysicalBackups(ctx context.Context, params *ListPhysicalBa
 
 // StartPhysicalBackupWithBody Request a physical backup
 //
-// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused.
+// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 //
 // Takes any type of body and a specified content type.
 //
@@ -10083,7 +9946,7 @@ func (c *Client) StartPhysicalBackupWithBody(ctx context.Context, contentType st
 
 // StartPhysicalBackup Request a physical backup
 //
-// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused.
+// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -10102,7 +9965,7 @@ func (c *Client) StartPhysicalBackup(ctx context.Context, body StartPhysicalBack
 
 // DeletePhysicalBackup Delete a physical backup and its descendants
 //
-// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing. While the instance is paused after a recovery the answer is 409 recovery_paused.
+// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
 //
 // Corresponds with DELETE /physical-backups/{backupId} (the `DeletePhysicalBackup` operationId).
 func (c *Client) DeletePhysicalBackup(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10225,7 +10088,7 @@ func (c *Client) ListRestores(ctx context.Context, params *ListRestoresParams, r
 
 // StartRestoreWithBody Restore a logical backup into a target database
 //
-// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
 //
 // Takes any type of body and a specified content type.
 //
@@ -10244,7 +10107,7 @@ func (c *Client) StartRestoreWithBody(ctx context.Context, contentType string, b
 
 // StartRestore Restore a logical backup into a target database
 //
-// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -10352,7 +10215,7 @@ func (c *Client) GetSignInOptions(ctx context.Context, reqEditors ...RequestEdit
 
 // TestStorageSettingsWithBody Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409 `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes any type of body and a specified content type.
 //
@@ -10371,7 +10234,7 @@ func (c *Client) TestStorageSettingsWithBody(ctx context.Context, contentType st
 
 // TestStorageSettings Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409 `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -10534,7 +10397,7 @@ func (c *Client) GetStorageBackupUsage(ctx context.Context, storageId StorageId,
 
 // TestStorage Test the connection of a saved storage
 //
-// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage. For a local storage that is `REQUIRES_VALIDATION` after a recovery, the test also writes, reads, verifies and removes a probe in the actual backup directory. Only when every step succeeds, the tester may edit the storage and its saved settings did not change during the test, the storage becomes `AVAILABLE`; a viewer's success stays diagnostic. That status is the only saved value a test may change. While the instance is paused after a recovery the test gets 409 `recovery_paused`.
+// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
 //
 // Corresponds with POST /storages/{storageId}/test (the `TestStorage` operationId).
 func (c *Client) TestStorage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -11066,7 +10929,7 @@ func (c *Client) ListVerifications(ctx context.Context, params *ListVerification
 
 // StartVerificationWithBody Start a manual backup verification
 //
-// While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 //
 // Takes any type of body and a specified content type.
 //
@@ -11085,7 +10948,7 @@ func (c *Client) StartVerificationWithBody(ctx context.Context, contentType stri
 
 // StartVerification Start a manual backup verification
 //
-// While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -12836,53 +12699,6 @@ func NewGetInstanceRecoveryRequest(server string, instanceRecoveryId InstanceRec
 	if err != nil {
 		return nil, err
 	}
-
-	return req, nil
-}
-
-// NewActivateInstanceRecoveryRequest calls the generic ActivateInstanceRecovery builder with application/json body
-func NewActivateInstanceRecoveryRequest(server string, instanceRecoveryId InstanceRecoveryId, body ActivateInstanceRecoveryJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewActivateInstanceRecoveryRequestWithBody(server, instanceRecoveryId, "application/json", bodyReader)
-}
-
-// NewActivateInstanceRecoveryRequestWithBody constructs an http.Request for the ActivateInstanceRecovery method, with any body, and a specified content type
-func NewActivateInstanceRecoveryRequestWithBody(server string, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "instanceRecoveryId", instanceRecoveryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/instance-recoveries/%s/activate", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -16795,7 +16611,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteDatabaseWithResponse Delete a database with its backups
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -16978,7 +16794,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateInstanceBackupSettingsWithBodyWithResponse Replace the Databasus backup settings
 	//
-	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -16987,7 +16803,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateInstanceBackupSettingsWithResponse Replace the Databasus backup settings
 	//
-	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -16996,7 +16812,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetInstanceBackupStatusWithResponse Get the protection state of the instance
 	//
-	// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery with its pause.
+	// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17014,7 +16830,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartInstanceBackupWithResponse Start a Databasus backup now
 	//
-	// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`; while the instance is paused after a recovery it is 409 `recovery_paused`.
+	// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17066,27 +16882,9 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /instance-recoveries/{instanceRecoveryId} (the `GetInstanceRecovery` operationId).
 	GetInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*GetInstanceRecoveryResponse, error)
 
-	// ActivateInstanceRecoveryWithBodyWithResponse Confirm the old instance is stopped and end the recovery pause
-	//
-	// Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets 409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local storages stay unavailable until an editor validates them.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/activate (the `ActivateInstanceRecovery` operationId).
-	ActivateInstanceRecoveryWithBodyWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ActivateInstanceRecoveryResponse, error)
-
-	// ActivateInstanceRecoveryWithResponse Confirm the old instance is stopped and end the recovery pause
-	//
-	// Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets 409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local storages stay unavailable until an editor validates them.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/activate (the `ActivateInstanceRecovery` operationId).
-	ActivateInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, body ActivateInstanceRecoveryJSONRequestBody, reqEditors ...RequestEditorFn) (*ActivateInstanceRecoveryResponse, error)
-
 	// ApplyInstanceRecoveryWithBodyWithResponse Replace this installation with the prepared recovery
 	//
-	// Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code proof bound to this recovery; a master-key export proof or a proof for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation paused in the same process; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17095,7 +16893,7 @@ type ClientWithResponsesInterface interface {
 
 	// ApplyInstanceRecoveryWithResponse Replace this installation with the prepared recovery
 	//
-	// Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code proof bound to this recovery; a master-key export proof or a proof for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation paused in the same process; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17113,7 +16911,7 @@ type ClientWithResponsesInterface interface {
 
 	// RequestInstanceRecoveryConfirmationWithResponse Email root admin a code that confirms applying this recovery
 	//
-	// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. Without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+	// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17167,7 +16965,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateLimitedUserWithBodyWithResponse Create a limited user on the database's server
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17176,7 +16974,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateLimitedUserWithResponse Create a limited user on the database's server
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17194,7 +16992,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartLogicalBackupWithBodyWithResponse Start a backup of a database
 	//
-	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17203,7 +17001,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartLogicalBackupWithResponse Start a backup of a database
 	//
-	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17212,7 +17010,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteLogicalBackupWithResponse Delete a logical backup and its file
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17239,7 +17037,7 @@ type ClientWithResponsesInterface interface {
 
 	// DownloadLogicalBackupWithResponse Download the file of a logical backup
 	//
-	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A recovered local storage not yet validated on this host gets 409 `storage_unavailable`, and a file its storage no longer holds gets 404 `not_found`.
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17302,7 +17100,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17311,7 +17109,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestNotifierSettingsWithResponse Send a test message with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17383,7 +17181,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestNotifierWithResponse Send a test message through a saved notifier
 	//
-	// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17491,7 +17289,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartPhysicalBackupWithBodyWithResponse Request a physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused.
+	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17500,7 +17298,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartPhysicalBackupWithResponse Request a physical backup
 	//
-	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused.
+	// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17509,7 +17307,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeletePhysicalBackupWithResponse Delete a physical backup and its descendants
 	//
-	// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing. While the instance is paused after a recovery the answer is 409 recovery_paused.
+	// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17572,7 +17370,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartRestoreWithBodyWithResponse Restore a logical backup into a target database
 	//
-	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17581,7 +17379,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartRestoreWithResponse Restore a logical backup into a target database
 	//
-	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17635,7 +17433,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409 `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17644,7 +17442,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestStorageSettingsWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409 `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17725,7 +17523,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestStorageWithResponse Test the connection of a saved storage
 	//
-	// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage. For a local storage that is `REQUIRES_VALIDATION` after a recovery, the test also writes, reads, verifies and removes a probe in the actual backup directory. Only when every step succeeds, the tester may edit the storage and its saved settings did not change during the test, the storage becomes `AVAILABLE`; a viewer's success stays diagnostic. That status is the only saved value a test may change. While the instance is paused after a recovery the test gets 409 `recovery_paused`.
+	// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17989,7 +17787,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartVerificationWithBodyWithResponse Start a manual backup verification
 	//
-	// While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17998,7 +17796,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartVerificationWithResponse Start a manual backup verification
 	//
-	// While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+	// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -20371,89 +20169,6 @@ func (r GetInstanceRecoveryResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetInstanceRecoveryResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type ActivateInstanceRecoveryResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *InstanceRecovery
-	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
-	ApplicationproblemJSON400 *Problem
-	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
-	ApplicationproblemJSON401 *Problem
-	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
-	ApplicationproblemJSON403 *Problem
-	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
-	ApplicationproblemJSON404 *Problem
-	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
-	ApplicationproblemJSON409 *Problem
-	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
-	ApplicationproblemJSONDefault *Problem
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ActivateInstanceRecoveryResponse) GetJSON200() *InstanceRecovery {
-	return r.JSON200
-}
-
-// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
-func (r ActivateInstanceRecoveryResponse) GetApplicationproblemJSON400() *Problem {
-	return r.ApplicationproblemJSON400
-}
-
-// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
-func (r ActivateInstanceRecoveryResponse) GetApplicationproblemJSON401() *Problem {
-	return r.ApplicationproblemJSON401
-}
-
-// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
-func (r ActivateInstanceRecoveryResponse) GetApplicationproblemJSON403() *Problem {
-	return r.ApplicationproblemJSON403
-}
-
-// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
-func (r ActivateInstanceRecoveryResponse) GetApplicationproblemJSON404() *Problem {
-	return r.ApplicationproblemJSON404
-}
-
-// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
-func (r ActivateInstanceRecoveryResponse) GetApplicationproblemJSON409() *Problem {
-	return r.ApplicationproblemJSON409
-}
-
-// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
-func (r ActivateInstanceRecoveryResponse) GetApplicationproblemJSONDefault() *Problem {
-	return r.ApplicationproblemJSONDefault
-}
-
-// GetBody returns the raw response body bytes
-func (r ActivateInstanceRecoveryResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r ActivateInstanceRecoveryResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ActivateInstanceRecoveryResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r ActivateInstanceRecoveryResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -26918,7 +26633,7 @@ func (c *ClientWithResponses) CreateDatabaseWithResponse(ctx context.Context, bo
 
 // DeleteDatabaseWithResponse Delete a database with its backups
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27227,7 +26942,7 @@ func (c *ClientWithResponses) GetInstanceBackupSettingsWithResponse(ctx context.
 
 // UpdateInstanceBackupSettingsWithBodyWithResponse Replace the Databasus backup settings
 //
-// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27242,7 +26957,7 @@ func (c *ClientWithResponses) UpdateInstanceBackupSettingsWithBodyWithResponse(c
 
 // UpdateInstanceBackupSettingsWithResponse Replace the Databasus backup settings
 //
-// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27257,7 +26972,7 @@ func (c *ClientWithResponses) UpdateInstanceBackupSettingsWithResponse(ctx conte
 
 // GetInstanceBackupStatusWithResponse Get the protection state of the instance
 //
-// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery with its pause.
+// Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27287,7 +27002,7 @@ func (c *ClientWithResponses) ListInstanceBackupsWithResponse(ctx context.Contex
 
 // StartInstanceBackupWithResponse Start a Databasus backup now
 //
-// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`; while the instance is paused after a recovery it is 409 `recovery_paused`.
+// Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27375,39 +27090,9 @@ func (c *ClientWithResponses) GetInstanceRecoveryWithResponse(ctx context.Contex
 	return ParseGetInstanceRecoveryResponse(rsp)
 }
 
-// ActivateInstanceRecoveryWithBodyWithResponse Confirm the old instance is stopped and end the recovery pause
-//
-// Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets 409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local storages stay unavailable until an editor validates them.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/activate (the `ActivateInstanceRecovery` operationId).
-func (c *ClientWithResponses) ActivateInstanceRecoveryWithBodyWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ActivateInstanceRecoveryResponse, error) {
-	rsp, err := c.ActivateInstanceRecoveryWithBody(ctx, instanceRecoveryId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseActivateInstanceRecoveryResponse(rsp)
-}
-
-// ActivateInstanceRecoveryWithResponse Confirm the old instance is stopped and end the recovery pause
-//
-// Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets 409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local storages stay unavailable until an editor validates them.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/activate (the `ActivateInstanceRecovery` operationId).
-func (c *ClientWithResponses) ActivateInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, body ActivateInstanceRecoveryJSONRequestBody, reqEditors ...RequestEditorFn) (*ActivateInstanceRecoveryResponse, error) {
-	rsp, err := c.ActivateInstanceRecovery(ctx, instanceRecoveryId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseActivateInstanceRecoveryResponse(rsp)
-}
-
 // ApplyInstanceRecoveryWithBodyWithResponse Replace this installation with the prepared recovery
 //
-// Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code proof bound to this recovery; a master-key export proof or a proof for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation paused in the same process; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27422,7 +27107,7 @@ func (c *ClientWithResponses) ApplyInstanceRecoveryWithBodyWithResponse(ctx cont
 
 // ApplyInstanceRecoveryWithResponse Replace this installation with the prepared recovery
 //
-// Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code proof bound to this recovery; a master-key export proof or a proof for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation paused in the same process; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27452,7 +27137,7 @@ func (c *ClientWithResponses) CancelInstanceRecoveryWithResponse(ctx context.Con
 
 // RequestInstanceRecoveryConfirmationWithResponse Email root admin a code that confirms applying this recovery
 //
-// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. Without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27542,7 +27227,7 @@ func (c *ClientWithResponses) CheckLimitedUserWithResponse(ctx context.Context, 
 
 // CreateLimitedUserWithBodyWithResponse Create a limited user on the database's server
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27557,7 +27242,7 @@ func (c *ClientWithResponses) CreateLimitedUserWithBodyWithResponse(ctx context.
 
 // CreateLimitedUserWithResponse Create a limited user on the database's server
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27587,7 +27272,7 @@ func (c *ClientWithResponses) ListLogicalBackupsWithResponse(ctx context.Context
 
 // StartLogicalBackupWithBodyWithResponse Start a backup of a database
 //
-// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27602,7 +27287,7 @@ func (c *ClientWithResponses) StartLogicalBackupWithBodyWithResponse(ctx context
 
 // StartLogicalBackupWithResponse Start a backup of a database
 //
-// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27617,7 +27302,7 @@ func (c *ClientWithResponses) StartLogicalBackupWithResponse(ctx context.Context
 
 // DeleteLogicalBackupWithResponse Delete a logical backup and its file
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27662,7 +27347,7 @@ func (c *ClientWithResponses) CancelLogicalBackupWithResponse(ctx context.Contex
 
 // DownloadLogicalBackupWithResponse Download the file of a logical backup
 //
-// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A recovered local storage not yet validated on this host gets 409 `storage_unavailable`, and a file its storage no longer holds gets 404 `not_found`.
+// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27767,7 +27452,7 @@ func (c *ClientWithResponses) CreateMasterKeyExportWithResponse(ctx context.Cont
 
 // TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27782,7 +27467,7 @@ func (c *ClientWithResponses) TestNotifierSettingsWithBodyWithResponse(ctx conte
 
 // TestNotifierSettingsWithResponse Send a test message with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27902,7 +27587,7 @@ func (c *ClientWithResponses) UpdateNotifierWithResponse(ctx context.Context, no
 
 // TestNotifierWithResponse Send a test message through a saved notifier
 //
-// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -28082,7 +27767,7 @@ func (c *ClientWithResponses) ListPhysicalBackupsWithResponse(ctx context.Contex
 
 // StartPhysicalBackupWithBodyWithResponse Request a physical backup
 //
-// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused.
+// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -28097,7 +27782,7 @@ func (c *ClientWithResponses) StartPhysicalBackupWithBodyWithResponse(ctx contex
 
 // StartPhysicalBackupWithResponse Request a physical backup
 //
-// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused.
+// Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -28112,7 +27797,7 @@ func (c *ClientWithResponses) StartPhysicalBackupWithResponse(ctx context.Contex
 
 // DeletePhysicalBackupWithResponse Delete a physical backup and its descendants
 //
-// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing. While the instance is paused after a recovery the answer is 409 recovery_paused.
+// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -28217,7 +27902,7 @@ func (c *ClientWithResponses) ListRestoresWithResponse(ctx context.Context, para
 
 // StartRestoreWithBodyWithResponse Restore a logical backup into a target database
 //
-// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -28232,7 +27917,7 @@ func (c *ClientWithResponses) StartRestoreWithBodyWithResponse(ctx context.Conte
 
 // StartRestoreWithResponse Restore a logical backup into a target database
 //
-// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -28322,7 +28007,7 @@ func (c *ClientWithResponses) GetSignInOptionsWithResponse(ctx context.Context, 
 
 // TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409 `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -28337,7 +28022,7 @@ func (c *ClientWithResponses) TestStorageSettingsWithBodyWithResponse(ctx contex
 
 // TestStorageSettingsWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409 `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -28472,7 +28157,7 @@ func (c *ClientWithResponses) GetStorageBackupUsageWithResponse(ctx context.Cont
 
 // TestStorageWithResponse Test the connection of a saved storage
 //
-// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage. For a local storage that is `REQUIRES_VALIDATION` after a recovery, the test also writes, reads, verifies and removes a probe in the actual backup directory. Only when every step succeeds, the tester may edit the storage and its saved settings did not change during the test, the storage becomes `AVAILABLE`; a viewer's success stays diagnostic. That status is the only saved value a test may change. While the instance is paused after a recovery the test gets 409 `recovery_paused`.
+// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -28916,7 +28601,7 @@ func (c *ClientWithResponses) ListVerificationsWithResponse(ctx context.Context,
 
 // StartVerificationWithBodyWithResponse Start a manual backup verification
 //
-// While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -28931,7 +28616,7 @@ func (c *ClientWithResponses) StartVerificationWithBodyWithResponse(ctx context.
 
 // StartVerificationWithResponse Start a manual backup verification
 //
-// While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+// Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -30984,74 +30669,6 @@ func ParseGetInstanceRecoveryResponse(rsp *http.Response) (*GetInstanceRecoveryR
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseActivateInstanceRecoveryResponse parses an HTTP response from a ActivateInstanceRecoveryWithResponse call
-func ParseActivateInstanceRecoveryResponse(rsp *http.Response) (*ActivateInstanceRecoveryResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ActivateInstanceRecoveryResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest InstanceRecovery
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

@@ -1,5 +1,5 @@
-import { Button, Textarea } from '@mantine/core';
-import { type ClipboardEvent, useState } from 'react';
+import { PasswordInput } from '@mantine/core';
+import type { ClipboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -10,13 +10,13 @@ interface Props {
   onChange: (value: string) => void;
 }
 
-// The server compares the key byte for byte. A single-line password input drops line breaks from a
-// paste, and a textarea reports CRLF as LF, so a paste is inserted from the clipboard text itself.
+// The server compares the key byte for byte, but a single-line input drops line breaks from its
+// value. A paste is therefore stored from the clipboard text itself, so the uploaded key keeps the
+// exact whitespace and line endings it was saved with, while the field shows one masked line.
 export function MasterKeyTextField({ id, value, error, isDisabled, onChange }: Props) {
   const { t } = useTranslation();
-  const [isShown, setIsShown] = useState(false);
 
-  const insertPastedText = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+  const insertPastedText = (event: ClipboardEvent<HTMLInputElement>) => {
     // eslint-disable-next-line i18next/no-literal-string -- clipboard MIME type
     const pastedText = event.clipboardData.getData('text/plain');
     if (!pastedText) return;
@@ -29,33 +29,18 @@ export function MasterKeyTextField({ id, value, error, isDisabled, onChange }: P
   };
 
   return (
-    <div>
-      <Textarea
-        id={id}
-        size="xs"
-        label={t('instanceRecovery.form.masterKey')}
-        description={t('instanceRecovery.form.masterKeyDescription')}
-        error={error}
-        value={value}
-        disabled={isDisabled}
-        autosize
-        minRows={2}
-        maxRows={6}
-        autoComplete="off"
-        spellCheck={false}
-        styles={{ input: isShown ? undefined : { WebkitTextSecurity: 'disc' } }}
-        onPaste={insertPastedText}
-        onChange={(event) => onChange(event.currentTarget.value)}
-      />
-      <Button
-        className="mt-1"
-        size="compact-xs"
-        variant="subtle"
-        aria-pressed={isShown}
-        onClick={() => setIsShown((current) => !current)}
-      >
-        {isShown ? t('instanceRecovery.form.hideKey') : t('instanceRecovery.form.showKey')}
-      </Button>
-    </div>
+    <PasswordInput
+      id={id}
+      label={t('instanceRecovery.form.masterKey')}
+      description={t('instanceRecovery.form.masterKeyDescription')}
+      inputWrapperOrder={['label', 'input', 'description', 'error']}
+      error={error}
+      value={value}
+      disabled={isDisabled}
+      autoComplete="off"
+      spellCheck={false}
+      onPaste={insertPastedText}
+      onChange={(event) => onChange(event.currentTarget.value)}
+    />
   );
 }

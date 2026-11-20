@@ -21,10 +21,6 @@ func (s *Service) DeleteDatabase(ctx context.Context, actor users.Actor, databas
 			return err
 		}
 
-		if err := s.recoveryPause.Check(); err != nil {
-			return err
-		}
-
 		for _, handler := range s.deletingHandlers {
 			err := handler(ctx, Deleting{DatabaseID: deletedDatabase.ID})
 			if err != nil {

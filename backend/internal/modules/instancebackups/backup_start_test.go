@@ -144,17 +144,6 @@ func TestStartInstanceBackup(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusUnauthorized, response.StatusCode(), string(response.Body))
 	})
-
-	t.Run("returns 409 recovery_paused while a recovered instance is paused", func(t *testing.T) {
-		t.Parallel()
-		owner := newInstanceOwner(t, apptest.WithRecoveryPause())
-
-		response, err := owner.RootAdmin.Client.StartInstanceBackupWithResponse(t.Context())
-
-		require.NoError(t, err)
-		requireProblemCode(t, response.StatusCode(), response.Body, http.StatusConflict,
-			apiclient.ProblemCodeRecoveryPaused)
-	})
 }
 
 //nolint:tparallel // Each scenario moves its own application's clock between passes.

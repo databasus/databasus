@@ -575,7 +575,7 @@ export interface paths {
         put?: never;
         /**
          * Send a test message through a saved notifier
-         * @description Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+         * @description Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
          */
         post: operations["testNotifier"];
         delete?: never;
@@ -618,7 +618,7 @@ export interface paths {
         put?: never;
         /**
          * Send a test message with settings that are not saved
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test sends to wherever the request points. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace, or the answer is 404 `not_found`. With another resource address than the notifier's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
          */
         post: operations["testNotifierSettings"];
         delete?: never;
@@ -719,7 +719,7 @@ export interface paths {
         put?: never;
         /**
          * Test the connection of a saved storage
-         * @description Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage. For a local storage that is `REQUIRES_VALIDATION` after a recovery, the test also writes, reads, verifies and removes a probe in the actual backup directory. Only when every step succeeds, the tester may edit the storage and its saved settings did not change during the test, the storage becomes `AVAILABLE`; a viewer's success stays diagnostic. That status is the only saved value a test may change. While the instance is paused after a recovery the test gets 409 `recovery_paused`.
+         * @description Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
          */
         post: operations["testStorage"];
         delete?: never;
@@ -762,7 +762,7 @@ export interface paths {
         put?: never;
         /**
          * Test the connection with settings that are not saved
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409 `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test connects wherever the request points. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. With another resource address than the storage's, a secret the settings use must be sent again or the answer is 400 `invalid_request`, as in `updateStorage`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
          */
         post: operations["testStorageSettings"];
         delete?: never;
@@ -898,7 +898,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a database with its backups
-         * @description Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
          */
         delete: operations["deleteDatabase"];
         options?: never;
@@ -1003,7 +1003,7 @@ export interface paths {
         put?: never;
         /**
          * Create a limited user on the database's server
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests, including a secret left out at another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
          */
         post: operations["createLimitedUser"];
         delete?: never;
@@ -1097,7 +1097,7 @@ export interface paths {
         put?: never;
         /**
          * Request a physical backup
-         * @description Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused.
+         * @description Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded.
          */
         post: operations["startPhysicalBackup"];
         delete?: never;
@@ -1121,7 +1121,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a physical backup and its descendants
-         * @description Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing. While the instance is paused after a recovery the answer is 409 recovery_paused.
+         * @description Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
          */
         delete: operations["deletePhysicalBackup"];
         options?: never;
@@ -1273,7 +1273,7 @@ export interface paths {
         put?: never;
         /**
          * Start a backup of a database
-         * @description Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+         * @description Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
          */
         post: operations["startLogicalBackup"];
         delete?: never;
@@ -1301,7 +1301,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a logical backup and its file
-         * @description Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
          */
         delete: operations["deleteLogicalBackup"];
         options?: never;
@@ -1344,7 +1344,7 @@ export interface paths {
         };
         /**
          * Download the file of a logical backup
-         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A recovered local storage not yet validated on this host gets 409 `storage_unavailable`, and a file its storage no longer holds gets 404 `not_found`.
+         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes Content-Length equal to the decrypted file's exact byte count in its existing compression format. Encryption overhead in storage is not included in that length. A file its storage no longer holds gets 404 `not_found`.
          */
         get: operations["downloadLogicalBackup"];
         put?: never;
@@ -1390,7 +1390,7 @@ export interface paths {
         put?: never;
         /**
          * Restore a logical backup into a target database
-         * @description Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+         * @description Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
          */
         post: operations["startRestore"];
         delete?: never;
@@ -1559,7 +1559,7 @@ export interface paths {
         put?: never;
         /**
          * Start a manual backup verification
-         * @description While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+         * @description Queues a verification of a completed logical backup for an agent to claim. A backup that is not completed gets 409 `backup_not_completed`, and a database that already has a pending or running manual verification gets 409 `already_running`.
          */
         post: operations["startVerification"];
         delete?: never;
@@ -1654,7 +1654,7 @@ export interface paths {
         get: operations["getInstanceBackupSettings"];
         /**
          * Replace the Databasus backup settings
-         * @description Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once. While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+         * @description Only root admin may change them. `storageIds` are live references to existing storages of any workspace; their provider settings are not copied, and workspace editors keep editing them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request` and nothing changes. Adding the first destination requests a backup at once. Removing the last destination reports stopped protection at once.
          */
         put: operations["updateInstanceBackupSettings"];
         post?: never;
@@ -1673,7 +1673,7 @@ export interface paths {
         };
         /**
          * Get the protection state of the instance
-         * @description Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery with its pause.
+         * @description Only root admin reads it. It combines Databasus backup health per destination, the open incident and its mail delivery, whether the system mail server and root admin's address can carry incident mail, whether the current master key was acknowledged as saved, the setup reminder and the latest recovery.
          */
         get: operations["getInstanceBackupStatus"];
         put?: never;
@@ -1719,7 +1719,7 @@ export interface paths {
         put?: never;
         /**
          * Start a Databasus backup now
-         * @description Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`; while the instance is paused after a recovery it is 409 `recovery_paused`.
+         * @description Only root admin starts one. Answers at once with the backup in progress. Without a selected destination the answer is 400 `invalid_request`; while another Databasus backup is being produced it is 409 `already_running`.
          */
         post: operations["startInstanceBackup"];
         delete?: never;
@@ -1931,7 +1931,7 @@ export interface paths {
         put?: never;
         /**
          * Email root admin a code that confirms applying this recovery
-         * @description Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. Without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+         * @description Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
          */
         post: operations["requestInstanceRecoveryConfirmation"];
         delete?: never;
@@ -1954,7 +1954,7 @@ export interface paths {
         put?: never;
         /**
          * Replace this installation with the prepared recovery
-         * @description Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code proof bound to this recovery; a master-key export proof or a proof for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation paused in the same process; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+         * @description Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
          */
         post: operations["applyInstanceRecovery"];
         delete?: never;
@@ -1980,29 +1980,6 @@ export interface paths {
          * @description Only root admin cancels. The answer comes after the staged archive, key and staging database are released, with the recovery `CANCELLED`; cancelling it again returns the same answer. Once apply was accepted, or for a recovery that already failed or completed, the answer is 409 `recovery_not_ready`.
          */
         post: operations["cancelInstanceRecovery"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/instance-recoveries/{instanceRecoveryId}/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ID of the recovery */
-                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Confirm the old instance is stopped and end the recovery pause
-         * @description Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets 409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local storages stay unavailable until an editor validates them.
-         */
-        post: operations["activateInstanceRecovery"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2796,7 +2773,6 @@ export interface components {
              * @description The ID of the storage
              */
             id: string;
-            recoveryValidationStatus: components["schemas"]["StorageRecoveryValidationStatus"];
             /**
              * Format: uuid
              * @description The workspace the storage belongs to
@@ -2866,7 +2842,6 @@ export interface components {
             isConnected: boolean;
             /** @description The error the storage gave, absent when it is connected */
             error?: string;
-            recoveryValidationStatus?: components["schemas"]["StorageRecoveryValidationStatus"];
         };
         /** @description The settings of the storage's provider; `type` tells the providers apart */
         StorageSettings: components["schemas"]["LocalStorageSettings"] | components["schemas"]["S3StorageSettings"] | components["schemas"]["NasStorageSettings"] | components["schemas"]["AzureBlobStorageSettings"] | components["schemas"]["FtpStorageSettings"] | components["schemas"]["SftpStorageSettings"];
@@ -3503,11 +3478,6 @@ export interface components {
             /** @description Whether the instance has a user database or storage, so setup should be suggested. The reminder cannot be deferred: it shows while no destination is selected. */
             isEligible: boolean;
         };
-        /**
-         * @description A way root admin can confirm identity
-         * @enum {string}
-         */
-        IdentityProofMethod: "PASSWORD" | "EMAIL_CODE";
         /** @description The protection state of the instance for root admin */
         InstanceBackupStatus: {
             health: components["schemas"]["InstanceBackupHealth"];
@@ -3521,15 +3491,9 @@ export interface components {
             isRootEmailUsable: boolean;
             /** @description Whether root admin confirmed saving the current master key */
             isMasterKeyAcknowledged: boolean;
-            /** @description Whether a master-key export needs an emailed code, because the instance requires two-factor sign-in */
-            isMasterKeyExportCodeRequired: boolean;
-            /** @description The identity confirmations root admin can give now; empty means only the host file remains */
-            identityProofMethods: components["schemas"]["IdentityProofMethod"][];
-            /** @description Where the master key file lives inside the container, for saving it from the host */
-            masterKeyPath: string;
+            /** @description Whether a master-key export and a recovery apply need a code emailed to root admin, because the instance requires two-factor sign-in */
+            isConfirmationCodeRequired: boolean;
             reminder: components["schemas"]["InstanceBackupReminder"];
-            /** @description Whether the instance is paused after a recovery until root admin activates it */
-            isRecoveryPaused: boolean;
             /** @description The latest recovery of the local journal, null when there was none */
             recovery?: components["schemas"]["InstanceRecovery"] | null;
         };
@@ -3675,13 +3639,6 @@ export interface components {
              */
             expiresAt: string;
         };
-        /** @description Root admin's current password or an emailed code; exactly one is sent */
-        IdentityProof: {
-            /** @description Root admin's current password */
-            password?: string;
-            /** @description The emailed confirmation code */
-            code?: string;
-        };
         /** @description The confirmation for a master-key export */
         MasterKeyExportCreate: {
             /** @description The emailed confirmation code; required when the instance requires two-factor sign-in */
@@ -3705,10 +3662,10 @@ export interface components {
             isSaved: boolean;
         };
         /**
-         * @description Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can be applied, `APPLYING` once apply was accepted, `PAUSED` after publication until activation, `ACTIVE` after activation
+         * @description Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can be applied, `APPLYING` once apply was accepted, `COMPLETED` once the recovered installation is published
          * @enum {string}
          */
-        InstanceRecoveryStatus: "VALIDATING" | "READY" | "APPLYING" | "PAUSED" | "ACTIVE" | "FAILED" | "CANCELLED";
+        InstanceRecoveryStatus: "VALIDATING" | "READY" | "APPLYING" | "COMPLETED" | "FAILED" | "CANCELLED";
         /**
          * @description How the recovery inputs arrived
          * @enum {string}
@@ -3769,22 +3726,13 @@ export interface components {
             /** @description The source installation's master key as text; its exact UTF-8 bytes are used */
             masterKey: string;
         };
-        /** @description The replacement confirmation and identity proof */
+        /** @description The replacement confirmation, with the emailed code while two-factor sign-in is required */
         InstanceRecoveryApply: {
             /** @description Root admin accepted that current users, settings and backup catalog are replaced */
             isReplacementConfirmed: boolean;
-            proof: components["schemas"]["IdentityProof"];
+            /** @description The code emailed for this recovery; required while the instance requires two-factor sign-in and ignored otherwise */
+            code?: string;
         };
-        /** @description The confirmation that ends the recovery pause */
-        InstanceRecoveryActivation: {
-            /** @description Root admin confirms the old instance is stopped */
-            isOldInstanceStopped: boolean;
-        };
-        /**
-         * @description `REQUIRES_VALIDATION` for a local storage recovered from a Databasus backup until an editor's saved connection test succeeds on this host; every other storage is `AVAILABLE`
-         * @enum {string}
-         */
-        StorageRecoveryValidationStatus: "AVAILABLE" | "REQUIRES_VALIDATION";
         /**
          * @description The provider of a storage
          * @enum {string}
@@ -3808,7 +3756,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "email_not_found" | "password_incorrect" | "registration_incomplete" | "password_not_set" | "password_not_set_google" | "password_not_set_github" | "password_not_set_google_github" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "cleanup_pending" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "instance_unhealthy" | "databasus_backup_in_use" | "recovery_paused" | "storage_unavailable" | "recovery_incompatible" | "recovery_not_ready" | "identity_proof_invalid" | "identity_proof_unavailable" | "archive_too_large" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "email_not_found" | "password_incorrect" | "registration_incomplete" | "password_not_set" | "password_not_set_google" | "password_not_set_github" | "password_not_set_google_github" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "cleanup_pending" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "instance_unhealthy" | "databasus_backup_in_use" | "storage_unavailable" | "recovery_incompatible" | "recovery_not_ready" | "identity_proof_invalid" | "identity_proof_unavailable" | "archive_too_large" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -8269,7 +8217,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        /** @description The replacement confirmation and the identity proof. */
+        /** @description The replacement confirmation and, with two-factor sign-in, the emailed code. */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["InstanceRecoveryApply"];
@@ -8307,40 +8255,6 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description The cancelled recovery */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InstanceRecovery"];
-                };
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-            404: components["responses"]["Problem"];
-            409: components["responses"]["Problem"];
-            default: components["responses"]["Problem"];
-        };
-    };
-    activateInstanceRecovery: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ID of the recovery */
-                instanceRecoveryId: components["parameters"]["InstanceRecoveryId"];
-            };
-            cookie?: never;
-        };
-        /** @description The confirmation that the old instance is stopped. */
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InstanceRecoveryActivation"];
-            };
-        };
-        responses: {
-            /** @description The activated recovery */
             200: {
                 headers: {
                     [name: string]: unknown;

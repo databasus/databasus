@@ -96,7 +96,7 @@ export default function FAQPage() {
                 name: "Bagaimana cara membuat backup Databasus itu sendiri?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus dirancang agar tetap bisa dipulihkan meski server-nya sendiri hilang atau rusak. Databasus bisa membuat backup database internalnya sendiri: akun, pengaturan, kredensial terenkripsi untuk database, penyimpanan, dan kanal notifikasi, jadwal, serta katalog backup. Aktifkan fitur ini di Databasus settings → Databasus backups dengan memilih satu atau beberapa penyimpanan yang sudah ada. Secara default, backup Databasus berjalan setiap jam dan disimpan selama 30 hari. File dienkripsi dengan kunci utama dan tidak berisi kunci itu maupun file backup database kamu, jadi simpan kunci utama secara terpisah. Databasus meminta kamu mengunduhnya, dan kunci ini juga tersimpan sebagai . /databasus-data/secret. key di host. Pemulihan memerlukan file backup, kunci utamanya, dan versi Databasus yang persis sama, termasuk patch. Caranya ada dua. Pertama, taruh kedua file di direktori data yang di-mount, lalu jalankan Databasus dengan RECOVERY_DUMP_PATH dan RECOVERY_MASTER_KEY_PATH di server yang belum memiliki akun dan pengaturannya belum diubah. Kedua, unggah file dan tempel kunci di Databasus settings → Databasus backups; cara ini mengganti instalasi saat ini.",
+                  text: "Databasus dirancang agar tetap bisa dipulihkan meski server-nya sendiri hilang atau rusak. Databasus bisa membuat backup database internalnya sendiri: akun, pengaturan, kredensial terenkripsi untuk database, penyimpanan, dan kanal notifikasi, jadwal, serta katalog backup. Aktifkan fitur ini di Databasus settings → Databasus backups dengan memilih satu atau beberapa penyimpanan yang sudah ada. Secara default, backup Databasus berjalan setiap jam dan disimpan selama 30 hari. File dienkripsi dengan kunci utama dan tidak berisi kunci itu maupun file backup database kamu, jadi simpan kunci utama secara terpisah. Databasus meminta kamu mengunduhnya, dan kunci ini juga tersimpan sebagai . /databasus-data/secret. key di host. Pemulihan memerlukan file backup, kunci utamanya, dan versi Databasus yang persis sama, termasuk patch. Caranya ada dua. Pertama, taruh kedua file di direktori data yang di-mount, lalu jalankan Databasus dengan RECOVERY_DUMP_PATH dan RECOVERY_MASTER_KEY_PATH di server yang belum memiliki akun dan pengaturannya belum diubah. Kedua, unggah file dan tempel kunci di Databasus settings → Databasus backups; cara ini mengganti instalasi saat ini. Hentikan instalasi lama sebelum memulihkan. Instalasi hasil pemulihan langsung menjalankan backup, notifikasi dan penulisan ke penyimpanan, jadi dua instalasi yang berjalan bersamaan akan menulis ke penyimpanan dan database yang sama.",
                 },
               },
               {
@@ -544,6 +544,13 @@ export default function FAQPage() {
                 Untuk versi lain, Databasus menolak dan menyebutkan versi yang
                 harus dijalankan: pulihkan di versi itu, lalu upgrade seperti
                 biasa.
+              </p>
+
+              <p>
+                <strong>Hentikan instalasi lama sebelum memulihkan.</strong> Instalasi
+                hasil pemulihan langsung menjalankan backup, notifikasi dan
+                penulisan ke penyimpanan, jadi dua instalasi yang berjalan
+                bersamaan akan menulis ke penyimpanan dan database yang sama.
               </p>
 
               <p>

@@ -280,13 +280,13 @@ func (tg target) listWorkspaceNames(t *testing.T) []string {
 	return names
 }
 
-func (tg target) getPausedOperationID(t *testing.T) *uuid.UUID {
+func (tg target) getRecoveredByOperationID(t *testing.T) *uuid.UUID {
 	t.Helper()
 
 	var operationIDs []*uuid.UUID
 
 	withTestDatabase(t, tg.dsn, func(db *gorm.DB) {
-		require.NoError(t, db.Raw("SELECT recovery_paused_operation_id FROM instancebackups_configs").
+		require.NoError(t, db.Raw("SELECT recovered_by_operation_id FROM instancebackups_configs").
 			Scan(&operationIDs).Error)
 	})
 	require.Len(t, operationIDs, 1)
@@ -395,19 +395,16 @@ func getModuleNormalizers() []StateNormalizer {
 	}
 }
 
-// readAccountState reads the source account's password version and the local storage's status.
-func (tg target) readAccountState(t *testing.T) (string, string) {
+func (tg target) readPasswordVersion(t *testing.T) string {
 	t.Helper()
 
-	var passwordVersions, storageStatuses []string
+	var passwordVersions []string
 
 	withTestDatabase(t, tg.dsn, func(db *gorm.DB) {
 		require.NoError(t, db.Raw("SELECT password_version::text FROM users WHERE email = ?", sourceAccountEmail).
 			Scan(&passwordVersions).Error)
-		require.NoError(t, db.Raw("SELECT recovery_validation_status FROM storages").Scan(&storageStatuses).Error)
 	})
 	require.Len(t, passwordVersions, 1)
-	require.Len(t, storageStatuses, 1)
 
-	return passwordVersions[0], storageStatuses[0]
+	return passwordVersions[0]
 }

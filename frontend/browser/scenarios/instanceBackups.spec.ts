@@ -69,7 +69,7 @@ test.describe('Databasus backups section', () => {
   });
 
   for (const context of contexts) {
-    test(`creates a destination inline and scrolls to the mail server in ${context.locale} ${context.theme} ${context.width}`, async ({
+    test(`creates a destination from the settings dialog and scrolls to the mail server in ${context.locale} ${context.theme} ${context.width}`, async ({
       page,
     }) => {
       const dictionary = DICTIONARIES[context.locale];
@@ -78,6 +78,7 @@ test.describe('Databasus backups section', () => {
       await openAccount({ page, ...context });
       await openAccountTab({ page, locale: context.locale, tab: 'databasusSettings' });
 
+      await page.getByRole('button', { name: text.setup.start, exact: true }).click();
       await page.getByRole('combobox', { name: text.destinations.picker, exact: true }).click();
       await page.getByRole('button', { name: text.destinations.create, exact: true }).click();
       const dialog = page.getByRole('dialog', { name: text.createDestination.title, exact: true });
@@ -95,9 +96,16 @@ test.describe('Databasus backups section', () => {
         .click();
 
       await expect(dialog).toHaveCount(0);
-      await expect(page.getByText(offsiteStorage.name, { exact: true }).first()).toBeVisible();
+      const settingsDialog = page.getByRole('dialog', { name: text.settings.title, exact: true });
+      await expect(
+        settingsDialog.getByText(offsiteStorage.name, { exact: true }).first(),
+      ).toBeVisible();
       await expect(page).toHaveURL(/\/databasus-settings$/);
-      await expect(page.getByText(workspace.name).first()).toBeVisible();
+      await expect(settingsDialog.getByText(workspace.name).first()).toBeVisible();
+      await settingsDialog
+        .getByRole('button', { name: dictionary.common.actions.cancel, exact: true })
+        .click();
+      await expect(settingsDialog).toHaveCount(0);
 
       const configure = page.getByRole('button', { name: text.smtp.configure, exact: true });
       await configure.focus();
@@ -109,9 +117,6 @@ test.describe('Databasus backups section', () => {
       });
       await expect(mailHeading).toBeFocused();
       await expect(mailHeading).toBeInViewport();
-      await expect(page.getByRole('button', { name: text.settings.save, exact: true })).toHaveCount(
-        1,
-      );
 
       await enlargeText(page.getByRole('main'));
       await assertEnlargedTextReflow(page);
@@ -178,6 +183,8 @@ test.describe('Master key onboarding', () => {
           true,
         );
       });
+      // The confirmation unlocks 15 seconds after the screen appears; the test runs that time.
+      await page.clock.install({ time: new Date('2026-10-18T12:00:00Z') });
       await page.setViewportSize({ width: context.width, height: 900 });
       await openAccount({ page, ...context });
 
@@ -186,10 +193,7 @@ test.describe('Master key onboarding', () => {
         exact: true,
         level: 1,
       });
-      const closeButton = page.getByRole('button', {
-        name: dictionary.masterKey.onboarding.close,
-        exact: true,
-      });
+      const closeButton = page.getByRole('button', { name: dictionary.masterKey.onboarding.close });
       await expect(page.getByText('k3Jd••••••••••••9fQa', { exact: true })).toBeVisible();
       await expect(onboarding).toBeVisible();
       await expect(closeButton).toBeDisabled();
@@ -201,6 +205,9 @@ test.describe('Master key onboarding', () => {
       await expect(
         page.getByRole('button', { name: dictionary.masterKey.copied, exact: true }),
       ).toBeVisible();
+      await expect(closeButton).toBeDisabled();
+      await page.clock.runFor(15_000);
+      await expect(closeButton).toHaveText(dictionary.masterKey.onboarding.close);
       await expect(closeButton).toBeEnabled();
       expect(
         await page.evaluate(() => (window as unknown as { copiedTexts: string[] }).copiedTexts),
@@ -264,57 +271,6 @@ test.describe('Floating incident notice', () => {
   }
 });
 
-test.describe('Recovery pause', () => {
-  test.use({
-    httpFixtures: [
-      instanceBackupFixtures({
-        status: buildInstanceBackupStatus({
-          isRecoveryPaused: true,
-          recovery: { ...preparedRecovery, status: 'PAUSED' },
-        }),
-        extra: [
-          apiResponse({
-            method: 'post',
-            path: '/instance-recoveries/{instanceRecoveryId}/activate',
-            status: 200,
-            body: { ...preparedRecovery, status: 'ACTIVE' },
-          }),
-        ],
-      }),
-      { scope: 'test' },
-    ],
-  });
-
-  for (const context of contexts) {
-    test(`activates only after explicit confirmation from the keyboard in ${context.locale} ${context.theme} ${context.width}`, async ({
-      page,
-      boundary,
-    }) => {
-      const text = DICTIONARIES[context.locale].instanceRecovery.pause;
-      await page.setViewportSize({ width: context.width, height: 900 });
-      await openAccount({ page, ...context });
-
-      await page.getByRole('button', { name: text.activate, exact: true }).click();
-      const dialog = page.getByRole('dialog', { name: text.confirmTitle, exact: true });
-      const submit = dialog.getByRole('button', { name: text.activate, exact: true });
-      await expect(submit).toBeDisabled();
-
-      await dialog.getByRole('checkbox', { name: text.oldInstanceStopped, exact: true }).focus();
-      await page.keyboard.press('Space');
-      await submit.click();
-
-      await expect(dialog).toHaveCount(0);
-      expect(boundary.requests.filter((request) => request.path.endsWith('/activate'))).toEqual([
-        {
-          method: 'POST',
-          path: `/instance-recoveries/${preparedRecovery.id}/activate`,
-          body: { isOldInstanceStopped: true },
-        },
-      ]);
-    });
-  }
-});
-
 test.describe('Recovery import form', () => {
   test.use({
     httpFixtures: [
@@ -329,13 +285,13 @@ test.describe('Recovery import form', () => {
           apiResponse({
             method: 'post',
             path: '/instance-recoveries/{instanceRecoveryId}/apply',
-            status: 400,
+            status: 409,
             body: {
-              type: 'urn:databasus:problem:identity_proof_invalid',
+              type: 'urn:databasus:problem:recovery_not_ready',
               title: 'Refused',
               detail: 'Synthetic refusal',
-              status: 400,
-              code: 'identity_proof_invalid',
+              status: 409,
+              code: 'recovery_not_ready',
             },
           }),
         ],
@@ -355,40 +311,37 @@ test.describe('Recovery import form', () => {
       await openAccount({ page, ...context });
       await openAccountTab({ page, locale: context.locale, tab: 'databasusSettings' });
 
-      await page
-        .getByRole('button', { name: text.form.upload, exact: true })
-        .scrollIntoViewIfNeeded();
-      await page.getByRole('button', { name: text.form.upload, exact: true }).click();
-      await expect(page.getByText(text.form.archiveMissing, { exact: true })).toBeVisible();
-      await expect(page.getByText(text.form.masterKeyMissing, { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: text.open, exact: true }).click();
+      const importDialog = page.getByRole('dialog', { name: text.form.title, exact: true });
+      await importDialog.getByRole('button', { name: text.form.upload, exact: true }).click();
+      await expect(importDialog.getByText(text.form.archiveMissing, { exact: true })).toBeVisible();
+      await expect(
+        importDialog.getByText(text.form.masterKeyMissing, { exact: true }),
+      ).toBeVisible();
 
       await page.locator('input[type="file"]').setInputFiles({
         name: 'databasus.dbsbackup',
         mimeType: 'application/octet-stream',
         buffer: Buffer.from('encrypted archive'),
       });
-      const keyField = page.getByRole('textbox', { name: new RegExp(text.form.masterKey) });
+      const keyField = page.getByLabel(text.form.masterKey, { exact: true });
       await keyField.focus();
       await page.keyboard.type('typed-source-key');
 
-      await page.getByRole('button', { name: text.form.upload, exact: true }).click();
+      await importDialog.getByRole('button', { name: text.form.upload, exact: true }).click();
 
-      await expect(page.getByText(text.form.ready, { exact: true })).toBeVisible();
+      const dialog = page.getByRole('dialog', { name: text.apply.title, exact: true });
+      await expect(dialog.getByText(text.form.ready, { exact: true })).toBeVisible();
       const upload = boundary.requests.find((request) => request.path === '/instance-recoveries');
       expect(String(upload?.body)).toContain('typed-source-key');
 
-      await page.getByRole('button', { name: text.form.replace, exact: true }).click();
-      const dialog = page.getByRole('dialog', { name: text.apply.title, exact: true });
       await dialog
         .getByRole('checkbox', { name: text.apply.confirmReplacement, exact: true })
         .check();
-      await dialog
-        .getByLabel(dictionary.masterKey.proof.password, { exact: true })
-        .fill('wrong-password');
       await dialog.getByRole('button', { name: text.apply.submit, exact: true }).click();
 
       await expect(
-        dialog.getByText(dictionary.errors.identityProofInvalid, { exact: true }),
+        dialog.getByText(dictionary.errors.recoveryNotReady, { exact: true }),
       ).toBeVisible();
       await assertEnlargedTextReflow(page);
     });
@@ -439,6 +392,7 @@ test.describe('Recovery key paste and restored sign-in', () => {
     await openAccount({ page });
     await openAccountTab({ page, locale: 'en', tab: 'databasusSettings' });
 
+    await page.getByRole('button', { name: text.open, exact: true }).click();
     await page.locator('input[type="file"]').setInputFiles({
       name: 'databasus.dbsbackup',
       mimeType: 'application/octet-stream',
@@ -446,7 +400,7 @@ test.describe('Recovery key paste and restored sign-in', () => {
     });
     // The page is served over HTTP, where the Clipboard API is unavailable, so the paste reaches the
     // rendered field as the event a browser dispatches for Ctrl+V.
-    await page.getByRole('textbox', { name: new RegExp(text.form.masterKey) }).evaluate((field) => {
+    await page.getByLabel(text.form.masterKey, { exact: true }).evaluate((field) => {
       const clipboardData = new DataTransfer();
       clipboardData.setData('text/plain', 'pasted-key\r\nsecond line');
       field.dispatchEvent(
@@ -454,17 +408,15 @@ test.describe('Recovery key paste and restored sign-in', () => {
       );
     });
     await page.getByRole('button', { name: text.form.upload, exact: true }).click();
-    await expect(page.getByText(text.form.ready, { exact: true })).toBeVisible();
+    const dialog = page.getByRole('dialog', { name: text.apply.title, exact: true });
+    await expect(dialog.getByText(text.form.ready, { exact: true })).toBeVisible();
 
     const upload = boundary.requests.find((request) => request.path === '/instance-recoveries');
     expect(String(upload?.body)).toContain('pasted-key\r\nsecond line');
 
-    await page.getByRole('button', { name: text.form.replace, exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: text.apply.title, exact: true });
     await dialog
       .getByRole('checkbox', { name: text.apply.confirmReplacement, exact: true })
       .check();
-    await dialog.getByLabel(dictionary.masterKey.proof.password, { exact: true }).fill('root-pass');
     await dialog.getByRole('button', { name: text.apply.submit, exact: true }).click();
 
     await expect(page.getByText(text.form.applying, { exact: true })).toBeVisible();

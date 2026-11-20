@@ -16,7 +16,6 @@ for (const theme of ['light', 'dark']) {
     const storage: components['schemas']['Storage'] = {
       id: 'cleanup-storage',
       workspaceId: workspace.id,
-      recoveryValidationStatus: 'AVAILABLE',
       name: 'Cleanup archive',
       settings: { type: 'LOCAL' },
     };

@@ -97,7 +97,7 @@ export default function FAQPage() {
                 name: "¿Cómo respaldar el propio Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus está pensado para poder recuperarse aunque se pierda o se corrompa su propio servidor. Puede hacer copias de seguridad de su propia base de datos interna: cuentas, ajustes, las credenciales cifradas de bases de datos, almacenamientos y canales de notificación, programaciones y el catálogo de copias. Actívelo en Databasus settings → Databasus backups eligiendo uno o varios almacenamientos existentes; por defecto, la copia de seguridad de Databasus se ejecuta cada hora y se conserva 30 días. El archivo se cifra con la clave maestra y no contiene ni la clave ni los archivos de copia de sus bases de datos, así que guarde la clave maestra por separado: Databasus le pide que la descargue, y también está en . /databasus-data/secret. key en el host. La recuperación necesita el archivo de copia, su clave maestra y exactamente la misma versión de Databasus, incluido el parche. Puede poner ambos archivos en el directorio de datos montado y arrancar Databasus con RECOVERY_DUMP_PATH y RECOVERY_MASTER_KEY_PATH en un servidor sin cuentas ni ajustes cambiados, o bien subir el archivo y pegar la clave en Databasus settings → Databasus backups, lo que reemplaza la instalación actual.",
+                  text: "Databasus está pensado para poder recuperarse aunque se pierda o se corrompa su propio servidor. Puede hacer copias de seguridad de su propia base de datos interna: cuentas, ajustes, las credenciales cifradas de bases de datos, almacenamientos y canales de notificación, programaciones y el catálogo de copias. Actívelo en Databasus settings → Databasus backups eligiendo uno o varios almacenamientos existentes; por defecto, la copia de seguridad de Databasus se ejecuta cada hora y se conserva 30 días. El archivo se cifra con la clave maestra y no contiene ni la clave ni los archivos de copia de sus bases de datos, así que guarde la clave maestra por separado: Databasus le pide que la descargue, y también está en . /databasus-data/secret. key en el host. La recuperación necesita el archivo de copia, su clave maestra y exactamente la misma versión de Databasus, incluido el parche. Puede poner ambos archivos en el directorio de datos montado y arrancar Databasus con RECOVERY_DUMP_PATH y RECOVERY_MASTER_KEY_PATH en un servidor sin cuentas ni ajustes cambiados, o bien subir el archivo y pegar la clave en Databasus settings → Databasus backups, lo que reemplaza la instalación actual. Detenga la instalación antigua antes de recuperar. La instalación recuperada inicia de inmediato sus copias de seguridad, notificaciones y escrituras en los almacenamientos, así que dos instalaciones en marcha escribirían en los mismos almacenamientos y bases de datos.",
                 },
               },
               {
@@ -632,6 +632,14 @@ export default function FAQPage() {
                 Con cualquier otra versión, Databasus se niega e indica qué
                 versión arrancar: recupere en esa versión y después actualice
                 como de costumbre.
+              </p>
+
+              <p>
+                <strong>Detenga la instalación antigua antes de recuperar.</strong> La
+                instalación recuperada inicia de inmediato sus copias de
+                seguridad, notificaciones y escrituras en los almacenamientos,
+                así que dos instalaciones en marcha escribirían en los mismos
+                almacenamientos y bases de datos.
               </p>
 
               <p>

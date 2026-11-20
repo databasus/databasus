@@ -51,7 +51,6 @@ const (
 	CodeVerificationGone           Code = "verification_gone"
 	CodeInstanceUnhealthy          Code = "instance_unhealthy"
 	CodeDatabasusBackupInUse       Code = "databasus_backup_in_use"
-	CodeRecoveryPaused             Code = "recovery_paused"
 	CodeStorageUnavailable         Code = "storage_unavailable"
 	CodeRecoveryIncompatible       Code = "recovery_incompatible"
 	CodeRecoveryNotReady           Code = "recovery_not_ready"
@@ -149,8 +148,6 @@ func describeCode(code Code) (int, string) {
 		return http.StatusServiceUnavailable, "Instance unhealthy"
 	case CodeDatabasusBackupInUse:
 		return http.StatusConflict, "Databasus backup destination in use"
-	case CodeRecoveryPaused:
-		return http.StatusConflict, "Recovery paused"
 	case CodeStorageUnavailable:
 		return http.StatusConflict, "Storage unavailable"
 	case CodeRecoveryIncompatible:

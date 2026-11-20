@@ -29,10 +29,6 @@ func (s *Service) StartBackup(ctx context.Context, actor users.Actor, request Ba
 		return err
 	}
 
-	if err := s.recoveryPause.Check(); err != nil {
-		return err
-	}
-
 	backupConfig, err := s.getConfigAbleToBackUp(ctx, request.DatabaseID)
 	if err != nil {
 		return err

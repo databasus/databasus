@@ -29,7 +29,7 @@ const targetRootPassword = "target-root-password-123"
 
 //nolint:paralleltest // Each scenario sets the process environment the server loads its settings from.
 func TestServeUntilStopped(t *testing.T) {
-	t.Run("publishes an accepted recovery and serves the recovered instance paused without a restart",
+	t.Run("publishes an accepted recovery and serves the recovered instance without a restart",
 		func(t *testing.T) {
 			source := newRecoverySource(t)
 			target := startRebuildingServer(t, testdb.Open(t))
@@ -42,16 +42,15 @@ func TestServeUntilStopped(t *testing.T) {
 			require.Equal(t, http.StatusAccepted, applyResponse.StatusCode(), string(applyResponse.Body))
 			assert.Equal(t, http.StatusUnauthorized, getStatusCode(t, targetRoot))
 			status := getRecoveryStatus(t, restoredRoot)
-			assert.True(t, status.IsRecoveryPaused)
 			require.NotNil(t, status.Recovery)
 			assert.Equal(t, recoveryID, status.Recovery.Id)
-			assert.Equal(t, apiclient.InstanceRecoveryStatusPAUSED, status.Recovery.Status)
+			assert.Equal(t, apiclient.InstanceRecoveryStatusCOMPLETED, status.Recovery.Status)
 			assert.Equal(t, source.masterKey, target.readMasterKey(t))
 			target.requireServing(t)
 
 			target.restart(t)
 			restartedRoot := target.waitForSignIn(t, source.rootEmail)
-			assert.True(t, getRecoveryStatus(t, restartedRoot).IsRecoveryPaused)
+			assert.Equal(t, recoveryID, getRecoveryStatus(t, restartedRoot).Recovery.Id)
 		})
 
 	t.Run("ends the accepted recovery as QUIESCENCE_FAILED and keeps serving while a console command runs",
@@ -71,7 +70,7 @@ func TestServeUntilStopped(t *testing.T) {
 			require.Equal(t, http.StatusAccepted, applyResponse.StatusCode(), string(applyResponse.Body))
 			require.NotNil(t, failedRecovery.Failure)
 			assert.Equal(t, apiclient.InstanceRecoveryFailureQUIESCENCEFAILED, *failedRecovery.Failure)
-			assert.False(t, getRecoveryStatus(t, targetRoot).IsRecoveryPaused)
+			assert.Nil(t, getRecoveryStatus(t, targetRoot).Recovery, "a failed apply leaves no completed recovery")
 			assert.Equal(t, targetKey, target.readMasterKey(t))
 			target.requireServing(t)
 		})
@@ -302,7 +301,7 @@ func applyTargetRecovery(
 
 	response, err := root.ApplyInstanceRecoveryWithResponse(t.Context(), recoveryID, apiclient.InstanceRecoveryApply{
 		IsReplacementConfirmed: true,
-		Proof:                  apiclient.IdentityProof{Password: new(targetRootPassword), Code: nil},
+		Code:                   nil,
 	})
 	require.NoError(t, err)
 

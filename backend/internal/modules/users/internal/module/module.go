@@ -94,10 +94,6 @@ func (m *Module) GetRootAdmin(ctx context.Context) (identity.User, bool, error) 
 	return m.directory.GetRootAdmin(ctx)
 }
 
-func (m *Module) GetIdentityProofMethods(ctx context.Context, actor identity.Actor) ([]identityproof.Method, error) {
-	return m.identityProof.GetMethods(ctx, actor)
-}
-
 func (m *Module) SendIdentityCode(
 	ctx context.Context,
 	actor identity.Actor,
@@ -106,13 +102,13 @@ func (m *Module) SendIdentityCode(
 	return m.identityProof.SendCode(ctx, actor, binding)
 }
 
-func (m *Module) VerifyIdentityProof(
+func (m *Module) VerifyIdentityCode(
 	ctx context.Context,
 	actor identity.Actor,
 	binding identityproof.Binding,
-	proof identityproof.Proof,
+	code *string,
 ) error {
-	return m.identityProof.Verify(ctx, actor, binding, proof)
+	return m.identityProof.Verify(ctx, actor, binding, code)
 }
 
 func (m *Module) GetUserByEmail(ctx context.Context, email string) (identity.User, bool, error) {

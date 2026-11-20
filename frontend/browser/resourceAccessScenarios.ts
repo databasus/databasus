@@ -12,7 +12,6 @@ import { visualContexts } from './visualContexts';
 const localResource = {
   id: 'local-id',
   workspaceId: workspace.id,
-  recoveryValidationStatus: 'AVAILABLE' as const,
   name: 'Local backups',
   settings: { type: 'LOCAL' as const },
 };

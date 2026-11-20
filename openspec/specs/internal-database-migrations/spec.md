@@ -10,7 +10,7 @@ Describes how the application brings the schema of its internal database to the 
 
 Except when the unsupported-storage upgrade refusal below applies or startup recovery is requested, at every server start the application SHALL apply to the internal database every migration of its version that is not applied yet, and only then start accepting HTTP requests and running background work. This SHALL NOT require any program but the Databasus binary: the image contains no separate migration tool. A migration that is already applied SHALL NOT run again.
 
-Startup recovery and UI file import SHALL validate the complete Databasus backup file, exact source release and schema identity before importing or applying migrations to that snapshot. Schema identity SHALL compare the ordered migration-bundle digest and effective applied versions under `databasus-recovery`: historical applied versions absent from that same release's bundle SHALL remain permitted when they are no newer than its newest migration. A mismatch SHALL change neither the target database nor its key. Successful same-version startup recovery SHALL import into a fresh or automatically initialized target before ordinary application initialization. Existing migrations and application tables SHALL NOT prevent this path when no user accounts, user data or user-changed settings exist under `databasus-recovery`; recovery SHALL NOT apply migrations to classify the target or bypass the newer-schema refusal. UI import SHALL replace an initialized target only after current-root confirmation and live-work quiescence. Both paths SHALL retain the snapshot's migration history, apply no migration to make the archive fit and start paused as `databasus-recovery` specifies. An upgrade SHALL be a subsequent ordinary start, not part of recovery. Successfully consumed startup archives SHALL be skipped before archive compatibility checks on subsequent starts, so leaving their paths configured SHALL NOT prevent an ordinary upgrade.
+Startup recovery and UI file import SHALL validate the complete Databasus backup file, exact source release and schema identity before importing or applying migrations to that snapshot. Schema identity SHALL compare the ordered migration-bundle digest and effective applied versions under `databasus-recovery`: historical applied versions absent from that same release's bundle SHALL remain permitted when they are no newer than its newest migration. A mismatch SHALL change neither the target database nor its key. Successful same-version startup recovery SHALL import into a fresh or automatically initialized target before ordinary application initialization. Existing migrations and application tables SHALL NOT prevent this path when no user accounts, user data or user-changed settings exist under `databasus-recovery`; recovery SHALL NOT apply migrations to classify the target or bypass the newer-schema refusal. UI import SHALL replace an initialized target only after current-root confirmation and live-work quiescence. Both paths SHALL retain the snapshot's migration history, apply no migration to make the archive fit and start running, with no confirmation step, as `databasus-recovery` specifies. An upgrade SHALL be a subsequent ordinary start, not part of recovery. Successfully consumed startup archives SHALL be skipped before archive compatibility checks on subsequent starts, so leaving their paths configured SHALL NOT prevent an ordinary upgrade.
 
 #### Scenario: Fresh install
 
@@ -41,12 +41,12 @@ Startup recovery and UI file import SHALL validate the complete Databasus backup
 #### Scenario: Recovering an upgraded installation of the same release
 
 - **WHEN** the Databasus backup file has the exact target release and migration bundle, all carried migrations applied, and additional older historical applied migrations absent from the current bundle
-- **THEN** recovery preserves those historical migration records and starts paused without applying or deleting migrations
+- **THEN** recovery preserves those historical migration records and starts without applying or deleting migrations
 
 #### Scenario: UI imports a same-release snapshot over an initialized target
 
 - **WHEN** root admin confirms a compatible uploaded archive and the running application stops its work and connections for publication
-- **THEN** recovery retains the imported migration history without applying or deleting migrations and returns the application paused
+- **THEN** recovery retains the imported migration history without applying or deleting migrations and returns the application running
 
 #### Scenario: UI imports a snapshot from another release
 

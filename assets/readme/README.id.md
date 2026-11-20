@@ -292,10 +292,13 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 ### 💾 Backup Databasus itu sendiri
 
-Databasus dirancang agar tetap bisa dipulihkan meski server-nya sendiri hilang atau rusak. Databasus bisa membackup dirinya sendiri dan memandu kamu menyimpan kunci dengan aman:
+Databasus dirancang agar tetap bisa dipulihkan meski server-nya sendiri hilang atau rusak. Databasus bisa membackup dirinya sendiri dan membantu kamu menyimpan kunci dengan aman:
 
-- **Aktifkan backup Databasus** di **Databasus settings → Databasus backups**. Databasus lalu menyimpan salinan terenkripsi database internalnya (akun, pengaturan, kredensial dan katalog backup) setiap jam ke penyimpanan yang kamu pilih. Utamakan penyimpanan remote daripada disk lokal di server yang sama. Selama belum diaktifkan, Databasus menampilkan pengingat begitu database atau penyimpanan pertama ditambahkan.
-- **Simpan kunci utama secara terpisah.** Databasus meminta kamu mengunduhnya pada kunjungan pertama, dan kunci ini juga tersimpan di `./databasus-data/secret.key`. Tanpa kunci ini, backup Databasus maupun backup database tidak bisa didekripsi.
+**Aktifkan backup Databasus** di **Databasus settings → Databasus backups**. Databasus lalu menyimpan salinan terenkripsi database internalnya setiap jam ke penyimpanan yang kamu pilih. Selama belum diaktifkan, kamu akan melihat pengingat mengambang begitu database atau penyimpanan pertama ditambahkan.
+
+**Simpan kunci utama secara terpisah.** Databasus meminta kamu mengunduhnya pada kunjungan pertama, dan kunci ini juga tersimpan di `./databasus-data/secret.key`. Tanpa kunci ini, backup Databasus maupun backup database tidak bisa didekripsi.
+
+Utamakan penyimpanan remote daripada disk lokal di server yang sama.
 
 Lihat [cara membuat backup dan memulihkan Databasus](https://databasus.com/id/faq/#backup-databasus).
 

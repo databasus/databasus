@@ -8,8 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"databasus-backend/internal/lib/recoverypause"
 )
 
 func TestCrossInstanceWriteProtection(t *testing.T) {
@@ -23,7 +21,6 @@ func TestCrossInstanceWriteProtection(t *testing.T) {
 				WriteProtection: NewWriteProtectionRepository(files.db),
 				Transactor:      files.transactor, Locator: files.locator, Logger: files.job.logger,
 				Clock: files.clock, Timings: testTimings(), Uploads: files.uploads,
-				RecoveryPause: recoverypause.NewGate(false),
 			}
 			peer := NewDeletionJob(NewStore(peerDeps), peerDeps)
 

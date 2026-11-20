@@ -35,7 +35,6 @@ const existingWorkspace: Workspace = {
 const createdStorage: Storage = {
   id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
   workspaceId: createdWorkspace.id,
-  recoveryValidationStatus: 'AVAILABLE',
   name: 'Databasus archive',
   settings: { type: 'LOCAL' },
 };
@@ -49,16 +48,22 @@ const useSectionResponses = () =>
     mockApi.post('/storage-tests', 200, { isConnected: true }),
   );
 
-const renderSection = (workspaces: Workspace[], onWorkspaceCreated = vi.fn()) => {
-  activateSession({ token: 'root-session', userId: 'root' });
+const startSetup = async (user: ReturnType<typeof renderScreen>['user']) => {
+  await user.click(await screen.findByRole('button', { name: text.setup.start }));
+};
 
-  return renderScreen(
+const renderSetup = async (workspaces: Workspace[], onWorkspaceCreated = vi.fn()) => {
+  activateSession({ token: 'root-session', userId: 'root' });
+  const view = renderScreen(
     <InstanceBackupsSection
       workspaces={workspaces}
       onWorkspaceCreated={onWorkspaceCreated}
       onConfigureSmtp={vi.fn()}
     />,
   );
+  await startSetup(view.user);
+
+  return view;
 };
 
 const SectionWithWorkspaces = ({ initialWorkspaces }: { initialWorkspaces: Workspace[] }) => {
@@ -73,7 +78,7 @@ const SectionWithWorkspaces = ({ initialWorkspaces }: { initialWorkspaces: Works
   );
 };
 
-const editRetention = async (user: ReturnType<typeof renderSection>['user']) => {
+const editRetention = async (user: ReturnType<typeof renderScreen>['user']) => {
   const retention = await screen.findByRole('textbox', { name: text.settings.retentionDays });
   await user.clear(retention);
   await user.type(retention, '45');
@@ -82,7 +87,7 @@ const editRetention = async (user: ReturnType<typeof renderSection>['user']) => 
 const getRetentionValue = () =>
   (screen.getByRole('textbox', { name: text.settings.retentionDays }) as HTMLInputElement).value;
 
-const openCreation = async (user: ReturnType<typeof renderSection>['user']) => {
+const openCreation = async (user: ReturnType<typeof renderScreen>['user']) => {
   await user.click(await screen.findByRole('combobox', { name: text.destinations.picker }));
   await user.click(await screen.findByRole('button', { name: text.destinations.create }));
 
@@ -90,7 +95,7 @@ const openCreation = async (user: ReturnType<typeof renderSection>['user']) => {
 };
 
 const saveStorage = async (
-  user: ReturnType<typeof renderSection>['user'],
+  user: ReturnType<typeof renderScreen>['user'],
   dialog: ReturnType<typeof within>,
 ) => {
   await user.type(dialog.getByRole('textbox', { name: 'Name' }), createdStorage.name);
@@ -113,13 +118,15 @@ describe('CreateDestinationDialog', () => {
       mockApi.post('/storages', 201, createdStorage),
     );
     const onWorkspaceCreated = vi.fn();
-    const { user } = renderSection([], onWorkspaceCreated);
+    const { user } = await renderSetup([], onWorkspaceCreated);
 
     const dialog = await openCreation(user);
     await user.click(dialog.getByRole('button', { name: text.createDestination.createWorkspace }));
     await saveStorage(user, dialog);
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: text.createDestination.title })).toBeNull(),
+    );
     expect(onWorkspaceCreated).toHaveBeenCalledWith(createdWorkspace);
     expect(screen.getByText(createdStorage.name)).toBeTruthy();
     expect(screen.getByRole('button', { name: text.settings.save })).toBeTruthy();
@@ -141,6 +148,7 @@ describe('CreateDestinationDialog', () => {
         <SectionWithWorkspaces initialWorkspaces={initialWorkspaces} />,
       );
 
+      await startSetup(user);
       await editRetention(user);
       const dialog = await openCreation(user);
       if (initialWorkspaces.length > 0)
@@ -155,7 +163,9 @@ describe('CreateDestinationDialog', () => {
       );
       await saveStorage(user, dialog);
 
-      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: text.createDestination.title })).toBeNull(),
+      );
       expect(screen.getByText(createdStorage.name)).toBeTruthy();
       expect(getRetentionValue()).toBe('45');
     },
@@ -173,7 +183,7 @@ describe('CreateDestinationDialog', () => {
           : HttpResponse.json(createdStorage, { status: 201 });
       }),
     );
-    const { user } = renderSection([]);
+    const { user } = await renderSetup([]);
 
     const dialog = await openCreation(user);
     await user.click(dialog.getByRole('button', { name: text.createDestination.createWorkspace }));
@@ -185,7 +195,9 @@ describe('CreateDestinationDialog', () => {
 
     await user.click(dialog.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: text.createDestination.title })).toBeNull(),
+    );
     expect(countRequests('POST', '/workspaces')).toBe(1);
     expect(screen.getByText(createdStorage.name)).toBeTruthy();
   });
@@ -202,48 +214,56 @@ describe('CreateDestinationDialog', () => {
         );
       }),
     );
-    const { user } = renderSection([existingWorkspace]);
+    const { user } = await renderSetup([existingWorkspace]);
 
     const dialog = await openCreation(user);
     await user.click(dialog.getByRole('button', { name: text.createDestination.continue }));
     await saveStorage(user, dialog);
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: text.createDestination.title })).toBeNull(),
+    );
     expect(storageWorkspaceId).toBe(existingWorkspace.id);
     expect(countRequests('POST', '/workspaces')).toBe(0);
   });
 
   it('returns focus to the picker and changes nothing when creation is cancelled', async () => {
     useSectionResponses();
-    const { user } = renderSection([existingWorkspace]);
+    const { user } = await renderSetup([existingWorkspace]);
 
     const dialog = await openCreation(user);
     await user.click(dialog.getByRole('button', { name: DICTIONARIES.en.common.actions.cancel }));
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: text.createDestination.title })).toBeNull(),
+    );
     await waitFor(() =>
       expect(document.activeElement).toBe(
         screen.getByRole('combobox', { name: text.destinations.picker }),
       ),
     );
     expect(screen.getByText(text.destinations.none)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: text.settings.save })).toBeNull();
+    expect(screen.getByRole('button', { name: text.settings.save }).hasAttribute('disabled')).toBe(
+      true,
+    );
   });
 
-  it('leaves a created storage inactive when the unsaved selection is reset', async () => {
+  it('leaves a created storage inactive when the unsaved setup is cancelled', async () => {
     useSectionResponses();
     server.use(
       mockApi.post('/storages', 201, { ...createdStorage, workspaceId: existingWorkspace.id }),
     );
-    const { user } = renderSection([existingWorkspace]);
+    const { user } = await renderSetup([existingWorkspace]);
 
     const dialog = await openCreation(user);
     await user.click(dialog.getByRole('button', { name: text.createDestination.continue }));
     await saveStorage(user, dialog);
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    await user.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.reset }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: text.createDestination.title })).toBeNull(),
+    );
+    await user.click(screen.getByRole('button', { name: DICTIONARIES.en.common.actions.cancel }));
 
-    expect(screen.getByText(text.destinations.none)).toBeTruthy();
+    expect(await screen.findByRole('button', { name: text.setup.start })).toBeTruthy();
     expect(countRequests('PUT', '/instance-backup-settings')).toBe(0);
   });
 });

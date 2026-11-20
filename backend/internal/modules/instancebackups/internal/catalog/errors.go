@@ -28,8 +28,7 @@ var (
 		Detail: "the backup has no stored copy with this ID",
 		Errors: nil,
 	}
-	// ErrCopyUnavailable is a stored copy whose storage was deleted, is not validated on this host
-	// or no longer holds the file.
+	// ErrCopyUnavailable is a stored copy whose storage was deleted or no longer holds the file.
 	ErrCopyUnavailable = &apierror.Problem{
 		Code:   apierror.CodeStorageUnavailable,
 		Detail: "the storage of the copy cannot serve its file",

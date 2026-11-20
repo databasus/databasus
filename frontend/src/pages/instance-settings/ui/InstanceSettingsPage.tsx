@@ -1,6 +1,6 @@
 import { ActionIcon, Alert, Button, Loader, Switch } from '@mantine/core';
 import { CircleAlert, Copy } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { type InstanceSettings, type InstanceSettingsUpdate, settingsApi } from '@/entities/users';
@@ -114,8 +114,6 @@ export function InstanceSettingsPage({
   const notify = useFeedback();
   const isCurrent = useSessionGuard();
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
   const hasChanges =
     !!settings &&
     (Object.keys(formSettings) as (keyof InstanceSettingsUpdate)[]).some(
@@ -125,10 +123,7 @@ export function InstanceSettingsPage({
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
       <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-        <div
-          ref={scrollContainerRef}
-          className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded bg-surface p-4 wrap-anywhere shadow sm:p-5"
-        >
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded bg-surface p-4 wrap-anywhere shadow sm:p-5">
           <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
 
           {failure !== undefined &&
@@ -364,7 +359,7 @@ export function InstanceSettingsPage({
 
           {settings && <MailServer isEmailConfigured={settings.isEmailConfigured} />}
 
-          <InstanceAuditLogs scrollContainerRef={scrollContainerRef} />
+          <InstanceAuditLogs />
         </div>
       </div>
     </div>

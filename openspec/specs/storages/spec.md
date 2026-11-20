@@ -98,17 +98,13 @@ The storages of a workspace SHALL be listed in pages, ordered by name and then b
 - **WHEN** a workspace has three storages named `b`, `a` and `c`, and a member lists them two per page
 - **THEN** the first page holds `a` and `b` and points to a next page, and the next page holds `c` and points to none
 
-### Requirement: A connection test reports its outcome and changes nothing
+### Requirement: A connection test only reports its outcome
 
-Testing a saved storage SHALL run its provider's connection check with the stored settings, and SHALL answer `200` with the outcome: connected, or not connected together with the error the storage gave. Except for the extended recovered-local-storage probe below, each provider SHALL keep its existing check; the S3 and Azure Blob providers also write a probe object and remove it. A viewer of the workspace SHALL be allowed to test a saved storage. Except for the recovery-validation transition below, a test SHALL change nothing in the saved storage, its secrets included.
-
-After recovery activation, a successful saved connection test of a recovered local storage SHALL change its `recoveryValidationStatus` from `REQUIRES_VALIDATION` to `AVAILABLE` only when the caller is authorized to edit that storage and the stored settings have not changed since the probe began. This exception SHALL change no settings or secrets. A viewer's test SHALL remain diagnostic only, even when successful, and SHALL NOT validate the recovered storage. Failed tests and tests of unsaved settings SHALL NOT make it available. The recovery pause SHALL block writing probes before activation. The interface SHALL distinguish successful connectivity from recovery validation and explain that an editor must validate a storage that remains unavailable.
-
-For recovered local storage requiring validation, the saved connection test SHALL additionally verify the actual directory used to retain backup files. It SHALL create a unique temporary probe there, write non-empty content, read and verify it, and remove the probe without touching existing backup files. All those steps and the ordinary temporary-storage check SHALL succeed before availability can change. A missing or inaccessible backup directory, a failed write/read or a failed probe removal SHALL report not connected and leave `REQUIRES_VALIDATION` unchanged, even when temporary storage is writable. Probe cleanup SHALL be attempted on failure. This extended probe SHALL apply to viewer tests as well, without granting viewers a validation transition.
+Testing a saved storage SHALL run its provider's connection check with the stored settings, and SHALL answer `200` with the outcome: connected, or not connected together with the error the storage gave. Each provider SHALL keep its existing check; the S3 and Azure Blob providers also write a probe object and remove it. A viewer of the workspace SHALL be allowed to test a saved storage. A test SHALL change nothing in the saved storage, its secrets included. A storage recovered from a Databasus backup SHALL be tested like any other storage, and the test SHALL NOT be a precondition for using it.
 
 #### Scenario: Test of a working storage
 
-- **WHEN** a viewer tests a saved local storage whose folders are writable and which does not require recovery validation
+- **WHEN** a viewer tests a saved local storage whose folders are writable
 - **THEN** the response is `200` and reports the storage as connected without changing the saved storage
 
 #### Scenario: Test of a storage that refuses the write
@@ -116,32 +112,10 @@ For recovered local storage requiring validation, the saved connection test SHAL
 - **WHEN** a member tests a saved S3 storage whose bucket does not exist
 - **THEN** the response is `200` and reports the storage as not connected with an error that names the missing bucket
 
-#### Scenario: Viewer checks an unvalidated recovered storage
+#### Scenario: Test of a recovered local storage
 
-- **WHEN** a viewer successfully tests a recovered local storage after activation
-- **THEN** the response reports connected, but the storage remains `REQUIRES_VALIDATION` and unavailable for ordinary operations
-- **AND** the interface explains that an authorized editor must validate it
-
-#### Scenario: Editor validates an unvalidated recovered storage
-
-- **WHEN** a user authorized to edit a recovered local storage successfully tests its saved settings after activation and those settings remain unchanged throughout the probe
-- **THEN** the response reports connected and the storage becomes `AVAILABLE` without changing its settings or secrets
-
-#### Scenario: Editor's validation probe fails
-
-- **WHEN** an authorized editor tests a recovered local storage after activation and the probe fails
-- **THEN** the response reports not connected with a safe diagnostic and the storage remains `REQUIRES_VALIDATION`
-
-#### Scenario: Temporary storage is writable but the backup directory is inaccessible
-
-- **WHEN** an editor tests a recovered local storage after activation and its temporary directory is writable but its actual backup directory is inaccessible
-- **THEN** the response reports not connected and identifies the backup-directory access failure safely
-- **AND** the storage remains `REQUIRES_VALIDATION`, with its settings, secrets and existing backup files unchanged
-
-#### Scenario: Settings change during a validation probe
-
-- **WHEN** a recovered local storage's settings change while an editor's successful connection-test probe is running
-- **THEN** that result does not validate the changed settings and the storage remains `REQUIRES_VALIDATION`
+- **WHEN** an editor tests a local storage right after a Databasus recovery
+- **THEN** the response reports the outcome of the ordinary check and no column of the storage changes
 
 ### Requirement: Unsaved settings can be tested before saving
 
@@ -255,21 +229,16 @@ Upgrading Databasus SHALL keep every stored secret of every supported storage as
 - **WHEN** an instance has an S3 storage with encrypted keys and an SFTP storage with an encrypted private key, and it is upgraded to this release
 - **THEN** all stored values are unchanged, and a connection test of the S3 storage authenticates with the keys saved before the upgrade
 
-### Requirement: Stored secrets stay encrypted
+### Requirement: Storage secrets stay encrypted and untouched by tests
 
 Every secret of a storage SHALL be stored encrypted with the instance's master key, whether it was entered by the user or produced by the backend. No operation SHALL write a storage's secret to the database in clear text.
 
-Connection tests SHALL preserve all saved settings and secrets, including their encrypted representations. The only permitted storage-column change SHALL be the authorized `recoveryValidationStatus` transition from `REQUIRES_VALIDATION` to `AVAILABLE` under the requirement "A connection test reports its outcome and changes nothing". It SHALL NOT persist credentials changed in memory during a probe or rewrite other storage or provider-settings columns.
+Connection tests SHALL preserve all saved settings and secrets, including their encrypted representations. They SHALL NOT persist credentials changed in memory during a probe or rewrite any storage or provider-settings column.
 
 #### Scenario: Connection test writes nothing
 
-- **WHEN** a member tests a saved S3 storage and then a saved local storage that does not qualify for the authorized recovery-validation transition
+- **WHEN** a member tests a saved S3 storage and then a saved local storage
 - **THEN** no column of either storage or of its provider settings changes, so no test can store a credential that the backend changed in memory
-
-#### Scenario: Recovery validation preserves settings and encrypted secrets
-
-- **WHEN** an authorized editor successfully tests a recovered local storage after activation, its status is `REQUIRES_VALIDATION` and its saved settings remain unchanged throughout the probe
-- **THEN** only its `recoveryValidationStatus` changes to `AVAILABLE`, and all other storage and provider-settings columns, including encrypted secret bytes, remain unchanged
 
 ### Requirement: S3 storage classes are provider-defined settings
 

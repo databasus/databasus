@@ -97,7 +97,7 @@ export default function FAQPage() {
                 name: "如何备份 Databasus 自身？",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus 的设计目标是：即使自身所在的服务器丢失或损坏，也能恢复。它可以备份自己的内部数据库：账号、设置、数据库、存储和通知渠道的加密凭据、备份计划以及备份清单。在 Databasus settings → Databasus backups 中选择一个或多个已有存储即可开启；默认每小时执行一次 Databasus 备份，保留 30 天。备份文件用主密钥加密，既不包含主密钥，也不包含你的数据库的备份文件，所以请单独保存主密钥：Databasus 会请你下载它，它也是主机上的 ./databasus-data/secret.key。恢复需要备份文件、对应的主密钥以及完全相同的 Databasus 版本，补丁版本也要一致。一种方式是把两个文件放进挂载的数据目录，在一台没有账号、也没改过设置的服务器上用 RECOVERY_DUMP_PATH 和 RECOVERY_MASTER_KEY_PATH 启动 Databasus；另一种方式是在 Databasus settings → Databasus backups 中上传文件并粘贴密钥，这会替换当前安装。",
+                  text: "Databasus 的设计目标是：即使自身所在的服务器丢失或损坏，也能恢复。它可以备份自己的内部数据库：账号、设置、数据库、存储和通知渠道的加密凭据、备份计划以及备份清单。在 Databasus settings → Databasus backups 中选择一个或多个已有存储即可开启；默认每小时执行一次 Databasus 备份，保留 30 天。备份文件用主密钥加密，既不包含主密钥，也不包含你的数据库的备份文件，所以请单独保存主密钥：Databasus 会请你下载它，它也是主机上的 ./databasus-data/secret.key。恢复需要备份文件、对应的主密钥以及完全相同的 Databasus 版本，补丁版本也要一致。一种方式是把两个文件放进挂载的数据目录，在一台没有账号、也没改过设置的服务器上用 RECOVERY_DUMP_PATH 和 RECOVERY_MASTER_KEY_PATH 启动 Databasus；另一种方式是在 Databasus settings → Databasus backups 中上传文件并粘贴密钥，这会替换当前安装。恢复前请先停止旧的安装。恢复后的安装会立即开始备份、发送通知并写入存储，如果两个安装同时运行，它们会写入同一批存储和数据库。",
                 },
               },
               {
@@ -527,6 +527,11 @@ export default function FAQPage() {
                 恢复只能在完全相同的 Databasus 版本上进行，补丁版本也要一致。
                 </strong>
                 版本不同时，Databasus 会拒绝恢复，并告诉你该启动哪个版本：先在那个版本上恢复，再照常升级。
+              </p>
+
+              <p>
+                <strong>恢复前请先停止旧的安装。</strong>
+                恢复后的安装会立即开始备份、发送通知并写入存储，如果两个安装同时运行，它们会写入同一批存储和数据库。
               </p>
 
               <p>

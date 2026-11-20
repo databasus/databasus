@@ -63,9 +63,8 @@ paths:
                 $ref: "#/components/schemas/VerificationAssignment"
         "204":
           description: >-
-            No work is assigned, because no verification fits the available capacity, the agent has
-            no accepted heartbeat from the last five minutes or the instance is paused after a
-            recovery
+            No work is assigned, because no verification fits the available capacity or the agent has
+            no accepted heartbeat from the last five minutes
         default:
           $ref: "#/components/responses/Problem"
   /agent/verifications/{agentId}/{verificationId}/backup-stream:

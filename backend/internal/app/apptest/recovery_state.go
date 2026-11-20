@@ -9,28 +9,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/storages"
 )
 
-// WithRecoveryPause builds an instance in the state a recovery publishes: paused by a completed
-// recovery of the local journal until root admin activates it. A test uses it to check what the
-// pause blocks and to activate the instance.
-func WithRecoveryPause() Option {
+// WithPublishedRecovery builds an instance in the state a startup recovery publishes: the database
+// marked by a completed recovery of the local journal. A test uses it to check what a recovered
+// instance does from its first start.
+func WithPublishedRecovery() Option {
 	return func(applied *settings) {
-		applied.isRecoveryPaused = true
+		applied.isRecoveryPublished = true
 	}
-}
-
-// GetPausedRecoveryID is the recovery WithRecoveryPause paused the instance with.
-func (a *App) GetPausedRecoveryID() uuid.UUID {
-	return a.pausedRecoveryID
-}
-
-// MarkStorageRecovered puts a storage into the state recovery normalization leaves a local storage
-// in, which the API cannot create.
-func (a *App) MarkStorageRecovered(tb testing.TB, storageID uuid.UUID) {
-	tb.Helper()
-
-	a.ExecuteSQL(tb, "UPDATE storages SET recovery_validation_status = 'REQUIRES_VALIDATION' WHERE id = ?", storageID)
 }
 
 func (a *App) GetDataFolder() string { return a.dataFolder }
@@ -73,14 +63,14 @@ func (a *App) PrepareRecovery(tb testing.TB) PreparedRecovery {
 	return prepared
 }
 
-// pauseByCompletedRecovery writes what a startup recovery leaves behind: the pause in the database
-// and its completion record in the journal.
-func pauseByCompletedRecovery(tb testing.TB, databaseDsn, recoveryStateDirectory string) uuid.UUID {
+// markByCompletedRecovery writes what a startup recovery leaves behind: the recovery marker in the
+// database and its completion record in the journal.
+func markByCompletedRecovery(tb testing.TB, databaseDsn, recoveryStateDirectory string) {
 	tb.Helper()
 
 	recoveryID := uuid.New()
 	executeOnDatabase(tb, databaseDsn, `UPDATE instancebackups_configs
-		SET recovery_paused_operation_id = ?, recovery_paused_at = now()`, recoveryID)
+		SET recovered_by_operation_id = ?, recovered_at = now()`, recoveryID)
 
 	completedAt := time.Now().UTC()
 	writeRecoveryJournal(tb, recoveryStateDirectory, map[string]any{
@@ -97,8 +87,6 @@ func pauseByCompletedRecovery(tb testing.TB, databaseDsn, recoveryStateDirectory
 			"discardedCleanupCount": 0,
 		},
 	})
-
-	return recoveryID
 }
 
 func writeRecoveryJournal(tb testing.TB, recoveryStateDirectory string, content map[string]any) {
@@ -115,5 +103,23 @@ func writeRecoveryJournal(tb testing.TB, recoveryStateDirectory string, content 
 
 	if err := os.WriteFile(filepath.Join(recoveryStateDirectory, "journal.json"), journal, 0o600); err != nil {
 		tb.Fatalf("write the recovery journal: %v", err)
+	}
+}
+
+// NormalizeRecoveredStorages runs the storages step a recovery applies to its staged snapshot over
+// the running database, so storages created through the API stand for storages of a recovered
+// snapshot.
+func (a *App) NormalizeRecoveredStorages(tb testing.TB) {
+	tb.Helper()
+
+	db, err := database.Open(tb.Context(), a.databaseDsn)
+	if err != nil {
+		tb.Fatalf("open the database of the test application: %v", err)
+	}
+
+	defer closeConnections(db)
+
+	if _, err := storages.NormalizeRecoveredState(tb.Context(), db); err != nil {
+		tb.Fatalf("normalize the recovered storages: %v", err)
 	}
 }

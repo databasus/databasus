@@ -31,7 +31,7 @@ var (
 	}
 	ErrNotRootAdmin = &apierror.Problem{
 		Code:   apierror.CodePermissionDenied,
-		Detail: "the operation is for root admin",
+		Detail: "only the server administrator can do this",
 		Errors: nil,
 	}
 	ErrNotAdmin = &apierror.Problem{

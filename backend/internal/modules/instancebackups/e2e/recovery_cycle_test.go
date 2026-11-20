@@ -86,23 +86,25 @@ func TestRecoveryCycle(t *testing.T) {
 func runFreshVolumeRecovery(t *testing.T, cycle *recoveryCycle, lost lostInstallation) {
 	t.Helper()
 
+	// Every recovered start streams WAL from the source server at once.
+	cycle.physicalSourceTurn.Lock()
+	defer cycle.physicalSourceTurn.Unlock()
+
 	installation := cycle.newInstallation(t, "fresh", namedVolumeLayout)
 	installation.putRecoveryFiles(t, lost.archive, lost.masterKey)
-	storedObjectCount := cycle.countStoredObjects(t)
 
 	recoveredStart := installation.start(t, getRecoveryEnvironment()...)
 
 	assert.Contains(t, recoveredStart.getLogs(t), "recovery published")
 	assert.NotContains(t, recoveredStart.getLogs(t), string(lost.masterKey))
 	assert.Equal(t, lost.masterKey, installation.readFile(t, installedKeyPath))
-	root, startupRecovery := requireRecoveredSnapshot(t, recoveredStart, lost)
+	_, startupRecovery := requireRecoveredSnapshot(t, recoveredStart, lost)
 	assert.Equal(t, apiclient.InstanceRecoveryOriginSTARTUP, startupRecovery.Origin)
-	requireNoRemoteEffectsWhilePaused(t, cycle, root, lost, storedObjectCount)
 	recoveredStart.stop(t)
 
 	restartWithSameFiles := installation.start(t, getRecoveryEnvironment()...)
 	requireSkipLog(t, restartWithSameFiles)
-	root = signIn(t, restartWithSameFiles, lost.rootEmail)
+	root := signIn(t, restartWithSameFiles, lost.rootEmail)
 	assert.Equal(t, startupRecovery.Id, root.getInstanceBackupStatus(t).Recovery.Id)
 	restartWithSameFiles.stop(t)
 
@@ -119,15 +121,11 @@ func runFreshVolumeRecovery(t *testing.T, cycle *recoveryCycle, lost lostInstall
 
 	uploadedRecovery := runImportAfterStartupRecovery(t, installation, lost)
 
-	cycle.physicalSourceTurn.Lock()
-	defer cycle.physicalSourceTurn.Unlock()
-
 	restartAfterImport := installation.start(t, getRecoveryEnvironment()...)
 	requireSkipLog(t, restartAfterImport)
 	root = signIn(t, restartAfterImport, lost.rootEmail)
 	assert.Equal(t, uploadedRecovery.Id, root.getInstanceBackupStatus(t).Recovery.Id,
 		"the imported state stays current and the startup archive is not imported again")
-	requireActivatedRecovery(t, restartAfterImport, root, uploadedRecovery.Id, lost)
 
 	upgradedStart := runOrdinaryUpgradeWithRetainedFiles(t, installation, restartAfterImport)
 	root = signIn(t, upgradedStart, lost.rootEmail)
@@ -138,7 +136,9 @@ func runFreshVolumeRecovery(t *testing.T, cycle *recoveryCycle, lost lostInstall
 
 // runImportAfterStartupRecovery deliberately imports the same archive bytes again through the file
 // import, after work was done on the startup-recovered installation. The publication finishes in
-// the same container, which no restart policy restarts.
+// the same container, which no restart policy restarts. The recovered installation starts its full
+// physical backup at once, so the checks of its work run before the container stops; a stop would
+// interrupt that backup, and the next one waits for the schedule.
 func runImportAfterStartupRecovery(
 	t *testing.T,
 	installation *installation,
@@ -163,9 +163,10 @@ func runImportAfterStartupRecovery(
 	assert.ElementsMatch(t, []string{productionWorkspaceName, archiveWorkspaceName}, restoredRoot.listWorkspaceNames(t))
 	status := restoredRoot.getInstanceBackupStatus(t)
 	require.NotNil(t, status.Recovery)
-	assert.True(t, status.IsRecoveryPaused)
+	assert.Equal(t, apiclient.InstanceRecoveryStatusCOMPLETED, status.Recovery.Status)
 	assert.Equal(t, preparedRecovery.Id, status.Recovery.Id)
 	assert.Equal(t, apiclient.InstanceRecoveryOriginUPLOAD, status.Recovery.Origin)
+	requireRunningRecovery(t, instance, restoredRoot, *status.Recovery, lost)
 	instance.stop(t)
 
 	return *status.Recovery
@@ -224,6 +225,10 @@ func readNewestMigration(t *testing.T) migrationFile {
 func runInitializedDirectoryRecovery(t *testing.T, cycle *recoveryCycle, lost lostInstallation) {
 	t.Helper()
 
+	// Every recovered start streams WAL from the source server at once.
+	cycle.physicalSourceTurn.Lock()
+	defer cycle.physicalSourceTurn.Unlock()
+
 	installation := cycle.newInstallation(t, "initialized", bindMountLayout)
 	installation.start(t).stop(t)
 	generatedKey := installation.readFile(t, installedKeyPath)
@@ -269,10 +274,15 @@ func runInitializedDirectoryRecovery(t *testing.T, cycle *recoveryCycle, lost lo
 	restartedStart := installation.start(t, getRecoveryEnvironment()...)
 	requireSkipLog(t, restartedStart)
 	assert.NotContains(t, restartedStart.getLogs(t), "recovery published")
+	restartedStart.stop(t)
 }
 
 func runFileImport(t *testing.T, cycle *recoveryCycle, lost lostInstallation) {
 	t.Helper()
+
+	// Every recovered start streams WAL from the source server at once.
+	cycle.physicalSourceTurn.Lock()
+	defer cycle.physicalSourceTurn.Unlock()
 
 	installation := cycle.newInstallation(t, "import", bindMountLayout)
 	instance := installation.start(t)
@@ -295,7 +305,6 @@ func runFileImport(t *testing.T, cycle *recoveryCycle, lost lostInstallation) {
 	assert.Equal(t, http.StatusOK, targetRoot.getOwnAccount(t).StatusCode())
 
 	preparedRecovery := prepareImport(t, targetRoot, lost.archive, lost.masterKey)
-	storedObjectCount := cycle.countStoredObjects(t)
 	blockedKeyPath := installation.getHostPath(t, installedKeyPath+".tmp")
 	require.NoError(t, os.Mkdir(blockedKeyPath, 0o700))
 
@@ -323,20 +332,16 @@ func runFileImport(t *testing.T, cycle *recoveryCycle, lost lostInstallation) {
 	root, importedRecovery := requireRecoveredSnapshot(t, resumedStart, lost)
 	assert.Equal(t, preparedRecovery.Id, importedRecovery.Id)
 	assert.Equal(t, apiclient.InstanceRecoveryOriginUPLOAD, importedRecovery.Origin)
-	requireNoRemoteEffectsWhilePaused(t, cycle, root, lost, storedObjectCount)
 
 	repeatedApply := applyImport(t, root, preparedRecovery.Id)
 	require.NotNil(t, repeatedApply)
 	require.Equal(t, http.StatusAccepted, repeatedApply.StatusCode(), string(repeatedApply.Body))
 	assert.Equal(t, preparedRecovery.Id, repeatedApply.JSON202.Id)
-	assert.Equal(t, apiclient.InstanceRecoveryStatusPAUSED, repeatedApply.JSON202.Status)
+	assert.Equal(t, apiclient.InstanceRecoveryStatusCOMPLETED, repeatedApply.JSON202.Status)
 	assert.Equal(t, 1, strings.Count(resumedStart.getLogs(t), "recovery published"),
 		"repeating the apply of a published recovery publishes nothing again")
 	assert.Equal(t, preparedRecovery.Id, root.getInstanceBackupStatus(t).Recovery.Id)
 
-	cycle.physicalSourceTurn.Lock()
-	defer cycle.physicalSourceTurn.Unlock()
-
-	requireActivatedRecovery(t, resumedStart, root, importedRecovery.Id, lost)
+	requireRunningRecovery(t, resumedStart, root, importedRecovery, lost)
 	resumedStart.stop(t)
 }

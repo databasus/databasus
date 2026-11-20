@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"databasus-backend/internal/app"
@@ -50,7 +49,6 @@ type App struct {
 	cancelPhysicalLoops       context.CancelFunc
 	physicalRunner            *background.Runner
 	physicalBackupStopTimeout time.Duration
-	pausedRecoveryID          uuid.UUID
 	recoveryStateDirectory    string
 }
 
@@ -70,7 +68,7 @@ func New(tb testing.TB, options ...Option) *App {
 		isTurnstileEnabled:           false,
 		isGitHubEnabled:              false,
 		isGoogleEnabled:              false,
-		isRecoveryPaused:             false,
+		isRecoveryPublished:          false,
 		publicURL:                    "",
 		clientToolsDir:               "",
 		agentBinariesDir:             "",
@@ -101,9 +99,8 @@ func New(tb testing.TB, options ...Option) *App {
 
 	appConfig := newConfig(tb, databaseDsn)
 
-	pausedRecoveryID := uuid.Nil
-	if applied.isRecoveryPaused {
-		pausedRecoveryID = pauseByCompletedRecovery(tb, databaseDsn, appConfig.RecoveryStateDirectory)
+	if applied.isRecoveryPublished {
+		markByCompletedRecovery(tb, databaseDsn, appConfig.RecoveryStateDirectory)
 	}
 	appConfig.DatabasusURL = applied.publicURL
 	if applied.recoveryMaxArchiveBytes > 0 {
@@ -242,7 +239,6 @@ func New(tb testing.TB, options ...Option) *App {
 		cancelPhysicalLoops:       nil,
 		physicalRunner:            nil,
 		physicalBackupStopTimeout: applied.physicalBackupStopTimeout,
-		pausedRecoveryID:          pausedRecoveryID,
 		recoveryStateDirectory:    appConfig.RecoveryStateDirectory,
 	}
 	if applied.isPhysicalBackupLoopsEnabled {

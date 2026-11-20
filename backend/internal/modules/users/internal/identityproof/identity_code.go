@@ -1,5 +1,5 @@
-// Package identityproof confirms that root admin is present before a sensitive operation: their
-// current password or a single-use code emailed to their account. A proof is bound to the account,
+// Package identityproof confirms that root admin is present before a sensitive operation while the
+// instance requires two-factor sign-in: a single-use code emailed to their account. A code is bound to the account,
 // the session, a purpose and the operation's subject, so a proof for one operation cannot authorize
 // another.
 package identityproof
@@ -18,14 +18,6 @@ const (
 	PurposeInstanceRecovery Purpose = "INSTANCE_RECOVERY"
 )
 
-// Method is a way root admin can confirm identity.
-type Method string
-
-const (
-	MethodPassword  Method = "PASSWORD"
-	MethodEmailCode Method = "EMAIL_CODE"
-)
-
 const (
 	codeLifetime    = 5 * time.Minute
 	maxCodeAttempts = 5
@@ -36,12 +28,6 @@ const (
 type Binding struct {
 	Purpose Purpose
 	Subject string
-}
-
-// Proof carries exactly one of the current password and an emailed code.
-type Proof struct {
-	Password *string
-	Code     *string
 }
 
 // IdentityCode is an emailed code. Its recipient address is kept, so a code sent before the

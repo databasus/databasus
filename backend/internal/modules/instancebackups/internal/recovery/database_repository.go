@@ -60,12 +60,12 @@ func (r *databaseRepository) inspectInstanceBackupSettings(
 	return r.getRecoveryState().InspectTarget(ctx)
 }
 
-func (r *databaseRepository) pause(ctx context.Context, operationID uuid.UUID, pausedAt time.Time) error {
-	return r.getRecoveryState().Pause(ctx, operationID, pausedAt)
+func (r *databaseRepository) markRecovered(ctx context.Context, operationID uuid.UUID, recoveredAt time.Time) error {
+	return r.getRecoveryState().MarkRecovered(ctx, operationID, recoveredAt)
 }
 
-func (r *databaseRepository) getPause(ctx context.Context) (*uuid.UUID, error) {
-	return r.getRecoveryState().GetPause(ctx)
+func (r *databaseRepository) getRecoveredByOperationID(ctx context.Context) (*uuid.UUID, error) {
+	return r.getRecoveryState().GetRecoveredByOperationID(ctx)
 }
 
 // normalize runs every module's normalization and then ends this module's own work, and returns how

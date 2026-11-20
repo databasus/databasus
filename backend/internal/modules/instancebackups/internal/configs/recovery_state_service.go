@@ -45,17 +45,18 @@ func (s *RecoveryStateService) InspectTarget(ctx context.Context) (RecoveryTarge
 	return RecoveryTargetSettings{IsPresent: true, IsDefault: rowCount == 1 && config.IsDefault()}, nil
 }
 
-// Pause marks a recovered database paused by its recovery operation.
-func (s *RecoveryStateService) Pause(ctx context.Context, operationID uuid.UUID, pausedAt time.Time) error {
-	return s.repositories.configs.updateRecoveryPause(ctx, &operationID, &pausedAt)
+// MarkRecovered records the recovery operation that produced this database.
+func (s *RecoveryStateService) MarkRecovered(ctx context.Context, operationID uuid.UUID, recoveredAt time.Time) error {
+	return s.repositories.configs.updateRecoveryMarker(ctx, &operationID, &recoveredAt)
 }
 
-// GetPause returns the operation that paused the database, or nil for an active one.
-func (s *RecoveryStateService) GetPause(ctx context.Context) (*uuid.UUID, error) {
+// GetRecoveredByOperationID returns the recovery that produced this database, or nil when no
+// recovery did.
+func (s *RecoveryStateService) GetRecoveredByOperationID(ctx context.Context) (*uuid.UUID, error) {
 	config, err := s.repositories.configs.get(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return config.RecoveryPausedOperationID, nil
+	return config.RecoveredByOperationID, nil
 }

@@ -11,9 +11,10 @@ interface Props {
   label: string;
   schedule: Schedule | null;
   onChange: (schedule: Schedule) => void;
+  size?: 'xs' | 'sm';
 }
 
-export const ScheduleEditor = ({ label, schedule, onChange }: Props) => {
+export const ScheduleEditor = ({ label, schedule, onChange, size = 'xs' }: Props) => {
   const { t } = useTranslation();
   const typeControlId = useId();
 
@@ -35,13 +36,13 @@ export const ScheduleEditor = ({ label, schedule, onChange }: Props) => {
           id={typeControlId}
           value={schedule?.type}
           onChange={(type) => onChange(schedule ? { ...schedule, type } : { type })}
-          size="xs"
+          size={size}
           className="w-full max-w-[200px] grow"
           data={scheduleTypeOptions}
         />
       </div>
 
-      {schedule && <ScheduleDetailsFields schedule={schedule} onChange={onChange} />}
+      {schedule && <ScheduleDetailsFields schedule={schedule} onChange={onChange} size={size} />}
     </div>
   );
 };

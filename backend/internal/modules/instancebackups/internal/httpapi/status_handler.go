@@ -41,11 +41,6 @@ func fromStatus(status health.Status) InstanceBackupStatus {
 		})
 	}
 
-	methods := make([]IdentityProofMethod, 0, len(status.IdentityProofMethods))
-	for _, method := range status.IdentityProofMethods {
-		methods = append(methods, IdentityProofMethod(method))
-	}
-
 	var incident *InstanceBackupIncident
 	if status.Incident != nil {
 		incident = &InstanceBackupIncident{
@@ -65,19 +60,16 @@ func fromStatus(status health.Status) InstanceBackupStatus {
 	}
 
 	return InstanceBackupStatus{
-		Health:                        InstanceBackupHealth(status.Health),
-		Destinations:                  destinations,
-		Incident:                      incident,
-		IsEmailConfigured:             status.IsEmailConfigured,
-		IsRootEmailUsable:             status.IsRootEmailUsable,
-		IsMasterKeyAcknowledged:       status.IsMasterKeyAcknowledged,
-		IsMasterKeyExportCodeRequired: status.IsMasterKeyExportCodeRequired,
-		IdentityProofMethods:          methods,
-		MasterKeyPath:                 status.MasterKeyPath,
+		Health:                     InstanceBackupHealth(status.Health),
+		Destinations:               destinations,
+		Incident:                   incident,
+		IsEmailConfigured:          status.IsEmailConfigured,
+		IsRootEmailUsable:          status.IsRootEmailUsable,
+		IsMasterKeyAcknowledged:    status.IsMasterKeyAcknowledged,
+		IsConfirmationCodeRequired: status.IsConfirmationCodeRequired,
 		Reminder: InstanceBackupReminder{
 			IsEligible: status.Reminder.IsEligible,
 		},
-		IsRecoveryPaused: status.IsRecoveryPaused,
-		Recovery:         latestRecovery,
+		Recovery: latestRecovery,
 	}
 }

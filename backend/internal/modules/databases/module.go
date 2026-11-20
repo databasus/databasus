@@ -16,7 +16,6 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
-	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/databases/internal/connection"
 	databaseshttpapi "databasus-backend/internal/modules/databases/internal/httpapi"
 	"databasus-backend/internal/modules/databases/internal/limiteduser"
@@ -157,8 +156,6 @@ type Deps struct {
 	Users          users.Module
 	Workspaces     workspaces.Module
 	Notifiers      notifiers.Module
-	// RecoveryPause refuses changes of source databases while a recovered instance is paused.
-	RecoveryPause *recoverypause.Gate
 }
 
 func New(deps Deps) Module {
@@ -198,15 +195,14 @@ func New(deps Deps) Module {
 	)
 
 	databaseService := userdatabase.NewService(userdatabase.Deps{
-		RecoveryPause: deps.RecoveryPause,
-		Repositories:  userdatabase.NewRepositories(deps.DB),
-		Registry:      registry,
-		Transactor:    deps.Transactor,
-		Logger:        deps.Logger,
-		AuditLog:      deps.AuditLog,
-		Users:         deps.Users,
-		Workspaces:    deps.Workspaces,
-		Notifiers:     deps.Notifiers,
+		Repositories: userdatabase.NewRepositories(deps.DB),
+		Registry:     registry,
+		Transactor:   deps.Transactor,
+		Logger:       deps.Logger,
+		AuditLog:     deps.AuditLog,
+		Users:        deps.Users,
+		Workspaces:   deps.Workspaces,
+		Notifiers:    deps.Notifiers,
 	})
 
 	connectionService := connection.NewService(connection.Deps{
@@ -224,10 +220,9 @@ func New(deps Deps) Module {
 			Databases:   databaseService,
 			Connections: connectionService,
 			LimitedUsers: limiteduser.NewService(limiteduser.Deps{
-				RecoveryPause: deps.RecoveryPause,
-				Databases:     databaseService,
-				Registry:      registry,
-				Logger:        deps.Logger,
+				Databases: databaseService,
+				Registry:  registry,
+				Logger:    deps.Logger,
 			}),
 		}),
 	})

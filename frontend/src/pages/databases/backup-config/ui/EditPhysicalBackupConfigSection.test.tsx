@@ -325,7 +325,6 @@ describe('EditPhysicalBackupConfigSection', () => {
           {
             id: 'old-storage',
             workspaceId: database.workspaceId,
-            recoveryValidationStatus: 'AVAILABLE',
             name: 'Previous archive',
             settings: { type: 'LOCAL' },
           },
@@ -381,7 +380,6 @@ describe('EditPhysicalBackupConfigSection', () => {
           {
             id: 'target-storage',
             workspaceId: database.workspaceId,
-            recoveryValidationStatus: 'AVAILABLE',
             name: 'Archive',
             settings: { type: 'LOCAL' },
           },

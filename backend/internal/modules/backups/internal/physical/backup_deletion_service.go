@@ -25,10 +25,6 @@ func (s *Service) DeleteBackup(ctx context.Context, actor users.Actor, backupID 
 		return toBackupAccessProblem(err)
 	}
 
-	if err := s.recoveryPause.Check(); err != nil {
-		return err
-	}
-
 	return s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		if err := s.deleteBackup(ctx, backup); err != nil {
 			return err

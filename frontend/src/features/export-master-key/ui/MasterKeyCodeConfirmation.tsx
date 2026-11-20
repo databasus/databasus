@@ -10,13 +10,12 @@ import { useSessionGuard } from '@/shared/auth';
 import { translateApiError } from '@/shared/i18n';
 
 interface Props {
-  masterKeyPath: string;
   isConfirming: boolean;
   onConfirm: (code: string) => void;
 }
 
 // When code delivery fails, copying the key from the server is the way left to root admin.
-export function MasterKeyCodeConfirmation({ masterKeyPath, isConfirming, onConfirm }: Props) {
+export function MasterKeyCodeConfirmation({ isConfirming, onConfirm }: Props) {
   const { t } = useTranslation();
   const isCurrent = useSessionGuard();
   const [code, setCode] = useState('');
@@ -90,7 +89,7 @@ export function MasterKeyCodeConfirmation({ masterKeyPath, isConfirming, onConfi
             {t('masterKey.codeFailed')}
           </Alert>
           <div className="mt-3">
-            <MasterKeyHostInstructions masterKeyPath={masterKeyPath} />
+            <MasterKeyHostInstructions />
           </div>
         </div>
       )}

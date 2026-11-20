@@ -3,6 +3,7 @@ import 'dayjs/locale/id';
 import 'dayjs/locale/ru';
 import { describe, expect, it } from 'vitest';
 
+import { formatDateTime } from '@/shared/i18n/formatDateTime';
 import { formatNumber } from '@/shared/i18n/formatNumber';
 import { formatRelativeTime } from '@/shared/i18n/formatRelativeTime';
 
@@ -59,5 +60,21 @@ describe('formatRelativeTime', () => {
     formatRelativeTime(dayjs(), 'id');
 
     expect(dayjs.locale()).toBe('en');
+  });
+});
+
+describe('formatDateTime', () => {
+  const instant = new Date(2025, 10, 14, 13, 5).toISOString();
+
+  it('writes the English day before a short month name', () => {
+    expect(normalizeSpaces(formatDateTime(instant, 'en-GB', false))).toBe('14 Nov 2025, 13:05');
+  });
+
+  it('follows the twelve-hour clock preference', () => {
+    expect(normalizeSpaces(formatDateTime(instant, 'en-GB', true))).toBe('14 Nov 2025, 1:05 pm');
+  });
+
+  it('names the month in the selected language', () => {
+    expect(normalizeSpaces(formatDateTime(instant, 'fr', false))).toBe('14 nov. 2025, 13:05');
   });
 });

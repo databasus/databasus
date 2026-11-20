@@ -51,15 +51,8 @@ func (h *Handler) TestStorageSettings(
 }
 
 func toTestResultBody(testResult storage.TestResult) StorageTestResult {
-	var status *StorageRecoveryValidationStatus
-	if testResult.RecoveryValidationStatus != nil {
-		converted := StorageRecoveryValidationStatus(*testResult.RecoveryValidationStatus)
-		status = &converted
-	}
-
 	return StorageTestResult{
-		IsConnected:              testResult.IsConnected,
-		Error:                    toOptionalString(testResult.Error),
-		RecoveryValidationStatus: status,
+		IsConnected: testResult.IsConnected,
+		Error:       toOptionalString(testResult.Error),
 	}
 }

@@ -59,9 +59,6 @@ export const StorageComponent = ({
   const [actionError, setError] = useState<unknown>();
   const [connectionError, setConnectionError] = useState<string>();
   const [isDeleteBlocked, setIsDeleteBlocked] = useState(false);
-  const [validationOutcome, setValidationOutcome] = useState<
-    'validated' | 'not-validated' | 'viewer-not-validated'
-  >();
   const client = useQueryClient();
   const query = useSessionQuery({
     queryKey: ['storage', storageId],
@@ -105,26 +102,13 @@ export const StorageComponent = ({
 
     setError(undefined);
     setConnectionError(undefined);
-    setValidationOutcome(undefined);
     setIsDeleteBlocked(false);
 
     try {
-      const isValidationRequired = storage.recoveryValidationStatus === 'REQUIRES_VALIDATION';
       const testResult = await testStorageMutation.mutateAsync([storage.id]);
       if (!isActive()) return;
 
-      if (testResult.isConnected && isValidationRequired) {
-        const refreshed = await query.refetch();
-        if (!isActive()) return;
-
-        setValidationOutcome(
-          refreshed.data?.recoveryValidationStatus === 'AVAILABLE'
-            ? 'validated'
-            : isCanManageStorages
-              ? 'not-validated'
-              : 'viewer-not-validated',
-        );
-      } else if (testResult.isConnected) {
+      if (testResult.isConnected) {
         notify({
           kind: 'success',
           title: t('storages.connectionTestSucceeded.title'),
@@ -293,6 +277,7 @@ export const StorageComponent = ({
         {error !== undefined &&
           (storage ? (
             <Alert
+              className="mb-4 max-w-2xl"
               color="danger"
               icon={
                 <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
@@ -310,31 +295,17 @@ export const StorageComponent = ({
           ))}
         {connectionError !== undefined && (
           <Alert
+            className="mb-4 max-w-2xl"
             color="danger"
             title={t('storages.connectionTestFailed', { error: connectionError })}
           />
         )}
-        {storage?.recoveryValidationStatus === 'REQUIRES_VALIDATION' && (
-          <Alert color="warning" title={t('storages.recoveryValidation.title')}>
-            <p>{t('storages.recoveryValidation.description')}</p>
-            <p className="mt-1">
-              {isCanManageStorages
-                ? t('storages.recoveryValidation.editorAction')
-                : t('storages.recoveryValidation.viewerAction')}
-            </p>
-          </Alert>
-        )}
-        {validationOutcome === 'validated' && (
-          <Alert color="success" title={t('storages.recoveryValidation.validated')} />
-        )}
-        {validationOutcome === 'not-validated' && (
-          <Alert color="warning" title={t('storages.recoveryValidation.notValidated')} />
-        )}
-        {validationOutcome === 'viewer-not-validated' && (
-          <Alert color="warning" title={t('storages.recoveryValidation.viewerConnected')} />
-        )}
         {isDeleteBlocked && (
-          <Alert color="danger" title={t('storages.config.removeBlockedByBackups')} />
+          <Alert
+            className="mb-4 max-w-2xl"
+            color="danger"
+            title={t('storages.config.removeBlockedByBackups')}
+          />
         )}
         {!storage && error === undefined ? (
           <div className="mt-10 flex justify-center">
@@ -520,6 +491,7 @@ export const StorageComponent = ({
           <p>{t('storages.cleanup.warning')}</p>
           {error !== undefined && (
             <Alert
+              className="mb-4 max-w-2xl"
               color="danger"
               icon={
                 <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />
@@ -535,6 +507,7 @@ export const StorageComponent = ({
           )}
           {isDeleteBlocked && (
             <Alert
+              className="mb-4 max-w-2xl"
               color="danger"
               icon={
                 <CircleAlert aria-hidden size={16} className="inline-block shrink-0 align-middle" />

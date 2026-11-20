@@ -341,8 +341,8 @@ func (s *Startup) inspectTarget(ctx context.Context) error {
 	return s.inspector.Inspect(ctx, target, s.newerSchemaGuidance)
 }
 
-// prepare stages the archive and key, authenticates the archive and imports it into a paused
-// staging database. A failure discards everything it staged.
+// prepare stages the archive and key, authenticates the archive and imports it into a staging
+// database marked with the recovery. A failure discards everything it staged.
 func (s *Startup) prepare(
 	ctx context.Context,
 	journal Journal,

@@ -13,7 +13,6 @@ const server = setUpMockApi();
 const local: Storage = {
   id: 'created-id',
   workspaceId: 'workspace-id',
-  recoveryValidationStatus: 'AVAILABLE',
   name: 'Submitted',
   settings: { type: 'LOCAL' },
 };

@@ -26,8 +26,8 @@ type PreparerDeps struct {
 	Logger      *slog.Logger
 }
 
-// Preparer turns the staged archive of an operation into a paused staging database. Startup and
-// upload recoveries share it, so both accept exactly the same archives.
+// Preparer turns the staged archive of an operation into a staging database marked with that
+// recovery. Startup and upload recoveries share it, so both accept exactly the same archives.
 type Preparer struct {
 	server      internaldb.Connection
 	release     string
@@ -53,8 +53,8 @@ func NewPreparer(deps PreparerDeps) *Preparer {
 }
 
 // Prepare authenticates the archive at archivePath with the source key, checks that this release
-// can serve it, imports it into the operation's staging database and normalizes and pauses that
-// database. It fills the operation's authenticated fields and leaves writing the journal to the
+// can serve it, imports it into the operation's staging database, normalizes it and marks it with
+// the recovery. It fills the operation's authenticated fields and leaves writing the journal to the
 // caller. A failure is a RefusalError; the caller discards what was staged.
 func (p *Preparer) Prepare(
 	ctx context.Context,
@@ -113,8 +113,8 @@ func (p *Preparer) checkCompatibility(manifest archive.Manifest) error {
 }
 
 // normalizeStaging checks the imported migration history against the authenticated snapshot, ends
-// the work the lost instance had running and pauses the recovered installation until root admin
-// activates it.
+// the work the lost instance had running and marks the database with the recovery that produced
+// it, so a resumed publication recognizes it. The recovered installation runs from its first start.
 func (p *Preparer) normalizeStaging(ctx context.Context, operation *Operation, manifest archive.Manifest) error {
 	staging, err := openDatabaseRepository(ctx, p.server.WithDatabase(operation.StagingDatabase))
 	if err != nil {
@@ -138,5 +138,5 @@ func (p *Preparer) normalizeStaging(ctx context.Context, operation *Operation, m
 
 	operation.DiscardedCleanupCount = discardedCount
 
-	return staging.pause(ctx, operation.ID, p.clock.Now())
+	return staging.markRecovered(ctx, operation.ID, p.clock.Now())
 }

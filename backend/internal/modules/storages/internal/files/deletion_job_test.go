@@ -337,7 +337,6 @@ func TestGetRetryDelay(t *testing.T) {
 			Clock:           nil,
 			Timings:         Timings{RetryBaseDelay: 10 * time.Millisecond, RetryMaxDelay: 40 * time.Millisecond},
 			Uploads:         nil,
-			RecoveryPause:   nil,
 		})
 		job.jitter = func(delay time.Duration) time.Duration { return delay }
 

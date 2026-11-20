@@ -15,7 +15,6 @@ for (const authMethods of [
     const storage: components['schemas']['Storage'] = {
       id: 'sftp-id',
       workspaceId: 'workspace-id',
-      recoveryValidationStatus: 'AVAILABLE',
       name: 'SFTP archive',
       settings: {
         type: 'SFTP',

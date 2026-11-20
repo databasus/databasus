@@ -81,16 +81,13 @@ func prepareImport(t *testing.T, root accountSession, archive, masterKey []byte)
 	return preparedRecovery
 }
 
-// applyImport confirms the replacement with root admin's password. It returns nil when the answer
+// applyImport confirms the replacement; two-factor sign-in is off, so no code is needed. It returns nil when the answer
 // was lost because the process stopped while it answered.
 func applyImport(t *testing.T, root accountSession, recoveryID uuid.UUID) *apiclient.ApplyInstanceRecoveryResponse {
 	t.Helper()
 
 	response, err := root.Client.ApplyInstanceRecoveryWithResponse(t.Context(), recoveryID,
-		apiclient.InstanceRecoveryApply{
-			IsReplacementConfirmed: true,
-			Proof:                  apiclient.IdentityProof{Password: new(accountPassword)},
-		})
+		apiclient.InstanceRecoveryApply{IsReplacementConfirmed: true, Code: nil})
 	if err != nil {
 		t.Logf("the apply's answer was lost: %v", err)
 

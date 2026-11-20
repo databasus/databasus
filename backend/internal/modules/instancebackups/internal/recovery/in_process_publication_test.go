@@ -27,7 +27,7 @@ func TestPublishAccepted(t *testing.T) {
 		assert.Equal(t, preparedRecovery.ID, journal.LastCompleted.OperationID)
 		assert.Equal(t, source.keyContent, uploadTarget.readKey(t))
 		assert.Equal(t, []string{sourceWorkspaceName}, uploadTarget.listWorkspaceNames(t))
-		assert.Equal(t, &preparedRecovery.ID, uploadTarget.getPausedOperationID(t))
+		assert.Equal(t, &preparedRecovery.ID, uploadTarget.getRecoveredByOperationID(t))
 		requireSharedOnly(t, uploadTarget)
 	})
 

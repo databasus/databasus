@@ -24,7 +24,6 @@ afterEach(() => {
 const savedS3Storage = {
   id: 'storage-id',
   workspaceId: 'workspace-id',
-  recoveryValidationStatus: 'AVAILABLE',
   name: 'Offsite backups',
   settings: {
     type: 'S3',
@@ -251,7 +250,6 @@ it.each(
 const savedSftpStorage = (authMethods: ('PASSWORD' | 'PRIVATE_KEY')[]): Storage => ({
   id: 'sftp-id',
   workspaceId: 'workspace-id',
-  recoveryValidationStatus: 'AVAILABLE',
   name: 'SFTP archive',
   settings: {
     type: 'SFTP',

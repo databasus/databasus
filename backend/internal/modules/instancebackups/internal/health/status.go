@@ -10,7 +10,6 @@ import (
 	"databasus-backend/internal/modules/instancebackups/internal/configs"
 	"databasus-backend/internal/modules/instancebackups/internal/recovery"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/modules/users"
 )
 
 // Health is how well the instance is protected.
@@ -45,15 +44,14 @@ type Status struct {
 	Health       Health
 	Destinations []DestinationHealth
 	// Incident is the open incident, nil when protection has no problem.
-	Incident                      *IncidentView
-	IsEmailConfigured             bool
-	IsRootEmailUsable             bool
-	IsMasterKeyAcknowledged       bool
-	IsMasterKeyExportCodeRequired bool
-	IdentityProofMethods          []users.IdentityProofMethod
-	MasterKeyPath                 string
-	Reminder                      configs.Reminder
-	IsRecoveryPaused              bool
+	Incident                *IncidentView
+	IsEmailConfigured       bool
+	IsRootEmailUsable       bool
+	IsMasterKeyAcknowledged bool
+	// IsConfirmationCodeRequired is true while the instance requires two-factor sign-in, so a
+	// master-key export and a recovery apply need a code emailed to root admin.
+	IsConfirmationCodeRequired bool
+	Reminder                   configs.Reminder
 	// Recovery is the latest recovery of the local journal, nil when there was none.
 	Recovery *recovery.Recovery
 }

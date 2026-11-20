@@ -130,7 +130,6 @@ for (const domain of ['storages', 'notifiers'] as const) {
       const storage = {
         id: 'archive-id',
         workspaceId: workspace.id,
-        recoveryValidationStatus: 'AVAILABLE' as const,
         name: 'Archive',
         settings: { type: 'LOCAL' as const },
       };

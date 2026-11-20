@@ -1,10 +1,11 @@
+import re
 import uuid
 from dataclasses import dataclass
 
 from application_screens import Account, open_application, register_first_account, sign_in
 from condition_wait import wait_until
 from instance_backup_api import call_api, download_bytes
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Locator, Page, expect
 
 BACKUP_MILLISECONDS = 300_000
 RESTORE_MILLISECONDS = 300_000
@@ -91,7 +92,7 @@ def _make_source_backup(page: Page) -> SourceRecoveryMaterial:
 def _paste_master_key(page: Page, master_key: str) -> None:
     """The page is served over HTTP, where the Clipboard API is unavailable, so the paste reaches the
     rendered field as the event a browser dispatches for Ctrl+V."""
-    key_field = page.get_by_role("textbox", name="Master key of the source installation")
+    key_field = page.get_by_label("Master key of the source installation", exact=True)
     key_field.fill("")
     key_field.evaluate(
         """(field, key) => {
@@ -107,7 +108,7 @@ def _paste_master_key(page: Page, master_key: str) -> None:
 
 def _upload(page: Page, archive: bytes, master_key: str) -> None:
     with page.expect_file_chooser() as file_chooser:
-        page.get_by_role("button", name="Databasus backup file", exact=True).click()
+        page.get_by_role("button", name=re.compile(r"^Databasus backup file")).click()
     file_chooser.value.set_files(
         files=[
             {
@@ -121,9 +122,19 @@ def _upload(page: Page, archive: bytes, master_key: str) -> None:
     page.get_by_role("button", name="Upload and check", exact=True).click()
 
 
-def _open_replacement(page: Page) -> None:
-    page.get_by_role("button", name="Replace this installation", exact=True).click()
-    expect(page.get_by_role("dialog", name="Replace this installation")).to_be_visible()
+def _open_recovery(page: Page) -> None:
+    page.get_by_role("button", name="Recover from backup", exact=True).click()
+    expect(page.get_by_role("dialog", name="Recover from a Databasus backup file")).to_be_visible()
+
+
+def _prepare_replacement(page: Page, archive: bytes, master_key: str) -> Locator:
+    """A prepared archive turns the recovery dialog into its replacement step."""
+    _upload(page, archive, master_key)
+    replacement = page.get_by_role("dialog", name="Replace this installation")
+    expect(
+        replacement.get_by_text("The Databasus backup is ready to replace this installation.")
+    ).to_be_visible(timeout=RESTORE_MILLISECONDS)
+    return replacement
 
 
 class TestDatabasusRecovery:
@@ -140,6 +151,7 @@ class TestDatabasusRecovery:
         register_first_account(target, temporary_root)
         target.goto("/databasus-settings")
 
+        _open_recovery(target)
         _upload(target, source.archive, WRONG_MASTER_KEY)
         expect(
             target.get_by_text(
@@ -147,23 +159,17 @@ class TestDatabasusRecovery:
             )
         ).to_be_visible(timeout=RESTORE_MILLISECONDS)
 
-        _upload(target, source.archive, source.master_key)
-        expect(
-            target.get_by_text("The Databasus backup is ready to replace this installation.")
-        ).to_be_visible(timeout=RESTORE_MILLISECONDS)
-
-        _open_replacement(target)
-        replacement = target.get_by_role("dialog", name="Replace this installation")
+        replacement = _prepare_replacement(target, source.archive, source.master_key)
         replacement.get_by_role("button", name="Cancel", exact=True).click()
         expect(replacement).to_be_hidden()
         target_workspaces = _get_items(call_api(target, "GET", "/api/v1/workspaces?limit=100"))
         assert source.workspace_name not in [item.get("name") for item in target_workspaces]
 
-        _open_replacement(target)
+        _open_recovery(target)
+        replacement = _prepare_replacement(target, source.archive, source.master_key)
         replacement.get_by_role(
             "checkbox", name="I understand that the current state of this installation is replaced"
         ).check()
-        replacement.get_by_label("Your current password").fill(temporary_root.password)
         replacement.get_by_role("button", name="Replace", exact=True).click()
 
         expect(
@@ -171,16 +177,14 @@ class TestDatabasusRecovery:
         ).to_be_visible(timeout=RESTORE_MILLISECONDS)
 
         sign_in(target, instance_admin)
-        pause = target.get_by_text("Databasus is paused after a recovery", exact=True)
-        expect(pause).to_be_visible()
         recovered_workspaces = _get_items(call_api(target, "GET", "/api/v1/workspaces?limit=100"))
         assert source.workspace_name in [item.get("name") for item in recovered_workspaces]
-
-        target.get_by_role("button", name="Activate", exact=True).click()
-        activation = target.get_by_role("dialog", name="Activate the recovered instance")
-        activation.get_by_role("checkbox", name="The old instance is stopped").check()
-        activation.get_by_role("button", name="Activate", exact=True).click()
-
-        expect(pause).to_be_hidden()
+        expect(
+            target.get_by_text("Databasus is paused after a recovery", exact=True)
+        ).to_have_count(0)
+        expect(target.get_by_role("button", name="Activate", exact=True)).to_have_count(0)
         status = call_api(target, "GET", "/api/v1/instance-backup-statuses")
-        assert status.get("isRecoveryPaused") is False
+        assert "isRecoveryPaused" not in status
+        recovery = status.get("recovery")
+        assert isinstance(recovery, dict)
+        assert recovery.get("status") == "COMPLETED"

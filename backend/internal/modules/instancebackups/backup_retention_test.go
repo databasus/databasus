@@ -111,5 +111,13 @@ func (o instanceOwner) selectRetainedDestinations(t *testing.T, retentionDays in
 func (o instanceOwner) getStoredFileName(t *testing.T, backup apiclient.InstanceBackup, storageID uuid.UUID) string {
 	t.Helper()
 
-	return o.createDownloadToken(t, backup.Id, getCopy(t, backup, storageID).Id).FileName
+	var storedFileName string
+	o.App.QuerySQL(
+		t,
+		&storedFileName,
+		`SELECT file_name FROM instancebackups_copies WHERE id = ?`,
+		getCopy(t, backup, storageID).Id,
+	)
+
+	return storedFileName
 }

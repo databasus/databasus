@@ -5,6 +5,7 @@ export const zh: typeof en = {
     nativeName: '中文',
   },
   common: {
+    dateTimeWithRelativeTime: '{{time}}（{{relativeTime}}）',
     calendar: {
       monthLevelControl: '选择月份',
       yearLevelControl: '选择年份',
@@ -131,14 +132,12 @@ export const zh: typeof en = {
     targetTimeUnreachable: '现有备份和 WAL 无法恢复到指定时间。',
     notRunning: '该操作已不在进行中，无需取消。',
     databasusBackupInUse:
-      '此存储是 Databasus 备份的目标。root 管理员必须先将其从 Databasus 备份设置中移除。',
-    recoveryPaused: 'Databasus 在恢复后处于暂停状态。root 管理员确认旧实例已停止后，才允许此操作。',
-    storageUnavailable: '此存储在本服务器上验证之前不可用。',
+      '此存储用于 Databasus 备份。请先将其从 Databasus 备份设置中移除，或请服务器管理员处理。',
+    storageUnavailable: '存储无法提供此文件。',
     recoveryIncompatible: '此 Databasus 版本无法恢复该 Databasus 备份文件。',
     recoveryNotReady: '此恢复在当前状态下不能执行该操作。',
-    identityProofInvalid: '密码或确认码错误、已过期或已被使用。',
-    identityProofUnavailable:
-      '无法确认身份：账户没有密码，也没有可接收确认码的邮件服务器或邮箱地址。',
+    identityProofInvalid: '确认码错误、已过期或已被使用。',
+    identityProofUnavailable: '无法发送确认码：没有可以接收它的邮件服务器或邮箱地址。',
     archiveTooLarge: '文件超过了配置的上传大小限制。',
     instanceUnhealthy: '实例运行异常。',
     insufficientDiskSpace: 'Databasus 服务器的可用磁盘空间不足：{{detail}}',
@@ -252,6 +251,7 @@ export const zh: typeof en = {
   },
   auditLogs: {
     title: '审计日志',
+    open: '打开',
     columns: {
       user: '用户',
       message: '事件',
@@ -1930,7 +1930,7 @@ export const zh: typeof en = {
   instanceBackups: {
     title: 'Databasus 备份',
     description:
-      'Databasus 内部数据库的加密快照，包含用户、工作区、设置、计划、加密的凭据，以及你的数据库备份目录。数据库的备份文件仍留在各自的存储中，不会复制到快照里。',
+      '保存 Databasus 本身：用户、设置、数据库连接和备份列表。如果这台服务器出现故障，你可以在另一台服务器上用这些备份恢复 Databasus。',
     retainSeparately:
       '恢复时需要一个 Databasus 备份文件，以及加密它的主密钥。请把密钥和至少一个目标存储的访问权限保存在这台服务器之外。',
     health: {
@@ -1944,7 +1944,19 @@ export const zh: typeof en = {
       resuming: '正在恢复运行',
     },
     status: {
-      label: '状态：',
+      titles: {
+        notConfigured: 'Databasus 尚未备份',
+        initializing: '正在等待第一份 Databasus 备份',
+        healthy: 'Databasus 已备份',
+        partial: '部分存储没有最新的 Databasus 备份',
+        failed: 'Databasus 备份失败',
+        overdue: 'Databasus 备份已逾期',
+        stopped: 'Databasus 备份已停止',
+        resuming: 'Databasus 备份正在恢复运行',
+      },
+      lastBackup: '最近一次备份：<time/>',
+      noSuccessfulBackup: '还没有成功的备份。',
+      storageError: '{{storage}}：{{error}}',
       refreshFailed: '无法刷新状态，显示的状态可能已过时：{{reason}}',
     },
     incidents: {
@@ -1955,6 +1967,10 @@ export const zh: typeof en = {
       since: '开始于 {{time}}',
       mailFailed: '无法发送有关此问题的邮件：{{error}}',
     },
+    setup: {
+      description: '选择一个存储，开始备份 Databasus。',
+      start: '设置备份',
+    },
     smtp: {
       missingTitle: '未配置邮件服务器',
       missingDescription: '发送 Databasus 备份失败和逾期的邮件需要系统邮件服务器。',
@@ -1962,21 +1978,17 @@ export const zh: typeof en = {
       addressMissing: '你的账户没有可接收警报的邮箱地址，请在个人资料中添加。',
     },
     destinations: {
-      title: '目标',
       description: '从任意工作区选择已有的存储。每个 Databasus 备份都会复制到所有选中的存储。',
       picker: '目标存储',
       pickerPlaceholder: '选择存储',
       choice: '{{storage}}（{{workspace}}，{{provider}}）',
       none: '未选择任何目标，因此 Databasus 没有备份。',
       unknownStorage: '未知存储',
-      location: '工作区 {{workspace}}，{{provider}}',
+      storageInWorkspace: '<storage/> <details>（工作区：<workspace/>）</details>',
       lastSuccess: '最近一次成功复制：{{time}}',
-      unsaved: '尚未保存',
       remove: '移除 {{storage}}',
       create: '创建存储',
       localWarning: '本地存储位于同一台服务器上，这台服务器丢失时它无法提供保护。',
-      sharedStorage:
-        '这些是普通的工作区存储。能编辑其中任一存储的人，也就能改变 Databasus 备份的去向，因此请用常规的工作区角色限制这些工作区的成员。',
     },
     createDestination: {
       title: '创建目标存储',
@@ -1987,26 +1999,24 @@ export const zh: typeof en = {
       storageStep: '存储会创建在 {{workspace}} 工作区中，并被选为目标。',
     },
     settings: {
+      title: '设置',
+      storages: '存储',
       schedule: '备份计划',
       retentionDays: '副本保留天数',
-      retentionDescription: '较旧的副本会被删除，但每个存储中最新的成功副本始终保留。',
       save: '保存',
       saved: 'Databasus 备份设置已保存',
       firstBackupRequested: '设置已保存，第一次 Databasus 备份已开始。',
       stopped: '设置已保存。由于未选择任何目标，Databasus 备份已停止。',
     },
     history: {
-      title: '历史',
+      title: '最近的备份',
       start: '立即备份',
       started: 'Databasus 备份已开始',
       startNeedsDestination: '开始备份前，请先选择并保存一个目标。',
-      downloadOnly: '要从其中某个备份恢复，请先下载它，再在下方导入该文件。',
       empty: '还没有 Databasus 备份。',
-      snapshot: '快照 {{time}}，Databasus {{version}}',
-      size: '大小：{{size}}',
       copy: '{{storage}}（{{workspace}}）：{{status}}',
-      download: '下载',
-      downloadFrom: '从 {{storage}} 下载副本',
+      showAll: '显示全部',
+      downloadBackup: '下载 {{time}} 的备份',
       showMore: '显示更多',
     },
     backupStatuses: {
@@ -2025,33 +2035,25 @@ export const zh: typeof en = {
       interrupted: '已中断',
       deleted: '已删除',
     },
-    triggers: {
-      schedule: '按计划',
-      manual: '手动启动',
-      destinationAdded: '添加目标后启动',
-    },
   },
   instanceRecovery: {
+    open: '从备份恢复',
     form: {
       title: '从 Databasus 备份文件恢复',
-      description:
-        '用一个 Databasus 备份替换当前安装。从 S3、其他存储或其他服务器取得文件，然后在这里选择它。当前安装不需要任何目标或历史记录。',
-      sourceKey: '请输入生成该备份的安装所用的主密钥。当前安装的密钥无法打开它。',
+      description: '用 Databasus 备份中保存的状态替换当前安装。',
       archive: 'Databasus 备份文件',
-      archivePlaceholder: '选择文件',
+      archivePlaceholder: '选择或拖入文件',
+      archiveHint: '可从最近的备份中下载，或从存储中获取。',
+      archiveClear: '移除文件',
       archiveMissing: '请选择一个 Databasus 备份文件。',
       masterKey: '源安装的主密钥',
-      masterKeyDescription: '请按保存时的原样粘贴或输入密钥。',
+      masterKeyDescription: '请按保存时的原样粘贴密钥。当前安装的密钥只能打开它自己的备份。',
       masterKeyMissing: '请输入主密钥。',
-      showKey: '显示密钥',
-      hideKey: '隐藏密钥',
       upload: '上传并检查',
       uploading: '正在上传文件…',
       preparing: '正在检查并准备 Databasus 备份…',
       ready: 'Databasus 备份已准备好替换当前安装。',
       snapshot: '快照时间 {{time}}，由 Databasus {{version}} 生成。',
-      replacementWarning: '替换会删除当前安装的账户、设置和备份历史，并换成快照中的内容。',
-      replace: '替换当前安装',
       releaseMismatch:
         '此文件由 Databasus {{sourceRelease}} 生成，而当前安装运行的是 {{runningRelease}}。请使用 Databasus {{sourceRelease}} 恢复它。',
       correctAndRetry: '当前安装未被更改。请选择其他文件，或更正密钥后重试。',
@@ -2065,20 +2067,9 @@ export const zh: typeof en = {
       confirmReplacement: '我了解当前安装的状态将被替换',
       submit: '替换',
     },
+    discardedCleanup:
+      '旧实例未完成的文件写入和删除已被丢弃，没有重做：{{count}}。这些文件可能需要手动清理。',
     restoredSignIn: 'Databasus 已从备份恢复。请使用该备份中的账户和密码登录。',
-    pause: {
-      title: 'Databasus 在恢复后已暂停',
-      description:
-        '在你确认旧实例已停止之前，备份、恢复、检查、通知和清理都不会运行。如果两个实例同时运行，它们会写入相同的存储和数据库。',
-      snapshot: '已从 {{time}} 的快照恢复，Databasus {{version}}。',
-      discardedCleanup:
-        '旧实例未完成的文件写入和删除已被丢弃，没有重做：{{count}}。这些文件可能需要手动清理。',
-      activate: '激活',
-      confirmTitle: '激活恢复的实例',
-      confirmDescription:
-        '请先停止旧的 Databasus 实例。激活后，此实例会运行计划备份，并写入相同的存储。',
-      oldInstanceStopped: '旧实例已停止',
-    },
     failures: {
       archiveInvalid: '该文件不是有效的 Databasus 备份，或者主密钥与它不匹配。',
       archiveIncomplete: 'Databasus 备份文件不完整。',
@@ -2094,34 +2085,33 @@ export const zh: typeof en = {
   },
   masterKey: {
     title: '主密钥',
+    open: '下载主密钥',
     description:
-      'Databasus 使用此密钥加密备份。如果这台服务器丢失，你需要用它来解密备份，包括 Databasus 自身的备份。',
-    statusSaved: '当前主密钥已保存。',
-    statusNotSaved: '当前主密钥尚未保存。',
+      'Databasus 使用此密钥加密备份。如果这台服务器丢失，你需要用它来解密备份，包括 Databasus 自身的备份',
     loading: '正在获取密钥…',
     copy: '复制',
     copied: '已复制',
     copyFailed: '浏览器不允许复制。请改为下载密钥。',
     download: '下载',
     downloaded: '已下载',
-    saveAgain: '复制或下载密钥',
     codeRequired: '此实例要求双因素登录，因此请使用发送到你邮箱的验证码确认访问密钥。',
     codeFailed: '如果验证码一直收不到，请手动从服务器复制密钥。',
     proof: {
-      password: '你当前的密码',
       sendCode: '通过邮件发送验证码',
       resendCode: '发送新验证码',
       code: '验证码',
       confirm: '继续',
+      wrongCode: '验证码错误或已过期。请发送新的验证码。',
     },
     host: {
-      description: '你也可以直接从服务器复制密钥文件。',
-      path: '它在容器内的位置：',
-      containerName: '请把 databasus 替换为你的容器名称。',
+      toggle: '改为从服务器复制密钥',
+      location:
+        '你也可以直接从服务器复制密钥文件：它是 Databasus 安装目录中的 <code>databasus-data/secret.key</code>。',
     },
     onboarding: {
       title: '保存主密钥',
       close: '我已将它保存在安全的地方',
+      closeIn: '我已将它保存在安全的地方（{{seconds}}）',
     },
   },
   instanceBackupNotices: {
@@ -2135,17 +2125,6 @@ export const zh: typeof en = {
   },
   storages: {
     usageUnavailable: '无法更新备份占用空间。',
-    recoveryValidation: {
-      title: '此存储需要在这台服务器上验证',
-      description:
-        '这是从 Databasus 备份恢复的本地存储。Databasus 备份不包含它在原服务器上的文件，因此在这里验证之前，无法在其中写入、读取或恢复备份。',
-      editorAction: '测试连接以检查它在这台服务器上的文件夹。测试成功后，存储即可使用。',
-      viewerAction: '你可以测试连接，但只有能编辑此存储的成员才能验证它。',
-      validated: '存储已验证，可在这台服务器上使用。',
-      notValidated: '连接正常，但存储仍未通过验证。它的设置可能在测试期间被更改，请再测试一次。',
-      viewerConnected:
-        '连接正常，但你没有编辑权限，所以你的测试不会验证此存储。在有编辑权限的成员测试之前，它仍不可用。',
-    },
     cleanup: {
       title: '清理仍在进行中',
       warning:

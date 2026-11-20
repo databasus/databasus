@@ -31,11 +31,6 @@ var (
 		Detail: "the recovery is not in the local journal",
 		Errors: nil,
 	}
-	ErrRecoveryNotPaused = &apierror.Problem{
-		Code:   apierror.CodeRecoveryNotReady,
-		Detail: "the recovery does not hold the instance paused",
-		Errors: nil,
-	}
 	// ErrRecoveryNotReady is a recovery that is not prepared, expired or already ended, so it cannot be
 	// confirmed or applied.
 	ErrRecoveryNotReady = &apierror.Problem{

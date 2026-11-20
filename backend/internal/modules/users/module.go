@@ -44,11 +44,9 @@ type (
 	ConsoleUserRequest    = accounts.ConsoleUserRequest
 	ConsoleUserOutcome    = accounts.ConsoleUserOutcome
 	ConsolePasswordChange = accounts.ConsolePasswordChange
-	// IdentityProofBinding names what an identity proof authorizes: a purpose and the operation's
-	// subject. IdentityProof carries the password or the emailed code.
+	// IdentityProofBinding names what an emailed confirmation code authorizes: a purpose and the
+	// operation's subject.
 	IdentityProofBinding = identityproof.Binding
-	IdentityProof        = identityproof.Proof
-	IdentityProofMethod  = identityproof.Method
 	// RecoveryTargetState is what the users tables of a startup recovery target hold.
 	RecoveryTargetState = instancerecovery.State
 )
@@ -104,15 +102,13 @@ type Module interface {
 	RequireRootAdmin(ctx context.Context, actor Actor) (User, error)
 	// GetRootAdmin reports false when the instance has no root admin yet.
 	GetRootAdmin(ctx context.Context) (User, bool, error)
-	// GetIdentityProofMethods lists the confirmations root admin can give now: the password when the
-	// account has one, and an emailed code when the system mail server can reach its address.
-	GetIdentityProofMethods(ctx context.Context, actor Actor) ([]IdentityProofMethod, error)
 	// SendIdentityCode emails root admin a five-minute code bound to the session and the binding. It
-	// answers identity_proof_unavailable without mail and rate_limited within a minute of another.
+	// answers identity_proof_unavailable while two-factor sign-in is off or mail cannot reach root
+	// admin, and rate_limited within a minute of another.
 	SendIdentityCode(ctx context.Context, actor Actor, binding IdentityProofBinding) (time.Time, error)
-	// VerifyIdentityProof accepts root admin's password, or consumes a code issued for this session
-	// and binding. Any other proof answers identity_proof_invalid.
-	VerifyIdentityProof(ctx context.Context, actor Actor, binding IdentityProofBinding, proof IdentityProof) error
+	// VerifyIdentityCode consumes a code emailed for this session and binding. Any other code
+	// answers identity_proof_invalid.
+	VerifyIdentityCode(ctx context.Context, actor Actor, binding IdentityProofBinding, code *string) error
 	// InviteUser creates a user who finishes sign-up later. It answers permission_denied when the
 	// instance settings forbid the actor to invite and email_taken when the address has a user.
 	InviteUser(ctx context.Context, actor Actor, invitation Invitation) (User, error)
@@ -231,8 +227,8 @@ func New(deps Deps) Module {
 		Clock:        deps.Clock,
 		Accounts:     accountsService,
 		Directory:    directory,
+		Settings:     settingsService,
 		Mailer:       deps.Mailer,
-		RateLimiter:  deps.RateLimiter,
 		AuditLog:     deps.AuditLog,
 		Logger:       deps.Logger,
 	})

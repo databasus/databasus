@@ -1,6 +1,6 @@
 import { Alert, Button } from '@mantine/core';
 import { CircleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type InstanceBackupStatus, masterKeyApi } from '@/entities/instance-backups';
@@ -10,6 +10,9 @@ import { useSessionGuard } from '@/shared/auth';
 import { useScreenHeight } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
 import { BrandNavbar } from '@/shared/ui';
+
+// Root admin reads why the key matters before the confirmation unlocks, instead of clicking through.
+const CONFIRMATION_WAIT_SECONDS = 15;
 
 interface Props {
   status: InstanceBackupStatus;
@@ -23,12 +26,26 @@ export function MasterKeyOnboardingPage({ status, onAcknowledged }: Props) {
   const screenHeight = useScreenHeight();
   const isCurrent = useSessionGuard();
   const [isKeySaved, setIsKeySaved] = useState(false);
+  const [waitSecondsLeft, setWaitSecondsLeft] = useState(CONFIRMATION_WAIT_SECONDS);
   const [acknowledgeError, setAcknowledgeError] = useState<unknown>();
 
   const acknowledgeMutation = useSessionMutation({
     mutationFn: (parameters: Parameters<typeof masterKeyApi.acknowledge>) =>
       masterKeyApi.acknowledge(...parameters),
   });
+
+  const isWaiting = waitSecondsLeft > 0;
+
+  useEffect(() => {
+    if (!isWaiting) return;
+
+    const interval = setInterval(
+      () => setWaitSecondsLeft((secondsLeft) => Math.max(secondsLeft - 1, 0)),
+      1000,
+    );
+
+    return () => clearInterval(interval);
+  }, [isWaiting]);
 
   const acknowledge = async () => {
     if (acknowledgeMutation.isPending) return;
@@ -60,8 +77,7 @@ export function MasterKeyOnboardingPage({ status, onAcknowledged }: Props) {
 
         <div className="mt-6 w-full max-w-[460px]">
           <MasterKeyExport
-            isCodeRequired={status.isMasterKeyExportCodeRequired}
-            masterKeyPath={status.masterKeyPath}
+            isCodeRequired={status.isConfirmationCodeRequired}
             onKeySaved={() => setIsKeySaved(true)}
           />
 
@@ -83,11 +99,13 @@ export function MasterKeyOnboardingPage({ status, onAcknowledged }: Props) {
             }}
             variant="filled"
             fullWidth
-            disabled={!isKeySaved}
+            disabled={!isKeySaved || isWaiting}
             loading={acknowledgeMutation.isPending}
             onClick={() => void acknowledge()}
           >
-            {t('masterKey.onboarding.close')}
+            {isWaiting
+              ? t('masterKey.onboarding.closeIn', { seconds: waitSecondsLeft })
+              : t('masterKey.onboarding.close')}
           </Button>
         </div>
       </main>

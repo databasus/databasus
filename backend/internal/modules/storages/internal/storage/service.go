@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"reflect"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -150,8 +149,6 @@ func (s *Service) CreateStorage(ctx context.Context, actor users.Actor, creation
 		WorkspaceID: creation.WorkspaceID,
 		Name:        creation.Name,
 		Type:        provider.GetType(),
-
-		RecoveryValidationStatus: RecoveryValidationStatusAvailable,
 	}
 
 	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
@@ -357,51 +354,4 @@ func validateName(name string) error {
 	}
 
 	return nil
-}
-
-// markRecoveryValidated makes a recovered storage available after an editor's successful test, but
-// only while its saved settings are still the ones the test probed. The status is the one column
-// it changes.
-func (s *Service) markRecoveryValidated(
-	ctx context.Context,
-	actor users.Actor,
-	tested WithSettings,
-) (RecoveryValidationStatus, error) {
-	status := tested.RecoveryValidationStatus
-
-	err := s.transactor.Transaction(ctx, func(txCtx context.Context) error {
-		lockedStorage, isFound, err := s.repository.get(txCtx, tested.ID, forUpdateRowLock)
-		if err != nil {
-			return err
-		}
-
-		if !isFound {
-			return ErrStorageNotFound
-		}
-
-		current, err := s.settings.loadOne(txCtx, lockedStorage)
-		if err != nil {
-			return err
-		}
-
-		status = lockedStorage.RecoveryValidationStatus
-		if lockedStorage.IsAvailable() || !reflect.DeepEqual(current.Settings, tested.Settings) {
-			return nil
-		}
-
-		err = s.repository.updateRecoveryValidationStatus(txCtx, tested.ID, RecoveryValidationStatusAvailable)
-		if err != nil {
-			return err
-		}
-
-		status = RecoveryValidationStatusAvailable
-
-		return s.audit.record(txCtx, actor, lockedStorage.WorkspaceID,
-			"Storage validated on this host after recovery: "+lockedStorage.Name)
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return status, nil
 }

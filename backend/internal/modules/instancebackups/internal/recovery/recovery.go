@@ -13,8 +13,7 @@ const (
 	StatusValidating Status = "VALIDATING"
 	StatusReady      Status = "READY"
 	StatusApplying   Status = "APPLYING"
-	StatusPaused     Status = "PAUSED"
-	StatusActive     Status = "ACTIVE"
+	StatusCompleted  Status = "COMPLETED"
 	StatusFailed     Status = "FAILED"
 	StatusCancelled  Status = "CANCELLED"
 )
@@ -56,7 +55,6 @@ type Recovery struct {
 func findRecovery(
 	journal Journal,
 	recoveryID uuid.UUID,
-	pausedBy *uuid.UUID,
 	runningRelease string,
 ) (Recovery, bool) {
 	switch {
@@ -65,7 +63,7 @@ func findRecovery(
 	case journal.LastEnded != nil && journal.LastEnded.OperationID == recoveryID:
 		return newEndedRecovery(*journal.LastEnded, runningRelease), true
 	case journal.LastCompleted != nil && journal.LastCompleted.OperationID == recoveryID:
-		return newCompletedRecovery(*journal.LastCompleted, pausedBy, runningRelease), true
+		return newCompletedRecovery(*journal.LastCompleted, runningRelease), true
 	default:
 		return Recovery{}, false
 	}
@@ -124,17 +122,12 @@ func newEndedRecovery(ended EndedRecovery, runningRelease string) Recovery {
 	}
 }
 
-func newCompletedRecovery(completed CompletedRecovery, pausedBy *uuid.UUID, runningRelease string) Recovery {
-	status := StatusActive
-	if pausedBy != nil && *pausedBy == completed.OperationID {
-		status = StatusPaused
-	}
-
+func newCompletedRecovery(completed CompletedRecovery, runningRelease string) Recovery {
 	completedAt := completed.CompletedAt
 
 	return Recovery{
 		ID:                    completed.OperationID,
-		Status:                status,
+		Status:                StatusCompleted,
 		Origin:                completed.Origin,
 		ArchiveSha256:         completed.ArchiveSha256,
 		RunningRelease:        runningRelease,

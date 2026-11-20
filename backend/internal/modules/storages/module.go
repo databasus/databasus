@@ -19,7 +19,6 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
-	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/storages/internal/files"
 	storageshttpapi "databasus-backend/internal/modules/storages/internal/httpapi"
 	"databasus-backend/internal/modules/storages/internal/instancerecovery"
@@ -143,13 +142,10 @@ type Deps struct {
 	Clock          clock.Source
 	LocalFolders   LocalFolders
 	FileTimings    FileTimings
-	// RecoveryPause blocks writes and connection tests while a recovered instance is paused.
-	RecoveryPause *recoverypause.Gate
 }
 
-// NormalizeRecoveredState prepares the storages tables of a database a recovery staged: local
-// storages require validation on this host, and the lost instance's unfinished file writes and
-// deletions are discarded. It returns how many were discarded.
+// NormalizeRecoveredState prepares the storages tables of a database a recovery staged: the lost
+// instance's unfinished file writes and deletions are discarded. It returns how many were discarded.
 func NormalizeRecoveredState(ctx context.Context, db *gorm.DB) (int, error) {
 	return instancerecovery.NewService(instancerecovery.NewRepositories(db)).NormalizeRecoveredState(ctx)
 }
@@ -199,7 +195,6 @@ func New(deps Deps) Module {
 		Clock:           deps.Clock,
 		Timings:         deps.FileTimings,
 		Uploads:         writes,
-		RecoveryPause:   deps.RecoveryPause,
 	}
 	fileStore := files.NewStore(fileDeps)
 	deletionJob := files.NewDeletionJob(fileStore, fileDeps)
@@ -234,10 +229,9 @@ func New(deps Deps) Module {
 			Storages:  storageService,
 			Transfers: transferService,
 			ConnectionTests: storage.NewConnectionTestService(storage.ConnectionTestServiceDeps{
-				Storages:      storageService,
-				Registry:      registry,
-				Workspaces:    deps.Workspaces,
-				RecoveryPause: deps.RecoveryPause,
+				Storages:   storageService,
+				Registry:   registry,
+				Workspaces: deps.Workspaces,
 			}),
 		}),
 	})

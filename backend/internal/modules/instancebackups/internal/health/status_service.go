@@ -37,29 +37,21 @@ func (s *Service) GetStatus(ctx context.Context, actor users.Actor) (Status, err
 		return Status{}, err
 	}
 
-	methods, err := s.users.GetIdentityProofMethods(ctx, actor)
-	if err != nil {
-		return Status{}, err
-	}
-
-	latestRecovery, err := s.recoveries.GetLatestRecovery(ctx)
+	latestRecovery, err := s.recoveries.GetLatestRecovery()
 	if err != nil {
 		return Status{}, err
 	}
 
 	return Status{
-		Health:                        protection.Health,
-		Destinations:                  protection.Destinations,
-		Incident:                      incident,
-		IsEmailConfigured:             s.mailer.IsConfigured(),
-		IsRootEmailUsable:             isEmailAddress(rootAdmin.Email),
-		IsMasterKeyAcknowledged:       isAcknowledged,
-		IsMasterKeyExportCodeRequired: isExportCodeRequired,
-		IdentityProofMethods:          methods,
-		MasterKeyPath:                 s.masterKeyPath,
-		Reminder:                      reminder,
-		IsRecoveryPaused:              protection.Config.IsRecoveryPaused(),
-		Recovery:                      latestRecovery,
+		Health:                     protection.Health,
+		Destinations:               protection.Destinations,
+		Incident:                   incident,
+		IsEmailConfigured:          s.mailer.IsConfigured(),
+		IsRootEmailUsable:          isEmailAddress(rootAdmin.Email),
+		IsMasterKeyAcknowledged:    isAcknowledged,
+		IsConfirmationCodeRequired: isExportCodeRequired,
+		Reminder:                   reminder,
+		Recovery:                   latestRecovery,
 	}, nil
 }
 

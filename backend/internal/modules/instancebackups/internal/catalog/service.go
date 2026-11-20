@@ -13,7 +13,6 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
-	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/instancebackups/internal/configs"
 	"databasus-backend/internal/modules/instancebackups/internal/snapshot"
 	"databasus-backend/internal/modules/instancebackups/internal/tokens"
@@ -32,7 +31,6 @@ type Deps struct {
 	Configs      *configs.Service
 	Producer     *snapshot.Producer
 	Tokens       *tokens.Service
-	Pause        *recoverypause.Gate
 	Release      string
 }
 
@@ -48,7 +46,6 @@ type Service struct {
 	configs          *configs.Service
 	producer         *snapshot.Producer
 	tokens           *tokens.Service
-	pause            *recoverypause.Gate
 	release          string
 	productionSignal chan struct{}
 	deliverySignal   chan struct{}
@@ -67,7 +64,6 @@ func NewService(deps Deps) *Service {
 		configs:          deps.Configs,
 		producer:         deps.Producer,
 		tokens:           deps.Tokens,
-		pause:            deps.Pause,
 		release:          deps.Release,
 		productionSignal: make(chan struct{}, 1),
 		deliverySignal:   make(chan struct{}, 1),
@@ -84,10 +80,6 @@ type HistoryQuery struct {
 func (s *Service) StartBackup(ctx context.Context, actor users.Actor) (BackupWithCopies, error) {
 	rootAdmin, err := s.users.RequireRootAdmin(ctx, actor)
 	if err != nil {
-		return BackupWithCopies{}, err
-	}
-
-	if err := s.pause.Check(); err != nil {
 		return BackupWithCopies{}, err
 	}
 

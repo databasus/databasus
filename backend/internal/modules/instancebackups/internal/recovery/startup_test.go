@@ -17,7 +17,7 @@ import (
 func TestStartupRecovery(t *testing.T) {
 	t.Parallel()
 
-	t.Run("recovers a fresh target paused and installs the exact source key", func(t *testing.T) {
+	t.Run("recovers a fresh target and installs the exact source key", func(t *testing.T) {
 		t.Parallel()
 		source := newSourceArchive(t)
 		freshTarget := newFreshTarget(t)
@@ -31,7 +31,7 @@ func TestStartupRecovery(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, []string{sourceWorkspaceName}, freshTarget.listWorkspaceNames(t))
 		assert.Equal(t, source.keyContent, freshTarget.readKey(t))
-		assert.Equal(t, &journal.LastCompleted.OperationID, freshTarget.getPausedOperationID(t))
+		assert.Equal(t, &journal.LastCompleted.OperationID, freshTarget.getRecoveredByOperationID(t))
 		assert.Equal(t, []string{archiveSha256}, journal.ConsumedStartupArchives)
 		assert.Equal(t, OriginStartup, journal.LastCompleted.Origin)
 		assert.Equal(t, testRelease, journal.LastCompleted.SourceRelease)
@@ -40,26 +40,24 @@ func TestStartupRecovery(t *testing.T) {
 		assertNoOperationFiles(t, freshTarget)
 	})
 
-	t.Run("ends the lost instance's sessions and file work and makes local storage require validation",
-		func(t *testing.T) {
-			t.Parallel()
-			source := newSourceArchive(t)
-			freshTarget := newFreshTarget(t)
+	t.Run("ends the lost instance's sessions and file work", func(t *testing.T) {
+		t.Parallel()
+		source := newSourceArchive(t)
+		freshTarget := newFreshTarget(t)
 
-			err := freshTarget.openForServer(t, freshTarget.newStartup(t, source))
+		err := freshTarget.openForServer(t, freshTarget.newStartup(t, source))
 
-			require.NoError(t, err)
-			passwordVersion, storageStatus := freshTarget.readAccountState(t)
-			var pendingDeletionCount int64
-			withTestDatabase(t, freshTarget.dsn, func(db *gorm.DB) {
-				require.NoError(t, db.Raw("SELECT count(*) FROM storages_pending_file_deletions").
-					Scan(&pendingDeletionCount).Error)
-			})
-			assert.NotEqual(t, source.passwordVersion, passwordVersion)
-			assert.Equal(t, "REQUIRES_VALIDATION", storageStatus)
-			assert.Zero(t, pendingDeletionCount)
-			assert.Equal(t, 1, freshTarget.readJournal(t).LastCompleted.DiscardedCleanupCount)
+		require.NoError(t, err)
+		passwordVersion := freshTarget.readPasswordVersion(t)
+		var pendingDeletionCount int64
+		withTestDatabase(t, freshTarget.dsn, func(db *gorm.DB) {
+			require.NoError(t, db.Raw("SELECT count(*) FROM storages_pending_file_deletions").
+				Scan(&pendingDeletionCount).Error)
 		})
+		assert.NotEqual(t, source.passwordVersion, passwordVersion)
+		assert.Zero(t, pendingDeletionCount)
+		assert.Equal(t, 1, freshTarget.readJournal(t).LastCompleted.DiscardedCleanupCount)
+	})
 
 	t.Run("replaces the generated key of an automatically initialized target", func(t *testing.T) {
 		t.Parallel()

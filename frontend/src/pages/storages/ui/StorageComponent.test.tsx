@@ -24,7 +24,6 @@ afterEach(() => {
 const localStorageOfWorkspace: Storage = {
   id: 'storage-id',
   workspaceId: 'workspace-id',
-  recoveryValidationStatus: 'AVAILABLE',
   name: 'Local backups',
   settings: { type: 'LOCAL' },
 };

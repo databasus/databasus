@@ -12,17 +12,13 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/mailer"
-	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users/internal/accounts"
 	"databasus-backend/internal/modules/users/internal/identity"
+	"databasus-backend/internal/modules/users/internal/settings"
 )
 
 const (
 	codeRequestInterval = time.Minute
-
-	passwordRateLimitScope  = "identity-proof-password"
-	passwordRateLimit       = 5
-	passwordRateLimitWindow = 10 * time.Minute
 
 	// expiredCodeRetention keeps used and expired codes briefly, so the one-a-minute rule still sees
 	// a code that expired a moment ago.
@@ -35,60 +31,36 @@ type Deps struct {
 	Clock        clock.Source
 	Accounts     *accounts.Service
 	Directory    *accounts.Directory
+	Settings     *settings.Service
 	Mailer       mailer.Sender
-	RateLimiter  ratelimit.Counter
 	AuditLog     *audit.Log
 	Logger       *slog.Logger
 }
 
 type Service struct {
-	codes       *identityCodeRepository
-	transactor  *database.Transactor
-	clock       clock.Source
-	accounts    *accounts.Service
-	directory   *accounts.Directory
-	mailer      mailer.Sender
-	rateLimiter ratelimit.Counter
-	auditLog    *audit.Log
-	logger      *slog.Logger
+	codes      *identityCodeRepository
+	transactor *database.Transactor
+	clock      clock.Source
+	accounts   *accounts.Service
+	directory  *accounts.Directory
+	settings   *settings.Service
+	mailer     mailer.Sender
+	auditLog   *audit.Log
+	logger     *slog.Logger
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		codes:       deps.Repositories.codes,
-		transactor:  deps.Transactor,
-		clock:       deps.Clock,
-		accounts:    deps.Accounts,
-		directory:   deps.Directory,
-		mailer:      deps.Mailer,
-		rateLimiter: deps.RateLimiter,
-		auditLog:    deps.AuditLog,
-		logger:      deps.Logger,
+		codes:      deps.Repositories.codes,
+		transactor: deps.Transactor,
+		clock:      deps.Clock,
+		accounts:   deps.Accounts,
+		directory:  deps.Directory,
+		settings:   deps.Settings,
+		mailer:     deps.Mailer,
+		auditLog:   deps.AuditLog,
+		logger:     deps.Logger,
 	}
-}
-
-// GetMethods lists the confirmations root admin can give now. An empty list leaves only the host
-// file, which the interface explains.
-func (s *Service) GetMethods(ctx context.Context, actor identity.Actor) ([]Method, error) {
-	if _, err := s.directory.RequireRootAdmin(ctx, actor); err != nil {
-		return nil, err
-	}
-
-	record, err := s.getRecord(ctx, actor.UserID)
-	if err != nil {
-		return nil, err
-	}
-
-	methods := []Method{}
-	if record.HasPassword() {
-		methods = append(methods, MethodPassword)
-	}
-
-	if s.canEmail(record) {
-		methods = append(methods, MethodEmailCode)
-	}
-
-	return methods, nil
 }
 
 // SendCode emails root admin a code for the binding in the current session. A newer code replaces
@@ -109,7 +81,12 @@ func (s *Service) SendCode(ctx context.Context, actor identity.Actor, binding Bi
 		return time.Time{}, err
 	}
 
-	if !s.canEmail(record) {
+	canEmail, err := s.canEmail(ctx, record)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if !canEmail {
 		return time.Time{}, ErrProofUnavailable
 	}
 
@@ -176,9 +153,9 @@ func (s *Service) SendCode(ctx context.Context, actor identity.Actor, binding Bi
 	return expiresAt, nil
 }
 
-// Verify accepts the proof once for the binding in the current session. Any refusal answers
+// Verify consumes the emailed code once for the binding in the current session. Any refusal answers
 // identity_proof_invalid without telling which part was wrong.
-func (s *Service) Verify(ctx context.Context, actor identity.Actor, binding Binding, proof Proof) error {
+func (s *Service) Verify(ctx context.Context, actor identity.Actor, binding Binding, code *string) error {
 	sessionSha256, hasSession := identity.GetSessionSha256(ctx)
 	if !hasSession {
 		return errNoSession
@@ -188,51 +165,16 @@ func (s *Service) Verify(ctx context.Context, actor identity.Actor, binding Bind
 		return err
 	}
 
-	isPassword := proof.Password != nil && *proof.Password != ""
-	isCode := proof.Code != nil && *proof.Code != ""
-
-	switch {
-	case isPassword && !isCode:
-		return s.verifyPassword(ctx, actor, *proof.Password)
-	case isCode && !isPassword:
-		return s.verifyCode(ctx, actor, sessionSha256, binding, *proof.Code)
-	default:
+	if code == nil || *code == "" {
 		return ErrProofInvalid
 	}
+
+	return s.verifyCode(ctx, actor, sessionSha256, binding, *code)
 }
 
 // DeleteExpired removes codes nobody can use any longer.
 func (s *Service) DeleteExpired(ctx context.Context, now time.Time) (int64, error) {
 	return s.codes.deleteExpiredBefore(ctx, now.Add(-expiredCodeRetention))
-}
-
-func (s *Service) verifyPassword(ctx context.Context, actor identity.Actor, password string) error {
-	isAllowed, err := s.rateLimiter.RecordAttemptAndCheckIsAllowed(ctx, ratelimit.Attempt{
-		Scope:      passwordRateLimitScope,
-		Identifier: actor.UserID.String(),
-		Limit:      passwordRateLimit,
-		Window:     passwordRateLimitWindow,
-	})
-	if err != nil || !isAllowed {
-		return ErrRateLimited
-	}
-
-	record, err := s.getRecord(ctx, actor.UserID)
-	if err != nil {
-		return err
-	}
-
-	if !record.HasPassword() {
-		return ErrProofInvalid
-	}
-
-	if bcrypt.CompareHashAndPassword([]byte(*record.HashedPassword), []byte(password)) != nil {
-		s.logger.WarnContext(ctx, "identity confirmation refused: incorrect password")
-
-		return ErrProofInvalid
-	}
-
-	return nil
 }
 
 func (s *Service) verifyCode(
@@ -293,8 +235,14 @@ func (s *Service) getRecord(ctx context.Context, userID uuid.UUID) (accounts.Use
 	return record, nil
 }
 
-func (s *Service) canEmail(record accounts.UserRecord) bool {
-	return s.mailer.IsConfigured() && identity.IsEmailAddress(record.Email)
+// canEmail offers an emailed code only on an instance that requires two-factor sign-in; without it
+// no code is offered, and root admin's session with the operation's own confirmation is enough.
+func (s *Service) canEmail(ctx context.Context, record accounts.UserRecord) (bool, error) {
+	if !s.mailer.IsConfigured() || !identity.IsEmailAddress(record.Email) {
+		return false, nil
+	}
+
+	return s.settings.IsTwoFactorAuthRequired(ctx)
 }
 
 func describePurpose(purpose Purpose) string {

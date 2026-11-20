@@ -97,7 +97,7 @@ export default function FAQPage() {
                 name: "Como fazer backup do próprio Databasus?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "O Databasus foi feito para continuar recuperável mesmo que o próprio servidor seja perdido ou corrompido. Ele pode fazer backup da própria base de dados interna: contas, configurações, as credenciais criptografadas das bases de dados, dos armazenamentos e dos canais de notificação, os agendamentos e o catálogo de backups. Ative isso em Databasus settings → Databasus backups escolhendo um ou mais armazenamentos existentes; por padrão, o backup do Databasus roda a cada hora e é mantido por 30 dias. O arquivo é criptografado com a chave mestra e não contém nem a chave nem os arquivos de backup das suas bases de dados, então guarde a chave mestra à parte: o Databasus pede que você a baixe, e ela também fica em . /databasus-data/secret. key no host. Para recuperar, você precisa do arquivo de backup, da chave mestra dele e exatamente da mesma versão do Databasus, incluindo o patch. Você pode colocar os dois arquivos no diretório de dados montado e iniciar o Databasus com RECOVERY_DUMP_PATH e RECOVERY_MASTER_KEY_PATH em um servidor sem contas e sem configurações alteradas, ou enviar o arquivo e colar a chave em Databasus settings → Databasus backups, o que substitui a instalação atual.",
+                  text: "O Databasus foi feito para continuar recuperável mesmo que o próprio servidor seja perdido ou corrompido. Ele pode fazer backup da própria base de dados interna: contas, configurações, as credenciais criptografadas das bases de dados, dos armazenamentos e dos canais de notificação, os agendamentos e o catálogo de backups. Ative isso em Databasus settings → Databasus backups escolhendo um ou mais armazenamentos existentes; por padrão, o backup do Databasus roda a cada hora e é mantido por 30 dias. O arquivo é criptografado com a chave mestra e não contém nem a chave nem os arquivos de backup das suas bases de dados, então guarde a chave mestra à parte: o Databasus pede que você a baixe, e ela também fica em . /databasus-data/secret. key no host. Para recuperar, você precisa do arquivo de backup, da chave mestra dele e exatamente da mesma versão do Databasus, incluindo o patch. Você pode colocar os dois arquivos no diretório de dados montado e iniciar o Databasus com RECOVERY_DUMP_PATH e RECOVERY_MASTER_KEY_PATH em um servidor sem contas e sem configurações alteradas, ou enviar o arquivo e colar a chave em Databasus settings → Databasus backups, o que substitui a instalação atual. Pare a instalação antiga antes de recuperar. A instalação recuperada inicia na hora os backups, as notificações e as gravações nos armazenamentos, então duas instalações rodando ao mesmo tempo gravariam nos mesmos armazenamentos e bancos de dados.",
                 },
               },
               {
@@ -614,6 +614,14 @@ export default function FAQPage() {
                 Em qualquer outra versão, o Databasus recusa e informa qual
                 versão iniciar: recupere nessa versão e depois atualize
                 normalmente.
+              </p>
+
+              <p>
+                <strong>Pare a instalação antiga antes de recuperar.</strong> A
+                instalação recuperada inicia na hora os backups, as notificações
+                e as gravações nos armazenamentos, então duas instalações
+                rodando ao mesmo tempo gravariam nos mesmos armazenamentos e
+                bancos de dados.
               </p>
 
               <p>

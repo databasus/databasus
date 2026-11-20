@@ -12,14 +12,13 @@ import { translateApiError } from '@/shared/i18n';
 
 interface Props {
   isCodeRequired: boolean;
-  masterKeyPath: string;
   onKeySaved?: () => void;
 }
 
 // Without two-factor sign-in the key is read as soon as this mounts, so callers mount it only when
 // root admin asks for the key. Copying or downloading reports onKeySaved; acknowledging is the
 // caller's decision.
-export function MasterKeyExport({ isCodeRequired, masterKeyPath, onKeySaved }: Props) {
+export function MasterKeyExport({ isCodeRequired, onKeySaved }: Props) {
   const { t } = useTranslation();
   const isCurrent = useSessionGuard();
   const isKeyRequestedRef = useRef(false);
@@ -61,7 +60,6 @@ export function MasterKeyExport({ isCodeRequired, masterKeyPath, onKeySaved }: P
     <div>
       {isCodeRequired && (
         <MasterKeyCodeConfirmation
-          masterKeyPath={masterKeyPath}
           isConfirming={keyMutation.isPending}
           onConfirm={(code) => void readKey(code)}
         />

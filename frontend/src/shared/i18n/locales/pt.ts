@@ -5,6 +5,7 @@ export const pt: typeof en = {
     nativeName: 'Português',
   },
   common: {
+    dateTimeWithRelativeTime: '{{time}} ({{relativeTime}})',
     calendar: {
       monthLevelControl: 'Escolher mês',
       yearLevelControl: 'Escolher ano',
@@ -136,17 +137,14 @@ export const pt: typeof en = {
       'Os backups e o WAL disponíveis não permitem restaurar para o momento solicitado.',
     notRunning: 'Isso não está mais em andamento, então não há nada para cancelar.',
     databasusBackupInUse:
-      'Este armazenamento é um destino dos backups do Databasus. O administrador raiz precisa removê-lo primeiro das configurações de backup do Databasus.',
-    recoveryPaused:
-      'O Databasus está pausado após uma recuperação. O administrador raiz precisa confirmar que a instância antiga está parada antes de permitir esta ação.',
-    storageUnavailable: 'Este armazenamento fica indisponível até ser validado neste servidor.',
+      'Este armazenamento é usado pelos backups do Databasus. Remova-o primeiro das configurações de backup do Databasus ou peça ao administrador do servidor para fazer isso.',
+    storageUnavailable: 'O armazenamento não pode fornecer este arquivo.',
     recoveryIncompatible:
       'Esta versão do Databasus não consegue recuperar este arquivo de backup do Databasus.',
     recoveryNotReady: 'Esta recuperação não permite essa ação no estado atual.',
-    identityProofInvalid:
-      'A senha ou o código de confirmação está incorreto, expirou ou já foi usado.',
+    identityProofInvalid: 'O código de confirmação está incorreto, expirou ou já foi usado.',
     identityProofUnavailable:
-      'Não é possível confirmar a identidade: a conta não tem senha e não há servidor de e-mail nem endereço para receber um código.',
+      'Não é possível enviar um código de confirmação: não há servidor de e-mail nem endereço que possa recebê-lo.',
     archiveTooLarge: 'O arquivo excede o limite de upload configurado.',
     instanceUnhealthy: 'A instância apresenta problemas.',
     insufficientDiskSpace:
@@ -272,6 +270,7 @@ export const pt: typeof en = {
   },
   auditLogs: {
     title: 'Logs de auditoria',
+    open: 'Abrir',
     columns: {
       user: 'Usuário',
       message: 'Mensagem',
@@ -2068,7 +2067,7 @@ export const pt: typeof en = {
   instanceBackups: {
     title: 'Backups do Databasus',
     description:
-      'Um snapshot criptografado do banco de dados interno do Databasus: usuários, espaços de trabalho, configurações, agendamentos, credenciais criptografadas e o catálogo dos backups dos seus bancos de dados. Os arquivos de backup dos seus bancos continuam nos respectivos armazenamentos e não são copiados para o snapshot.',
+      'Salva o próprio Databasus: usuários, configurações, conexões com bancos de dados e a lista de backups. Se este servidor quebrar, você poderá recuperar o Databasus a partir desses backups em outro servidor.',
     retainSeparately:
       'Para recuperar, você precisa de um arquivo de backup do Databasus e da chave mestra que o criptografou. Guarde a chave e o acesso a pelo menos um armazenamento de destino fora deste servidor.',
     health: {
@@ -2082,7 +2081,19 @@ export const pt: typeof en = {
       resuming: 'Retomando',
     },
     status: {
-      label: 'Status:',
+      titles: {
+        notConfigured: 'O Databasus não tem backup',
+        initializing: 'Aguardando o primeiro backup do Databasus',
+        healthy: 'O Databasus tem backup',
+        partial: 'Alguns armazenamentos não têm um backup recente do Databasus',
+        failed: 'Os backups do Databasus estão falhando',
+        overdue: 'Um backup do Databasus está atrasado',
+        stopped: 'Os backups do Databasus estão parados',
+        resuming: 'Os backups do Databasus estão sendo retomados',
+      },
+      lastBackup: 'Último backup <time/>',
+      noSuccessfulBackup: 'Ainda não há nenhum backup bem-sucedido.',
+      storageError: '{{storage}}: {{error}}',
       refreshFailed:
         'Não foi possível atualizar o status, então ele pode estar desatualizado: {{reason}}',
     },
@@ -2094,6 +2105,10 @@ export const pt: typeof en = {
       since: 'Desde {{time}}',
       mailFailed: 'Não foi possível enviar o e-mail sobre este problema: {{error}}',
     },
+    setup: {
+      description: 'Escolha um armazenamento para começar a fazer backup do Databasus.',
+      start: 'Configurar backups',
+    },
     smtp: {
       missingTitle: 'O servidor de e-mail não está configurado',
       missingDescription:
@@ -2103,7 +2118,6 @@ export const pt: typeof en = {
         'Sua conta não tem um endereço de e-mail que possa receber alertas. Adicione um no seu perfil.',
     },
     destinations: {
-      title: 'Destinos',
       description:
         'Escolha armazenamentos existentes de qualquer espaço de trabalho. Cada backup do Databasus é copiado para todos os armazenamentos selecionados.',
       picker: 'Armazenamentos de destino',
@@ -2111,15 +2125,12 @@ export const pt: typeof en = {
       choice: '{{storage}} ({{workspace}}, {{provider}})',
       none: 'Nenhum destino foi selecionado, então o Databasus está sem backup.',
       unknownStorage: 'Armazenamento desconhecido',
-      location: 'Espaço de trabalho {{workspace}}, {{provider}}',
+      storageInWorkspace: '<storage/> <details>(espaço de trabalho: <workspace/>)</details>',
       lastSuccess: 'Última cópia bem-sucedida: {{time}}',
-      unsaved: 'Ainda não salvo',
       remove: 'Remover {{storage}}',
       create: 'Criar um armazenamento',
       localWarning:
         'Um armazenamento local fica no mesmo servidor, então não protege contra a perda deste servidor.',
-      sharedStorage:
-        'São armazenamentos comuns de espaços de trabalho. Quem pode editar um deles também muda para onde vão os backups do Databasus, então limite os membros desses espaços de trabalho com os papéis habituais.',
     },
     createDestination: {
       title: 'Criar um armazenamento de destino',
@@ -2131,10 +2142,10 @@ export const pt: typeof en = {
         'O armazenamento é criado no espaço de trabalho {{workspace}} e selecionado como destino.',
     },
     settings: {
+      title: 'Configurações',
+      storages: 'Armazenamentos',
       schedule: 'Agendamento dos backups',
       retentionDays: 'Manter cópias, dias',
-      retentionDescription:
-        'As cópias mais antigas são excluídas, mas a cópia bem-sucedida mais recente de cada armazenamento é sempre mantida.',
       save: 'Salvar',
       saved: 'Configurações dos backups do Databasus salvas',
       firstBackupRequested: 'Configurações salvas. O primeiro backup do Databasus foi iniciado.',
@@ -2142,18 +2153,14 @@ export const pt: typeof en = {
         'Configurações salvas. Os backups do Databasus estão parados porque nenhum destino foi selecionado.',
     },
     history: {
-      title: 'Histórico',
+      title: 'Backups recentes',
       start: 'Fazer backup agora',
       started: 'Backup do Databasus iniciado',
       startNeedsDestination: 'Selecione e salve um destino antes de iniciar um backup.',
-      downloadOnly:
-        'Para recuperar a partir de um destes backups, baixe-o e depois importe o arquivo abaixo.',
       empty: 'Ainda não há backups do Databasus.',
-      snapshot: 'Snapshot de {{time}}, Databasus {{version}}',
-      size: 'Tamanho: {{size}}',
       copy: '{{storage}} ({{workspace}}): {{status}}',
-      download: 'Baixar',
-      downloadFrom: 'Baixar a cópia de {{storage}}',
+      showAll: 'Mostrar todos',
+      downloadBackup: 'Baixar o backup de {{time}}',
       showMore: 'Mostrar mais',
     },
     backupStatuses: {
@@ -2172,35 +2179,26 @@ export const pt: typeof en = {
       interrupted: 'interrompida',
       deleted: 'excluída',
     },
-    triggers: {
-      schedule: 'Agendado',
-      manual: 'Iniciado manualmente',
-      destinationAdded: 'Iniciado após adicionar um destino',
-    },
   },
   instanceRecovery: {
+    open: 'Recuperar a partir de um backup',
     form: {
       title: 'Recuperar a partir de um arquivo de backup do Databasus',
-      description:
-        'Substitua esta instalação por um backup do Databasus. Pegue o arquivo no S3, em outro armazenamento ou em outro servidor e escolha-o aqui. Esta instalação não precisa de destinos nem de histórico.',
-      sourceKey:
-        'Informe a chave mestra da instalação que fez o backup. A chave desta instalação não o abre.',
+      description: 'Substitui esta instalação pelo estado salvo em um backup do Databasus.',
       archive: 'Arquivo de backup do Databasus',
-      archivePlaceholder: 'Escolha um arquivo',
+      archivePlaceholder: 'Escolha ou arraste um arquivo',
+      archiveHint: 'Baixe-o dos backups recentes ou pegue-o de um armazenamento.',
+      archiveClear: 'Remover o arquivo',
       archiveMissing: 'Escolha um arquivo de backup do Databasus.',
       masterKey: 'Chave mestra da instalação de origem',
-      masterKeyDescription: 'Cole ou digite a chave exatamente como foi salva.',
+      masterKeyDescription:
+        'Cole a chave exatamente como foi salva. A chave desta instalação abre apenas os próprios backups dela.',
       masterKeyMissing: 'Informe a chave mestra.',
-      showKey: 'Mostrar chave',
-      hideKey: 'Ocultar chave',
       upload: 'Enviar e verificar',
       uploading: 'Enviando o arquivo...',
       preparing: 'Verificando e preparando o backup do Databasus...',
       ready: 'O backup do Databasus está pronto para substituir esta instalação.',
       snapshot: 'Snapshot de {{time}}, criado pelo Databasus {{version}}.',
-      replacementWarning:
-        'A substituição remove as contas, as configurações e o histórico de backups atuais desta instalação e coloca no lugar os do snapshot.',
-      replace: 'Substituir esta instalação',
       releaseMismatch:
         'Este arquivo foi criado pelo Databasus {{sourceRelease}}, e esta instalação executa a versão {{runningRelease}}. Recupere-o com o Databasus {{sourceRelease}}.',
       correctAndRetry:
@@ -2217,21 +2215,10 @@ export const pt: typeof en = {
       confirmReplacement: 'Entendo que o estado atual desta instalação será substituído',
       submit: 'Substituir',
     },
+    discardedCleanup:
+      'Gravações e exclusões de arquivos inacabadas da instância antiga foram descartadas em vez de repetidas: {{count}}. Esses arquivos podem precisar de limpeza manual.',
     restoredSignIn:
       'O Databasus foi recuperado a partir de um backup. Entre com uma conta e uma senha desse backup.',
-    pause: {
-      title: 'O Databasus está pausado após uma recuperação',
-      description:
-        'Backups, restaurações, verificações, notificações e limpeza não são executados até você confirmar que a instância antiga está parada. Se as duas instâncias rodassem ao mesmo tempo, elas gravariam nos mesmos armazenamentos e bancos de dados.',
-      snapshot: 'Recuperado a partir do snapshot de {{time}}, Databasus {{version}}.',
-      discardedCleanup:
-        'Gravações e exclusões de arquivos inacabadas da instância antiga foram descartadas em vez de repetidas: {{count}}. Esses arquivos podem precisar de limpeza manual.',
-      activate: 'Ativar',
-      confirmTitle: 'Ativar a instância recuperada',
-      confirmDescription:
-        'Pare primeiro a instância antiga do Databasus. Depois da ativação, esta instância executa os backups agendados e grava nos mesmos armazenamentos.',
-      oldInstanceStopped: 'A instância antiga está parada',
-    },
     failures: {
       archiveInvalid:
         'O arquivo não é um backup válido do Databasus ou a chave mestra não corresponde a ele.',
@@ -2250,35 +2237,34 @@ export const pt: typeof en = {
   },
   masterKey: {
     title: 'Chave mestra',
+    open: 'Baixar a chave mestra',
     description:
-      'O Databasus criptografa os backups com esta chave. Se você perder este servidor, vai precisar da chave para descriptografar seus backups, inclusive o backup do próprio Databasus.',
-    statusSaved: 'A chave mestra atual está salva.',
-    statusNotSaved: 'A chave mestra atual ainda não foi salva.',
+      'O Databasus criptografa os backups com esta chave. Se você perder este servidor, vai precisar da chave para descriptografar seus backups, inclusive o backup do próprio Databasus',
     loading: 'Obtendo a chave…',
     copy: 'Copiar',
     copied: 'Copiada',
     copyFailed: 'O navegador não permitiu copiar. Baixe a chave em vez disso.',
     download: 'Baixar',
     downloaded: 'Baixada',
-    saveAgain: 'Copiar ou baixar a chave',
     codeRequired:
       'Esta instalação exige o login em duas etapas, então confirme o acesso à chave com um código enviado ao seu e-mail.',
     codeFailed: 'Se o código continuar sem chegar, copie a chave do servidor manualmente.',
     proof: {
-      password: 'Sua senha atual',
       sendCode: 'Enviar um código de confirmação por e-mail',
       resendCode: 'Enviar um novo código',
       code: 'Código de confirmação',
       confirm: 'Continuar',
+      wrongCode: 'O código está incorreto ou expirou. Envie um novo.',
     },
     host: {
-      description: 'Você também pode copiar o arquivo da chave direto do servidor.',
-      path: 'A localização dele dentro do contêiner:',
-      containerName: 'Substitua databasus pelo nome do seu contêiner.',
+      toggle: 'Copiar a chave diretamente do servidor',
+      location:
+        'Você também pode copiar o arquivo da chave do servidor: é <code>databasus-data/secret.key</code> na pasta onde o Databasus está instalado.',
     },
     onboarding: {
       title: 'Salve a chave mestra',
       close: 'Salvei em um lugar seguro',
+      closeIn: 'Salvei em um lugar seguro ({{seconds}})',
     },
   },
   instanceBackupNotices: {
@@ -2294,20 +2280,6 @@ export const pt: typeof en = {
   },
   storages: {
     usageUnavailable: 'Não foi possível atualizar o espaço ocupado pelos backups.',
-    recoveryValidation: {
-      title: 'Este armazenamento precisa ser validado neste servidor',
-      description:
-        'É um armazenamento local recuperado a partir de um backup do Databasus. O backup do Databasus não contém os arquivos dele do servidor original, então os backups nele não podem ser gravados, lidos nem restaurados até que ele seja validado aqui.',
-      editorAction:
-        'Teste a conexão para verificar as pastas dele neste servidor. Um teste bem-sucedido deixa o armazenamento disponível.',
-      viewerAction:
-        'Você pode testar a conexão, mas só um membro que pode editar este armazenamento consegue validá-lo.',
-      validated: 'O armazenamento está validado e disponível neste servidor.',
-      notValidated:
-        'A conexão funciona, mas o armazenamento ainda não foi validado. As configurações dele podem ter mudado durante o teste. Teste novamente.',
-      viewerConnected:
-        'A conexão funciona, mas o seu teste não valida o armazenamento porque você não pode editá-lo. Ele continua indisponível até que um membro que possa editá-lo faça o teste.',
-    },
     cleanup: {
       title: 'A limpeza ainda está em andamento',
       warning:

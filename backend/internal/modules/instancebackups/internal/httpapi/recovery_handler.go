@@ -24,25 +24,6 @@ func (h *Handler) GetInstanceRecovery(
 	return GetInstanceRecovery200JSONResponse(fromRecovery(instanceRecovery)), nil
 }
 
-func (h *Handler) ActivateInstanceRecovery(
-	ctx context.Context,
-	request ActivateInstanceRecoveryRequestObject,
-) (ActivateInstanceRecoveryResponseObject, error) {
-	actor, err := users.RequireActor(ctx)
-	if err != nil {
-		return nil, errNoActor
-	}
-
-	instanceRecovery, err := h.recoveries.Activate(
-		ctx, actor, request.InstanceRecoveryId, request.Body.IsOldInstanceStopped,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return ActivateInstanceRecovery200JSONResponse(fromRecovery(instanceRecovery)), nil
-}
-
 func (h *Handler) CreateInstanceRecovery(
 	ctx context.Context,
 	request CreateInstanceRecoveryRequestObject,
@@ -105,7 +86,7 @@ func (h *Handler) ApplyInstanceRecovery(
 
 	appliedRecovery, err := h.recoveries.Apply(ctx, actor, request.InstanceRecoveryId, recovery.ApplyRequest{
 		IsReplacementConfirmed: request.Body.IsReplacementConfirmed,
-		Proof:                  toIdentityProof(request.Body.Proof),
+		Code:                   request.Body.Code,
 	})
 	if err != nil {
 		return nil, err
@@ -135,8 +116,4 @@ func fromRecovery(instanceRecovery recovery.Recovery) InstanceRecovery {
 		Failure:               failure,
 		DiscardedCleanupCount: instanceRecovery.DiscardedCleanupCount,
 	}
-}
-
-func toIdentityProof(proof IdentityProof) users.IdentityProof {
-	return users.IdentityProof{Password: proof.Password, Code: proof.Code}
 }

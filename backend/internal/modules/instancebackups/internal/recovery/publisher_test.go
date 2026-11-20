@@ -75,7 +75,7 @@ func TestInterruptedPublication(t *testing.T) {
 			finishedJournal := initializedTarget.readJournal(t)
 			assert.Equal(t, []string{sourceWorkspaceName}, initializedTarget.listWorkspaceNames(t))
 			assert.Equal(t, source.keyContent, initializedTarget.readKey(t))
-			assert.Equal(t, &operationID, initializedTarget.getPausedOperationID(t))
+			assert.Equal(t, &operationID, initializedTarget.getRecoveredByOperationID(t))
 			assert.Equal(t, []string{archiveSha256}, finishedJournal.ConsumedStartupArchives)
 			assert.Equal(t, int64(1), finishedJournal.PublicationGeneration)
 			assert.Nil(t, finishedJournal.Operation)

@@ -1,4 +1,3 @@
-import type { IdentityProof } from '@/entities/instance-backups/model/IdentityProof';
 import type { InstanceRecovery } from '@/entities/instance-backups/model/InstanceRecovery';
 import type { ApiComponents, ReadOptions } from '@/shared/api';
 import { getApiClient, requireData } from '@/shared/api';
@@ -55,11 +54,11 @@ export const instanceRecoveryApi = {
     );
   },
 
-  async applyRecovery(instanceRecoveryId: string, proof: IdentityProof): Promise<InstanceRecovery> {
+  async applyRecovery(instanceRecoveryId: string, code?: string): Promise<InstanceRecovery> {
     return requireData(
       await getApiClient().POST('/instance-recoveries/{instanceRecoveryId}/apply', {
         ...toPath(instanceRecoveryId),
-        body: { isReplacementConfirmed: true, proof },
+        body: { isReplacementConfirmed: true, code },
       }),
     );
   },
@@ -70,15 +69,6 @@ export const instanceRecoveryApi = {
         '/instance-recoveries/{instanceRecoveryId}/cancel',
         toPath(instanceRecoveryId),
       ),
-    );
-  },
-
-  async activateRecovery(instanceRecoveryId: string): Promise<InstanceRecovery> {
-    return requireData(
-      await getApiClient().POST('/instance-recoveries/{instanceRecoveryId}/activate', {
-        ...toPath(instanceRecoveryId),
-        body: { isOldInstanceStopped: true },
-      }),
     );
   },
 };

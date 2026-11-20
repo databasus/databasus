@@ -11,8 +11,6 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/lifecycle"
-	"databasus-backend/internal/lib/recoverypause"
-	"databasus-backend/internal/modules/instancebackups/internal/configs"
 	"databasus-backend/internal/modules/users"
 )
 
@@ -22,30 +20,26 @@ type ServiceDeps struct {
 	Transactor     *database.Transactor
 	AuditLog       *audit.Log
 	Users          users.Module
-	Configs        *configs.Service
-	Pause          *recoverypause.Gate
 	RunningRelease string
 	// RebuildRequest asks the server process to publish an accepted apply in place.
 	RebuildRequest *lifecycle.RebuildRequest
 }
 
-// ApplyRequest is root admin's confirmation that the installation is replaced, with the identity
-// proof bound to the recovery.
+// ApplyRequest is root admin's confirmation that the installation is replaced, with the code
+// emailed for the recovery while the instance requires two-factor sign-in.
 type ApplyRequest struct {
 	IsReplacementConfirmed bool
-	Proof                  users.IdentityProof
+	Code                   *string
 }
 
-// Service shows root admin the recoveries of the local journal, accepts the apply of a prepared one
-// and ends the recovery pause.
+// Service shows root admin the recoveries of the local journal and accepts the apply of a prepared
+// one.
 type Service struct {
 	journal        *JournalStore
 	clock          clock.Source
 	transactor     *database.Transactor
 	auditLog       *audit.Log
 	users          users.Module
-	configs        *configs.Service
-	pause          *recoverypause.Gate
 	runningRelease string
 	rebuildRequest *lifecycle.RebuildRequest
 }
@@ -57,8 +51,6 @@ func NewService(deps ServiceDeps) *Service {
 		transactor:     deps.Transactor,
 		auditLog:       deps.AuditLog,
 		users:          deps.Users,
-		configs:        deps.Configs,
-		pause:          deps.Pause,
 		runningRelease: deps.RunningRelease,
 		rebuildRequest: deps.RebuildRequest,
 	}
@@ -74,12 +66,7 @@ func (s *Service) GetRecovery(ctx context.Context, actor users.Actor, recoveryID
 		return Recovery{}, err
 	}
 
-	pausedBy, err := s.configs.GetRecoveryPause(ctx)
-	if err != nil {
-		return Recovery{}, err
-	}
-
-	foundRecovery, isFound := findRecovery(journal, recoveryID, pausedBy, s.runningRelease)
+	foundRecovery, isFound := findRecovery(journal, recoveryID, s.runningRelease)
 	if !isFound {
 		return Recovery{}, ErrRecoveryNotFound
 	}
@@ -89,7 +76,7 @@ func (s *Service) GetRecovery(ctx context.Context, actor users.Actor, recoveryID
 
 // GetLatestRecovery returns the operation in progress, else the latest completed one, else nil.
 // It does not check access, for the status of a caller that already did.
-func (s *Service) GetLatestRecovery(ctx context.Context) (*Recovery, error) {
+func (s *Service) GetLatestRecovery() (*Recovery, error) {
 	journal, err := s.journal.Read()
 	if err != nil {
 		return nil, err
@@ -105,62 +92,9 @@ func (s *Service) GetLatestRecovery(ctx context.Context) (*Recovery, error) {
 		return nil, nil
 	}
 
-	pausedBy, err := s.configs.GetRecoveryPause(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	recovery := newCompletedRecovery(*journal.LastCompleted, pausedBy, s.runningRelease)
+	recovery := newCompletedRecovery(*journal.LastCompleted, s.runningRelease)
 
 	return &recovery, nil
-}
-
-// Activate ends the pause after root admin confirmed that the old instance is stopped. Schedules
-// and outbound work resume; recovered local storages stay unavailable until validated.
-func (s *Service) Activate(
-	ctx context.Context,
-	actor users.Actor,
-	recoveryID uuid.UUID,
-	isOldInstanceStopped bool,
-) (Recovery, error) {
-	rootAdmin, err := s.users.RequireRootAdmin(ctx, actor)
-	if err != nil {
-		return Recovery{}, err
-	}
-
-	if !isOldInstanceStopped {
-		return Recovery{}, apierror.NewInvalidFieldsProblem([]apierror.FieldError{
-			{Field: "isOldInstanceStopped", Detail: "confirm that the old instance is stopped"},
-		})
-	}
-
-	if _, err := s.GetRecovery(ctx, actor, recoveryID); err != nil {
-		return Recovery{}, err
-	}
-
-	err = s.transactor.Transaction(ctx, func(txCtx context.Context) error {
-		isEnded, err := s.configs.EndRecoveryPause(txCtx, recoveryID)
-		if err != nil {
-			return err
-		}
-
-		if !isEnded {
-			return ErrRecoveryNotPaused
-		}
-
-		return s.auditLog.Record(txCtx, audit.Event{
-			Author:      rootAdmin.GetAuditAuthor(),
-			WorkspaceID: nil,
-			Message:     "Root admin confirmed the old instance is stopped and activated the recovered instance",
-		})
-	})
-	if err != nil {
-		return Recovery{}, err
-	}
-
-	s.pause.Resume()
-
-	return s.GetRecovery(ctx, actor, recoveryID)
 }
 
 // RequestConfirmation emails root admin a code that confirms applying this prepared recovery in the
@@ -218,7 +152,7 @@ func (s *Service) Apply(
 		return Recovery{}, err
 	}
 
-	if err := s.users.VerifyIdentityProof(ctx, actor, getApplyBinding(operation), request.Proof); err != nil {
+	if err := s.verifyCodeWhenRequired(ctx, actor, operation, request.Code); err != nil {
 		return Recovery{}, err
 	}
 
@@ -286,7 +220,7 @@ func (s *Service) getApplicable(journal Journal, recoveryID uuid.UUID) (Operatio
 		return *operation, nil
 	}
 
-	if _, isFound := findRecovery(journal, recoveryID, nil, s.runningRelease); isFound {
+	if _, isFound := findRecovery(journal, recoveryID, s.runningRelease); isFound {
 		return Operation{}, ErrRecoveryNotReady
 	}
 
@@ -303,7 +237,23 @@ func isApplyAccepted(journal Journal, recoveryID uuid.UUID) bool {
 	return journal.LastCompleted != nil && journal.LastCompleted.OperationID == recoveryID
 }
 
-// getApplyBinding binds a proof to the operation and its archive's bytes, so a proof for one
+// verifyCodeWhenRequired asks for the emailed code only while the instance requires two-factor
+// sign-in; otherwise the session and the replacement confirmation are enough.
+func (s *Service) verifyCodeWhenRequired(
+	ctx context.Context,
+	actor users.Actor,
+	operation Operation,
+	code *string,
+) error {
+	isCodeRequired, err := s.users.IsTwoFactorAuthRequired(ctx)
+	if err != nil || !isCodeRequired {
+		return err
+	}
+
+	return s.users.VerifyIdentityCode(ctx, actor, getApplyBinding(operation), code)
+}
+
+// getApplyBinding binds a code to the operation and its archive's bytes, so a code for one
 // prepared recovery cannot apply another.
 func getApplyBinding(operation Operation) users.IdentityProofBinding {
 	return users.IdentityProofBinding{

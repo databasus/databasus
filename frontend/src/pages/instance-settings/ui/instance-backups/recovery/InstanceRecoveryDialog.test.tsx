@@ -1,14 +1,12 @@
 // @vitest-environment happy-dom
 import { createEvent, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type InstanceRecovery,
-  instanceRecoveryApi,
-  isRestoredSignInExpected,
-} from '@/entities/instance-backups';
-import { InstanceRecoveryImport } from '@/pages/instance-settings/ui/instance-backups/recovery/InstanceRecoveryImport';
+import { instanceRecoveryApi, isRestoredSignInExpected } from '@/entities/instance-backups';
+import { buildRecovery } from '@/pages/instance-settings/ui/instance-backups/instanceBackups.fixture';
+import { InstanceRecoveryDialog } from '@/pages/instance-settings/ui/instance-backups/recovery/InstanceRecoveryDialog';
 import { API_BASE_PATH } from '@/shared/api';
 import { activateSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
@@ -23,32 +21,39 @@ const archiveFile = new File(['encrypted archive'], 'databasus.dbsbackup', {
   type: 'application/octet-stream',
 });
 
-const buildRecovery = (recovery: Partial<InstanceRecovery> = {}): InstanceRecovery => ({
-  id: '99999999-9999-4999-8999-999999999999',
-  status: 'VALIDATING',
-  origin: 'UPLOAD',
-  archiveSha256: 'b'.repeat(64),
-  runningRelease: '3.1.0',
-  sourceRelease: null,
-  snapshotAt: null,
-  createdAt: '2026-11-14T10:00:00Z',
-  expiresAt: '2026-11-14T11:00:00Z',
-  completedAt: null,
-  failure: null,
-  discardedCleanupCount: 0,
-  ...recovery,
-});
-
 const readyRecovery = buildRecovery({
   status: 'READY',
   sourceRelease: '3.1.0',
   snapshotAt: '2026-11-14T09:00:00Z',
 });
 
-const renderImport = () => {
+const REOPEN_LABEL = 'Open recovery';
+
+const RecoveryDialogHost = ({ isCodeRequired }: { isCodeRequired: boolean }) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return isOpen ? (
+    <InstanceRecoveryDialog isCodeRequired={isCodeRequired} onClose={() => setIsOpen(false)} />
+  ) : (
+    <button type="button" onClick={() => setIsOpen(true)}>
+      {REOPEN_LABEL}
+    </button>
+  );
+};
+
+const renderImport = ({ isCodeRequired = false } = {}) => {
   activateSession({ token: 'root-session', userId: 'root' });
 
-  return renderScreen(<InstanceRecoveryImport identityProofMethods={['PASSWORD']} />);
+  return renderScreen(<RecoveryDialogHost isCodeRequired={isCodeRequired} />);
+};
+
+const cancellations = () =>
+  server.getRequests().filter((request) => new URL(request.url).pathname.endsWith('/cancel'));
+
+const readKeyField = () => (screen.getByLabelText(text.form.masterKey) as HTMLInputElement).value;
+
+const reopen = async (user: ReturnType<typeof renderImport>['user']) => {
+  await user.click(await screen.findByRole('button', { name: REOPEN_LABEL }));
 };
 
 const uploads = () =>
@@ -65,7 +70,7 @@ const chooseArchive = async (user: ReturnType<typeof renderImport>['user']) => {
 };
 
 const pasteKey = (key: string) => {
-  const field = screen.getByRole('textbox', { name: new RegExp(text.form.masterKey) });
+  const field = screen.getByLabelText(text.form.masterKey);
   const pasteEvent = createEvent.paste(field, {
     clipboardData: { getData: () => key },
   });
@@ -78,7 +83,7 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-describe('InstanceRecoveryImport', () => {
+describe('InstanceRecoveryDialog', () => {
   it('names the missing archive and the empty key without uploading', async () => {
     const { user } = renderImport();
 
@@ -177,7 +182,7 @@ describe('InstanceRecoveryImport', () => {
     expect(await screen.findByText(DICTIONARIES.en.errors.archiveTooLarge)).toBeTruthy();
   });
 
-  it('cancels a prepared recovery and clears the form', async () => {
+  it('cancels a prepared recovery and starts empty when reopened', async () => {
     server.use(
       mockApi.post('/instance-recoveries', 202, readyRecovery),
       mockApi.post('/instance-recoveries/{instanceRecoveryId}/cancel', 200, {
@@ -190,39 +195,85 @@ describe('InstanceRecoveryImport', () => {
     await chooseArchive(user);
     pasteKey('source-key');
     await user.click(screen.getByRole('button', { name: text.form.upload }));
-    await user.click(
-      await screen.findByRole('button', { name: DICTIONARIES.en.common.actions.cancel }),
-    );
+    const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
+    await user.click(dialog.getByRole('button', { name: DICTIONARIES.en.common.actions.cancel }));
+    await reopen(user);
 
-    expect(await screen.findByRole('button', { name: text.form.upload })).toBeTruthy();
-    expect(
-      (
-        screen.getByRole('textbox', {
-          name: new RegExp(text.form.masterKey),
-        }) as HTMLTextAreaElement
-      ).value,
-    ).toBe('');
+    expect(cancellations()).toHaveLength(1);
+    expect(server.getRequests().filter((request) => request.url.endsWith('/apply'))).toHaveLength(
+      0,
+    );
+    expect(readKeyField()).toBe('');
+    expect(screen.queryByText(archiveFile.name)).toBeNull();
   });
 
-  it('sends no apply when the replacement confirmation is cancelled', async () => {
-    server.use(mockApi.post('/instance-recoveries', 202, readyRecovery));
+  it('cancels the recovery on the server when the dialog closes during preparation', async () => {
+    server.use(
+      mockApi.post('/instance-recoveries', 202, buildRecovery()),
+      mockApi.post('/instance-recoveries/{instanceRecoveryId}/cancel', 200, {
+        ...buildRecovery(),
+        status: 'CANCELLED',
+      }),
+    );
     const { user } = renderImport();
 
     await chooseArchive(user);
     pasteKey('source-key');
     await user.click(screen.getByRole('button', { name: text.form.upload }));
-    await user.click(await screen.findByRole('button', { name: text.form.replace }));
-    const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
-    await user.click(dialog.getByRole('button', { name: DICTIONARIES.en.common.actions.cancel }));
+    await screen.findByText(text.form.preparing);
+    await user.click(screen.getByRole('button', { name: DICTIONARIES.en.common.actions.close }));
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(server.getRequests().filter((request) => request.url.endsWith('/apply'))).toHaveLength(
-      0,
-    );
-    expect(screen.getByText(text.form.ready)).toBeTruthy();
+    expect(await screen.findByRole('button', { name: REOPEN_LABEL })).toBeTruthy();
+    expect(cancellations()).toHaveLength(1);
   });
 
-  it('applies once with confirmation and identity proof and guides to restored sign-in', async () => {
+  it('stays open with the error when the recovery cannot be cancelled', async () => {
+    server.use(
+      mockApi.post('/instance-recoveries', 202, readyRecovery),
+      mockApi.post(
+        '/instance-recoveries/{instanceRecoveryId}/cancel',
+        500,
+        buildProblem('internal', 500),
+      ),
+    );
+    const { user } = renderImport();
+
+    await chooseArchive(user);
+    pasteKey('source-key');
+    await user.click(screen.getByRole('button', { name: text.form.upload }));
+    const dialog = await screen.findByRole('dialog', { name: text.apply.title });
+    await user.click(
+      within(dialog).getByRole('button', { name: DICTIONARIES.en.common.actions.close }),
+    );
+
+    expect(await within(dialog).findByText(DICTIONARIES.en.errors.internal)).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: text.apply.title })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: REOPEN_LABEL })).toBeNull();
+  });
+
+  it('aborts the upload without a server-side cancellation when the dialog closes', async () => {
+    let uploadSignal: AbortSignal | undefined;
+    server.use(
+      http.post(`*${API_BASE_PATH}/instance-recoveries`, async ({ request }) => {
+        uploadSignal = request.signal;
+        await new Promise((resolve) => request.signal.addEventListener('abort', resolve));
+        return HttpResponse.json(readyRecovery, { status: 202 });
+      }),
+    );
+    const { user } = renderImport();
+
+    await chooseArchive(user);
+    pasteKey('source-key');
+    await user.click(screen.getByRole('button', { name: text.form.upload }));
+    await waitFor(() => expect(uploadSignal).toBeDefined());
+    await user.click(screen.getByRole('button', { name: DICTIONARIES.en.common.actions.close }));
+
+    await waitFor(() => expect(uploadSignal?.aborted).toBe(true));
+    expect(await screen.findByRole('button', { name: REOPEN_LABEL })).toBeTruthy();
+    expect(cancellations()).toHaveLength(0);
+  });
+
+  it('applies once with the confirmation alone without two-factor sign-in and cannot be closed while restoring', async () => {
     const applyRequests: unknown[] = [];
     server.use(
       mockApi.post('/instance-recoveries', 202, readyRecovery),
@@ -237,22 +288,84 @@ describe('InstanceRecoveryImport', () => {
     await chooseArchive(user);
     pasteKey('source-key');
     await user.click(screen.getByRole('button', { name: text.form.upload }));
-    await user.click(await screen.findByRole('button', { name: text.form.replace }));
     const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
+    expect(dialog.getByText(/Databasus 3\.1\.0/)).toBeTruthy();
     const submit = dialog.getByRole('button', { name: text.apply.submit });
 
     expect(submit.hasAttribute('disabled')).toBe(true);
 
     await user.click(dialog.getByRole('checkbox', { name: text.apply.confirmReplacement }));
-    await user.type(dialog.getByLabelText(DICTIONARIES.en.masterKey.proof.password), 'root-pass');
     await user.dblClick(submit);
 
     expect(await screen.findByText(text.form.applying)).toBeTruthy();
     expect(screen.getByText(text.form.signInWithRestored)).toBeTruthy();
-    expect(applyRequests).toEqual([
-      { isReplacementConfirmed: true, proof: { password: 'root-pass' } },
-    ]);
+    expect(applyRequests).toEqual([{ isReplacementConfirmed: true }]);
     expect(isRestoredSignInExpected()).toBe(true);
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('button', { name: DICTIONARIES.en.common.actions.close })).toBeNull();
+    expect(screen.getByText(text.form.applying)).toBeTruthy();
+  });
+
+  it('asks for the emailed code with two-factor sign-in and says beside it that the code is wrong', async () => {
+    const applyRequests: unknown[] = [];
+    server.use(
+      mockApi.post('/instance-recoveries', 202, readyRecovery),
+      mockApi.post('/instance-recoveries/{instanceRecoveryId}/confirmations', 201, {
+        expiresAt: '2026-11-18T10:05:00Z',
+      }),
+      http.post(`*${API_BASE_PATH}/instance-recoveries/:recoveryId/apply`, async ({ request }) => {
+        applyRequests.push(await request.json());
+        return HttpResponse.json(buildProblem('identity_proof_invalid', 400), { status: 400 });
+      }),
+    );
+    const { user } = renderImport({ isCodeRequired: true });
+
+    await chooseArchive(user);
+    pasteKey('source-key');
+    await user.click(screen.getByRole('button', { name: text.form.upload }));
+    const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
+    await user.click(dialog.getByRole('checkbox', { name: text.apply.confirmReplacement }));
+    const submit = dialog.getByRole('button', { name: text.apply.submit });
+
+    expect(submit.hasAttribute('disabled')).toBe(true);
+
+    await user.click(
+      dialog.getByRole('button', { name: DICTIONARIES.en.masterKey.proof.sendCode }),
+    );
+    const codeField = await dialog.findByLabelText(DICTIONARIES.en.masterKey.proof.code);
+    await user.type(codeField, '000000');
+    await user.click(submit);
+
+    expect(await dialog.findByText(DICTIONARIES.en.masterKey.proof.wrongCode)).toBeTruthy();
+    expect(dialog.queryByText(DICTIONARIES.en.errors.identityProofInvalid)).toBeNull();
+    expect(applyRequests).toEqual([{ isReplacementConfirmed: true, code: '000000' }]);
+
+    await user.type(codeField, '1');
+
+    expect(dialog.queryByText(DICTIONARIES.en.masterKey.proof.wrongCode)).toBeNull();
+  });
+
+  it('shows the sending error in the replacement dialog when the code cannot be sent', async () => {
+    server.use(
+      mockApi.post('/instance-recoveries', 202, readyRecovery),
+      http.post(`*${API_BASE_PATH}/instance-recoveries/:recoveryId/confirmations`, () =>
+        HttpResponse.json(buildProblem('identity_proof_unavailable', 409), { status: 409 }),
+      ),
+    );
+    const { user } = renderImport({ isCodeRequired: true });
+
+    await chooseArchive(user);
+    pasteKey('source-key');
+    await user.click(screen.getByRole('button', { name: text.form.upload }));
+    const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
+    await user.click(
+      dialog.getByRole('button', { name: DICTIONARIES.en.masterKey.proof.sendCode }),
+    );
+
+    expect(await dialog.findByText(DICTIONARIES.en.errors.identityProofUnavailable)).toBeTruthy();
+    expect(dialog.queryByLabelText(DICTIONARIES.en.masterKey.proof.code)).toBeNull();
   });
 
   it('shows nothing of a preparation that finishes after the session changed', async () => {
@@ -274,6 +387,6 @@ describe('InstanceRecoveryImport', () => {
     await releaseAndSettle(createRecovery, upload.release);
 
     expect(screen.queryByText(text.form.ready)).toBeNull();
-    expect(screen.queryByRole('button', { name: text.form.replace })).toBeNull();
+    expect(screen.queryByRole('button', { name: text.apply.submit })).toBeNull();
   });
 });

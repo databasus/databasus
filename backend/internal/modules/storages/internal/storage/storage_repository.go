@@ -41,7 +41,7 @@ const (
 	forUpdateRowLock rowLock = " FOR UPDATE"
 )
 
-const storageColumns = "id, workspace_id, name, type, recovery_validation_status"
+const storageColumns = "id, workspace_id, name, type"
 
 // providerSettings pairs the settings of a storage with the repository of their provider.
 type providerSettings struct {
@@ -203,20 +203,6 @@ func (r *storageRepository) delete(ctx context.Context, storageID uuid.UUID) err
 	err := database.Conn(ctx, r.db).Exec("DELETE FROM storages WHERE id = ?", storageID).Error
 	if err != nil {
 		return fmt.Errorf("delete the storage: %w", err)
-	}
-
-	return nil
-}
-
-func (r *storageRepository) updateRecoveryValidationStatus(
-	ctx context.Context,
-	storageID uuid.UUID,
-	status RecoveryValidationStatus,
-) error {
-	err := database.Conn(ctx, r.db).
-		Exec("UPDATE storages SET recovery_validation_status = ? WHERE id = ?", status, storageID).Error
-	if err != nil {
-		return fmt.Errorf("update the storage recovery validation status: %w", err)
 	}
 
 	return nil

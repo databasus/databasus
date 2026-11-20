@@ -5,6 +5,7 @@ export const en = {
     nativeName: 'English',
   },
   common: {
+    dateTimeWithRelativeTime: '{{time}} ({{relativeTime}})',
     calendar: {
       monthLevelControl: 'Choose month',
       yearLevelControl: 'Choose year',
@@ -135,16 +136,14 @@ export const en = {
       'The requested time cannot be reached with the available backups and WAL.',
     notRunning: 'It is no longer running, so there is nothing to cancel.',
     databasusBackupInUse:
-      'This storage is a Databasus backup destination. Root admin must remove it from the Databasus backup settings first.',
-    recoveryPaused:
-      'Databasus is paused after a recovery. Root admin must confirm that the old instance is stopped before this action is allowed.',
-    storageUnavailable: 'This storage is unavailable until it is validated on this server.',
+      'This storage is used for Databasus backups. Remove it from the Databasus backup settings first, or ask the server administrator to do it.',
+    storageUnavailable: 'The storage cannot provide this file.',
     recoveryIncompatible:
       'This Databasus backup file cannot be recovered by this Databasus release.',
     recoveryNotReady: 'This recovery cannot do that in its current state.',
-    identityProofInvalid: 'The password or confirmation code is wrong, expired or already used.',
+    identityProofInvalid: 'The confirmation code is wrong, expired or already used.',
     identityProofUnavailable:
-      'Identity cannot be confirmed: the account has no password, and no mail server or email address can receive a code.',
+      'A confirmation code cannot be sent: no mail server or email address can receive it.',
     archiveTooLarge: 'The file is larger than the configured upload limit.',
     instanceUnhealthy: 'The instance is unhealthy.',
     insufficientDiskSpace: 'The Databasus server does not have enough free disk space: {{detail}}',
@@ -265,6 +264,7 @@ export const en = {
   },
   auditLogs: {
     title: 'Audit Logs',
+    open: 'Open',
     columns: {
       user: 'User',
       message: 'Message',
@@ -2025,7 +2025,7 @@ export const en = {
   instanceBackups: {
     title: 'Databasus backups',
     description:
-      'An encrypted snapshot of the Databasus internal database: users, workspaces, settings, schedules, encrypted credentials and the catalog of your database backups. The backup files of your databases stay in their storages and are not copied into it.',
+      'Saves Databasus itself: users, settings, database connections and the list of backups. If this server breaks, you can recover Databasus from these backups on another server.',
     retainSeparately:
       'To recover, you need a Databasus backup file and the master key that encrypted it. Keep the key and access to at least one destination storage outside this server.',
     health: {
@@ -2039,7 +2039,19 @@ export const en = {
       resuming: 'Resuming',
     },
     status: {
-      label: 'Status:',
+      titles: {
+        notConfigured: 'Databasus is not backed up',
+        initializing: 'Waiting for the first Databasus backup',
+        healthy: 'Databasus is backed up',
+        partial: 'Some storages have no fresh Databasus backup',
+        failed: 'Databasus backups are failing',
+        overdue: 'A Databasus backup is overdue',
+        stopped: 'Databasus backups are stopped',
+        resuming: 'Databasus backups are resuming',
+      },
+      lastBackup: 'Last backup <time/>',
+      noSuccessfulBackup: 'There is no successful backup yet.',
+      storageError: '{{storage}}: {{error}}',
       refreshFailed: 'The status could not be refreshed, so it may be out of date: {{reason}}',
     },
     incidents: {
@@ -2050,6 +2062,10 @@ export const en = {
       since: 'Since {{time}}',
       mailFailed: 'The email about this problem could not be sent: {{error}}',
     },
+    setup: {
+      description: 'Choose a storage to start backing up Databasus.',
+      start: 'Set up backups',
+    },
     smtp: {
       missingTitle: 'The mail server is not configured',
       missingDescription:
@@ -2059,7 +2075,6 @@ export const en = {
         'Your account has no email address that can receive alerts. Add one in your profile.',
     },
     destinations: {
-      title: 'Destinations',
       description:
         'Choose existing storages from any workspace. Each Databasus backup is copied to every selected storage.',
       picker: 'Destination storages',
@@ -2067,15 +2082,12 @@ export const en = {
       choice: '{{storage}} ({{workspace}}, {{provider}})',
       none: 'No destination is selected, so Databasus is not backed up.',
       unknownStorage: 'Unknown storage',
-      location: 'Workspace {{workspace}}, {{provider}}',
+      storageInWorkspace: '<storage/> <details>(workspace: <workspace/>)</details>',
       lastSuccess: 'Last successful copy: {{time}}',
-      unsaved: 'Not saved yet',
       remove: 'Remove {{storage}}',
       create: 'Create a storage',
       localWarning:
         'A local storage is on the same server, so it does not protect against losing this server.',
-      sharedStorage:
-        'These are ordinary workspace storages. Anyone who can edit one also changes where Databasus backups go, so limit membership of their workspaces with the usual workspace roles.',
     },
     createDestination: {
       title: 'Create a destination storage',
@@ -2087,28 +2099,24 @@ export const en = {
         'The storage is created in the {{workspace}} workspace and selected as a destination.',
     },
     settings: {
+      title: 'Settings',
+      storages: 'Storages',
       schedule: 'Backup schedule',
       retentionDays: 'Keep copies, days',
-      retentionDescription:
-        'Older copies are deleted, but the newest successful copy in each storage is always kept.',
       save: 'Save',
       saved: 'Databasus backup settings saved',
       firstBackupRequested: 'Settings saved. The first Databasus backup has started.',
       stopped: 'Settings saved. Databasus backups are stopped because no destination is selected.',
     },
     history: {
-      title: 'History',
+      title: 'Recent backups',
       start: 'Back up now',
       started: 'Databasus backup started',
       startNeedsDestination: 'Select and save a destination before starting a backup.',
-      downloadOnly:
-        'To recover from one of these backups, download it and then import the file below.',
       empty: 'There are no Databasus backups yet.',
-      snapshot: 'Snapshot {{time}}, Databasus {{version}}',
-      size: 'Size: {{size}}',
       copy: '{{storage}} ({{workspace}}): {{status}}',
-      download: 'Download',
-      downloadFrom: 'Download the copy from {{storage}}',
+      showAll: 'Show all',
+      downloadBackup: 'Download the backup of {{time}}',
       showMore: 'Show more',
     },
     backupStatuses: {
@@ -2127,35 +2135,26 @@ export const en = {
       interrupted: 'interrupted',
       deleted: 'deleted',
     },
-    triggers: {
-      schedule: 'Scheduled',
-      manual: 'Started manually',
-      destinationAdded: 'Started after a destination was added',
-    },
   },
   instanceRecovery: {
+    open: 'Recover from backup',
     form: {
       title: 'Recover from a Databasus backup file',
-      description:
-        'Replace this installation with a Databasus backup. Take the file from S3, another storage or another server, then choose it here. No destination or history is needed on this installation.',
-      sourceKey:
-        'Enter the master key of the installation that made the backup. The key of this installation does not open it.',
+      description: 'Replaces this installation with the state saved in a Databasus backup.',
       archive: 'Databasus backup file',
-      archivePlaceholder: 'Choose a file',
+      archivePlaceholder: 'Choose or drop a file',
+      archiveHint: 'Download it from Recent backups or take it from a storage.',
+      archiveClear: 'Remove the file',
       archiveMissing: 'Choose a Databasus backup file.',
       masterKey: 'Master key of the source installation',
-      masterKeyDescription: 'Paste or type the key exactly as it was saved.',
+      masterKeyDescription:
+        'Paste it exactly as it was saved. The key of this installation opens only its own backups.',
       masterKeyMissing: 'Enter the master key.',
-      showKey: 'Show key',
-      hideKey: 'Hide key',
       upload: 'Upload and check',
       uploading: 'Uploading the file...',
       preparing: 'Checking and preparing the Databasus backup...',
       ready: 'The Databasus backup is ready to replace this installation.',
       snapshot: 'Snapshot of {{time}}, made by Databasus {{version}}.',
-      replacementWarning:
-        'Replacing removes the current accounts, settings and backup history of this installation and puts those from the snapshot in their place.',
-      replace: 'Replace this installation',
       releaseMismatch:
         'This file was made by Databasus {{sourceRelease}}, and this installation runs {{runningRelease}}. Recover it with Databasus {{sourceRelease}}.',
       correctAndRetry:
@@ -2172,21 +2171,10 @@ export const en = {
       confirmReplacement: 'I understand that the current state of this installation is replaced',
       submit: 'Replace',
     },
+    discardedCleanup:
+      'Unfinished file writes and deletions of the old instance were discarded instead of repeated: {{count}}. Their files may need manual cleanup.',
     restoredSignIn:
       'Databasus was recovered from a backup. Sign in with an account and password from that backup.',
-    pause: {
-      title: 'Databasus is paused after a recovery',
-      description:
-        'Backups, restores, checks, notifications and cleanup do not run until you confirm that the old instance is stopped. If both instances run at once, they would write to the same storages and databases.',
-      snapshot: 'Recovered from the snapshot of {{time}}, Databasus {{version}}.',
-      discardedCleanup:
-        'Unfinished file writes and deletions of the old instance were discarded instead of repeated: {{count}}. Their files may need manual cleanup.',
-      activate: 'Activate',
-      confirmTitle: 'Activate the recovered instance',
-      confirmDescription:
-        'Stop the old Databasus instance first. After activation this instance runs scheduled backups and writes to the same storages.',
-      oldInstanceStopped: 'The old instance is stopped',
-    },
     failures: {
       archiveInvalid:
         'The file is not a valid Databasus backup or the master key does not match it.',
@@ -2205,35 +2193,34 @@ export const en = {
   },
   masterKey: {
     title: 'Master key',
+    open: 'Download master key',
     description:
-      'Databasus encrypts backups with this key. If you lose this server, you will need the key to decrypt your backups, including the backup of Databasus itself.',
-    statusSaved: 'The current master key is saved.',
-    statusNotSaved: 'The current master key has not been saved yet.',
+      'Databasus encrypts backups with this key. If you lose this server, you will need the key to decrypt your backups, including the backup of Databasus itself',
     loading: 'Getting the key…',
     copy: 'Copy',
     copied: 'Copied',
     copyFailed: 'The browser did not allow copying. Download the key instead.',
     download: 'Download',
     downloaded: 'Downloaded',
-    saveAgain: 'Copy or download the key',
     codeRequired:
       'This instance requires two-factor sign-in, so confirm access to the key with a code sent to your email.',
     codeFailed: 'If the code keeps failing to arrive, copy the key from the server by hand.',
     proof: {
-      password: 'Your current password',
       sendCode: 'Email me a confirmation code',
       resendCode: 'Send a new code',
       code: 'Confirmation code',
       confirm: 'Continue',
+      wrongCode: 'The code is wrong or has expired. Send a new one.',
     },
     host: {
-      description: 'You can also copy the key file directly from the server.',
-      path: 'Its location inside the container:',
-      containerName: 'Replace databasus with the name of your container.',
+      toggle: 'Copy the key from the server instead',
+      location:
+        'You can also copy the key file from the server: it is <code>databasus-data/secret.key</code> in the folder where Databasus is installed.',
     },
     onboarding: {
       title: 'Save the master key',
       close: "I've saved it in a safe place",
+      closeIn: "I've saved it in a safe place ({{seconds}})",
     },
   },
   instanceBackupNotices: {
@@ -2248,20 +2235,6 @@ export const en = {
   },
   storages: {
     usageUnavailable: 'Could not refresh backup usage.',
-    recoveryValidation: {
-      title: 'This storage needs validation on this server',
-      description:
-        'It is a local storage recovered from a Databasus backup. The Databasus backup does not contain its files from the original server, so backups in it cannot be written, read or restored until it is validated here.',
-      editorAction:
-        'Test the connection to check its folders on this server. A successful test makes the storage available.',
-      viewerAction:
-        'You can test the connection, but only a member who can edit this storage can validate it.',
-      validated: 'The storage is validated and available on this server.',
-      notValidated:
-        'The connection works, but the storage is still not validated. Its settings may have changed during the test. Test it again.',
-      viewerConnected:
-        'The connection works, but your test does not validate the storage because you cannot edit it. It stays unavailable until a member who can edit it tests it.',
-    },
     cleanup: {
       title: 'Cleanup is still running',
       warning:

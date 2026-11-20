@@ -199,7 +199,7 @@ func (ut uploadTarget) runPass(t *testing.T) {
 func (ut uploadTarget) getRecovery(t *testing.T, knownRecovery Recovery) Recovery {
 	t.Helper()
 
-	foundRecovery, isFound := findRecovery(ut.readJournal(t), knownRecovery.ID, nil, testRelease)
+	foundRecovery, isFound := findRecovery(ut.readJournal(t), knownRecovery.ID, testRelease)
 	require.True(t, isFound)
 
 	return foundRecovery

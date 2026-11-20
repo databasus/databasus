@@ -45,10 +45,10 @@ type Config struct {
 	IsRunRequested              bool            `gorm:"column:is_run_requested"`
 	AcknowledgedMasterKeySha256 *string         `gorm:"column:acknowledged_master_key_sha256"`
 	MasterKeyAcknowledgedAt     *time.Time      `gorm:"column:master_key_acknowledged_at"`
-	// RecoveryPausedOperationID is the recovery that published this installation and keeps it
-	// paused until root admin activates it.
-	RecoveryPausedOperationID *uuid.UUID `gorm:"column:recovery_paused_operation_id"`
-	RecoveryPausedAt          *time.Time `gorm:"column:recovery_paused_at"`
+	// RecoveredByOperationID is the recovery that produced this database. Publication checks it to
+	// recognize its own staged database after a crash.
+	RecoveredByOperationID *uuid.UUID `gorm:"column:recovered_by_operation_id"`
+	RecoveredAt            *time.Time `gorm:"column:recovered_at"`
 	// ArchiveNamespace prefixes the file names of this installation's Databasus backups, so
 	// retention never touches another installation's files in a shared storage. It is random,
 	// so IsDefault leaves it out.
@@ -79,12 +79,8 @@ func (c Config) IsDefault() bool {
 		!c.IsRunRequested &&
 		c.AcknowledgedMasterKeySha256 == nil &&
 		c.MasterKeyAcknowledgedAt == nil &&
-		c.RecoveryPausedOperationID == nil &&
-		c.RecoveryPausedAt == nil
-}
-
-func (c Config) IsRecoveryPaused() bool {
-	return c.RecoveryPausedOperationID != nil
+		c.RecoveredByOperationID == nil &&
+		c.RecoveredAt == nil
 }
 
 // Settings are the fields root admin edits.

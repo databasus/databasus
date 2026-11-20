@@ -283,12 +283,12 @@ func waitForPhysicalBackup(
 					return nil
 				case apiclient.PhysicalBackupStatusERROR, apiclient.PhysicalBackupStatusCANCELED,
 					apiclient.PhysicalBackupStatusCHAINBROKEN:
-					return fmt.Errorf(
-						"the physical backup %s ended %s: %v",
-						backup.Id,
-						backup.Status,
-						backup.FailMessage,
-					)
+					failMessage := ""
+					if backup.FailMessage != nil {
+						failMessage = *backup.FailMessage
+					}
+
+					return fmt.Errorf("the physical backup %s ended %s: %s", backup.Id, backup.Status, failMessage)
 				case apiclient.PhysicalBackupStatusINPROGRESS:
 				}
 			}

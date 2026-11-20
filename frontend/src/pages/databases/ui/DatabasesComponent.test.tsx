@@ -58,7 +58,6 @@ const buildDatabase = (
 const buildStorage = (name: string): Storage => ({
   id: `${name.replace(/ /g, '-')}-id`,
   workspaceId: workspace.id,
-  recoveryValidationStatus: 'AVAILABLE',
   name,
   settings: { type: 'LOCAL' },
 });
@@ -737,7 +736,6 @@ describe('DatabasesComponent', () => {
     const alertsNotifier = {
       id: 'alerts-id',
       workspaceId: workspace.id,
-      recoveryValidationStatus: 'AVAILABLE',
       name: 'Alerts',
       lastSendError: null,
       settings: { type: 'DISCORD' as const },

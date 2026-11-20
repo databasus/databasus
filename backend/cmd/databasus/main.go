@@ -120,7 +120,7 @@ func serve(ctx context.Context, environment *app.Environment, standardOutput io.
 // serveUntilStopped builds and serves the application until the stop signal. An accepted recovery
 // stops it without a container restart: the closed application frees the internal database, the
 // recovery is published under the lifecycle lock, and a new application starts from the recovered
-// database and master key, paused.
+// database and master key with its schedules running.
 func serveUntilStopped(
 	ctx context.Context,
 	environment *app.Environment,

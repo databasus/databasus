@@ -1164,7 +1164,6 @@ paths:
         Any member of the workspace may test, a viewer included. A message the channel refuses is
         still a 200 that reports the channel's error, and the outcome becomes the notifier's
         `lastSendError`.
-        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       responses:
         "200":
           description: Whether the test message was delivered
@@ -1226,7 +1225,6 @@ paths:
         With another resource address than the notifier's, a secret the settings use must be sent
         again or the answer is 400 `invalid_request`, as in `updateNotifier`. Nothing leaves the
         backend on a refusal. Nothing is saved, the notifier's `lastSendError` included.
-        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       requestBody:
         description: The settings to test.
         required: true
@@ -1469,12 +1467,6 @@ paths:
       description: >-
         Any member of the workspace may test, a viewer included. A connection the storage refuses
         is still a 200 that reports the storage's error. The test changes nothing in the storage.
-        For a local storage that is `REQUIRES_VALIDATION` after a recovery, the test also writes,
-        reads, verifies and removes a probe in the actual backup directory. Only when every step
-        succeeds, the tester may edit the storage and its saved settings did not change during the
-        test, the storage becomes `AVAILABLE`; a viewer's success stays diagnostic. That status is the
-        only saved value a test may change. While the instance is paused after a recovery the test
-        gets 409 `recovery_paused`.
       responses:
         "200":
           description: Whether the storage could be reached and written
@@ -1538,8 +1530,7 @@ paths:
         that storage's get 400 `invalid_request`. With another resource address than the storage's, a
         secret the settings use must be sent again or the answer is 400 `invalid_request`, as in
         `updateStorage`. Nothing leaves the backend on a
-        refusal, and nothing is saved. While the instance is paused after a recovery the test gets 409
-        `recovery_paused`. SFTP uses only credentials selected by `authMethods`, with the
+        refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the
         same retained-secret fallback and validation as saving.
       requestBody:
         description: The settings to test.
@@ -1830,7 +1821,6 @@ paths:
         database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running
         physical backup is cancelled, the WAL stream stopped and the replication slots dropped only
         after the deletion has succeeded.
-        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       responses:
         "204":
           description: The database is deleted
@@ -1985,7 +1975,6 @@ paths:
         another resource address, which gets 400 `invalid_request`. Creates a read-only user, or for
         physical PostgreSQL a replication-only user, with a generated name and password. The password
         is returned only in this answer; the database itself is not changed.
-        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       requestBody:
         description: The settings to connect with.
         required: true
@@ -2198,7 +2187,7 @@ paths:
       tags:
         - "backups"
       summary: "Request a physical backup"
-      description: "Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded. While the instance is paused after a recovery the answer is 409 recovery_paused."
+      description: "Needs WORKSPACE_MEMBER. Records the request and answers with no body, because the scheduler creates the backup on its next pass, once an earlier backup of the database has ended; the backup then appears in listPhysicalBackups. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database, a database with backups turned off or a database whose config names no storage gets 400 invalid_request, and nothing is recorded."
       requestBody:
         description: "The request to apply"
         required: true
@@ -2229,7 +2218,7 @@ paths:
       tags:
         - "backups"
       summary: "Delete a physical backup and its descendants"
-      description: "Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing. While the instance is paused after a recovery the answer is 409 recovery_paused."
+      description: "Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing."
       responses:
         "204":
           description: "Delete a physical backup and its descendants"
@@ -2481,7 +2470,6 @@ paths:
         `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already
         running gets 409 `already_running`. A database whose config names no storage, or a physical
         PostgreSQL database, gets 400 `invalid_request`.
-        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       requestBody:
         description: The database to back up.
         required: true
@@ -2539,7 +2527,6 @@ paths:
         Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of
         its file and its metadata file in one step. A running backup gets 409 `already_running`, and
         a backup a running restore reads gets 409 `in_use`; neither changes anything.
-        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       responses:
         "204":
           description: The backup is deleted
@@ -2600,9 +2587,8 @@ paths:
         stream of the token's user runs, the request gets 409 `already_running` and the token stays
         usable. Streams the file without HTTP gzip, even when the client accepts gzip, and includes
         Content-Length equal to the decrypted file's exact byte count in its existing compression
-        format. Encryption overhead in storage is not included in that length. A recovered local
-        storage not yet validated on this host gets 409 `storage_unavailable`, and a file its
-        storage no longer holds gets 404 `not_found`.
+        format. Encryption overhead in storage is not included in that length. A file its storage
+        no longer holds gets 404 `not_found`.
       parameters:
         - name: token
           in: query
@@ -2724,7 +2710,6 @@ paths:
         needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose
         `detail` names the bytes needed and free. The target's secrets are used only by the running
         restore and are never stored.
-        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
       requestBody:
         description: The backup and the target to restore it into.
         required: true
@@ -3022,7 +3007,9 @@ paths:
       tags: [verification]
       summary: Start a manual backup verification
       description: >-
-        While the instance is paused after a recovery the answer is 409 `recovery_paused`.
+        Queues a verification of a completed logical backup for an agent to claim. A backup that is
+        not completed gets 409 `backup_not_completed`, and a database that already has a pending or
+        running manual verification gets 409 `already_running`.
       requestBody:
         description: >-
           The editable fields for this operation
@@ -3306,8 +3293,7 @@ paths:
         any workspace; their provider settings are not copied, and workspace editors keep editing
         them under the ordinary rules. An unknown or repeated storage ID gets 400 `invalid_request`
         and nothing changes. Adding the first destination requests a backup at once. Removing the
-        last destination reports stopped protection at once. While the instance is paused after a
-        recovery the answer is 409 `recovery_paused`.
+        last destination reports stopped protection at once.
       x-access: admin
       requestBody:
         description: Every Databasus backup setting.
@@ -3342,7 +3328,7 @@ paths:
         Only root admin reads it. It combines Databasus backup health per destination, the open
         incident and its mail delivery, whether the system mail server and root admin's address can
         carry incident mail, whether the current master key was acknowledged as saved, the setup
-        reminder and the latest recovery with its pause.
+        reminder and the latest recovery.
       x-access: admin
       responses:
         "200":
@@ -3446,8 +3432,7 @@ paths:
       description: >-
         Only root admin starts one. Answers at once with the backup in progress. Without a selected
         destination the answer is 400 `invalid_request`; while another Databasus backup is being
-        produced it is 409 `already_running`; while the instance is paused after a recovery it is
-        409 `recovery_paused`.
+        produced it is 409 `already_running`.
       x-access: admin
       responses:
         "202":
@@ -3796,8 +3781,9 @@ paths:
       summary: Email root admin a code that confirms applying this recovery
       description: >-
         Only root admin requests one. The code expires after five minutes and confirms only this
-        recovery with its archive fingerprint, for the current session. Without a system mail server
-        or a usable address the answer is 409 `identity_proof_unavailable`; a recovery that is not
+        recovery with its archive fingerprint, for the current session. While the instance does not
+        require two-factor sign-in, or without a system mail server or a usable address, the answer
+        is 409 `identity_proof_unavailable`; a recovery that is not
         ready gets 409 `recovery_not_ready`. One code a minute.
       x-access: admin
       responses:
@@ -3829,17 +3815,18 @@ paths:
       tags: [instancebackups]
       summary: Replace this installation with the prepared recovery
       description: >-
-        Only root admin applies, with `isReplacementConfirmed` and a fresh password or emailed-code
-        proof bound to this recovery; a master-key export proof or a proof for another recovery gets
-        400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`.
+        Only root admin applies, with `isReplacementConfirmed`. While the instance requires
+        two-factor sign-in the apply also needs the code emailed for this recovery in this session;
+        a missing or wrong code, a master-key export code or a code for another recovery gets 400
+        `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`.
         The answer is 202 once the apply is recorded durably, before the service stops. Publication
         then drains all work, replaces the database and the master key, and serves the recovered
-        installation paused in the same process; every session ends, and sign-in uses the accounts
+        installation in the same process with its schedules running; every session ends, and sign-in uses the accounts
         of the snapshot. Repeating apply for an accepted recovery returns its current state without
         a second publication.
       x-access: admin
       requestBody:
-        description: The replacement confirmation and the identity proof.
+        description: The replacement confirmation and, with two-factor sign-in, the emailed code.
         required: true
         content:
           application/json:
@@ -3882,44 +3869,6 @@ paths:
       responses:
         "200":
           description: The cancelled recovery
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InstanceRecovery"
-        "400":
-          $ref: "#/components/responses/Problem"
-        "401":
-          $ref: "#/components/responses/Problem"
-        "403":
-          $ref: "#/components/responses/Problem"
-        "404":
-          $ref: "#/components/responses/Problem"
-        "409":
-          $ref: "#/components/responses/Problem"
-        default:
-          $ref: "#/components/responses/Problem"
-  /instance-recoveries/{instanceRecoveryId}/activate:
-    parameters:
-      - $ref: "#/components/parameters/InstanceRecoveryId"
-    post:
-      operationId: activateInstanceRecovery
-      tags: [instancebackups]
-      summary: Confirm the old instance is stopped and end the recovery pause
-      description: >-
-        Only root admin activates, with `isOldInstanceStopped`. A recovery that is not paused gets
-        409 `recovery_not_ready`. Activation resumes schedules and outbound work; recovered local
-        storages stay unavailable until an editor validates them.
-      x-access: admin
-      requestBody:
-        description: The confirmation that the old instance is stopped.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/InstanceRecoveryActivation"
-      responses:
-        "200":
-          description: The activated recovery
           content:
             application/json:
               schema:
@@ -5238,14 +5187,12 @@ components:
     Storage:
       type: object
       description: A place backups of a workspace are kept, without its secrets
-      required: [id, workspaceId, name, settings, recoveryValidationStatus]
+      required: [id, workspaceId, name, settings]
       properties:
         id:
           type: string
           format: uuid
           description: The ID of the storage
-        recoveryValidationStatus:
-          $ref: "#/components/schemas/StorageRecoveryValidationStatus"
         workspaceId:
           type: string
           format: uuid
@@ -5340,8 +5287,6 @@ components:
         error:
           type: string
           description: The error the storage gave, absent when it is connected
-        recoveryValidationStatus:
-          $ref: "#/components/schemas/StorageRecoveryValidationStatus"
     StorageSettings:
       description: The settings of the storage's provider; `type` tells the providers apart
       oneOf:
@@ -6333,10 +6278,6 @@ components:
           description: >-
             Whether the instance has a user database or storage, so setup should be suggested. The
             reminder cannot be deferred: it shows while no destination is selected.
-    IdentityProofMethod:
-      type: string
-      description: A way root admin can confirm identity
-      enum: [PASSWORD, EMAIL_CODE]
     InstanceBackupStatus:
       type: object
       description: The protection state of the instance for root admin
@@ -6346,11 +6287,8 @@ components:
         - isEmailConfigured
         - isRootEmailUsable
         - isMasterKeyAcknowledged
-        - isMasterKeyExportCodeRequired
-        - identityProofMethods
-        - masterKeyPath
+        - isConfirmationCodeRequired
         - reminder
-        - isRecoveryPaused
       properties:
         health:
           $ref: "#/components/schemas/InstanceBackupHealth"
@@ -6373,22 +6311,13 @@ components:
         isMasterKeyAcknowledged:
           type: boolean
           description: Whether root admin confirmed saving the current master key
-        isMasterKeyExportCodeRequired:
+        isConfirmationCodeRequired:
           type: boolean
-          description: Whether a master-key export needs an emailed code, because the instance requires two-factor sign-in
-        identityProofMethods:
-          type: array
-          items:
-            $ref: "#/components/schemas/IdentityProofMethod"
-          description: The identity confirmations root admin can give now; empty means only the host file remains
-        masterKeyPath:
-          type: string
-          description: Where the master key file lives inside the container, for saving it from the host
+          description: >-
+            Whether a master-key export and a recovery apply need a code emailed to root admin,
+            because the instance requires two-factor sign-in
         reminder:
           $ref: "#/components/schemas/InstanceBackupReminder"
-        isRecoveryPaused:
-          type: boolean
-          description: Whether the instance is paused after a recovery until root admin activates it
         recovery:
           allOf:
             - $ref: "#/components/schemas/InstanceRecovery"
@@ -6572,18 +6501,6 @@ components:
           type: string
           format: date-time
           description: When the code stops working
-    IdentityProof:
-      type: object
-      description: Root admin's current password or an emailed code; exactly one is sent
-      properties:
-        password:
-          type: string
-          writeOnly: true
-          description: Root admin's current password
-        code:
-          type: string
-          writeOnly: true
-          description: The emailed confirmation code
     MasterKeyExportCreate:
       type: object
       description: The confirmation for a master-key export
@@ -6619,9 +6536,9 @@ components:
       type: string
       description: >-
         Where a recovery is. `VALIDATING` while the upload is checked and staged, `READY` when it can
-        be applied, `APPLYING` once apply was accepted, `PAUSED` after publication until activation,
-        `ACTIVE` after activation
-      enum: [VALIDATING, READY, APPLYING, PAUSED, ACTIVE, FAILED, CANCELLED]
+        be applied, `APPLYING` once apply was accepted, `COMPLETED` once the recovered installation is
+        published
+      enum: [VALIDATING, READY, APPLYING, COMPLETED, FAILED, CANCELLED]
     InstanceRecoveryOrigin:
       type: string
       description: How the recovery inputs arrived
@@ -6709,28 +6626,18 @@ components:
           description: The source installation's master key as text; its exact UTF-8 bytes are used
     InstanceRecoveryApply:
       type: object
-      description: The replacement confirmation and identity proof
-      required: [isReplacementConfirmed, proof]
+      description: The replacement confirmation, with the emailed code while two-factor sign-in is required
+      required: [isReplacementConfirmed]
       properties:
         isReplacementConfirmed:
           type: boolean
           description: Root admin accepted that current users, settings and backup catalog are replaced
-        proof:
-          $ref: "#/components/schemas/IdentityProof"
-    InstanceRecoveryActivation:
-      type: object
-      description: The confirmation that ends the recovery pause
-      required: [isOldInstanceStopped]
-      properties:
-        isOldInstanceStopped:
-          type: boolean
-          description: Root admin confirms the old instance is stopped
-    StorageRecoveryValidationStatus:
-      type: string
-      description: >-
-        `REQUIRES_VALIDATION` for a local storage recovered from a Databasus backup until an editor's
-        saved connection test succeeds on this host; every other storage is `AVAILABLE`
-      enum: [AVAILABLE, REQUIRES_VALIDATION]
+        code:
+          type: string
+          writeOnly: true
+          description: >-
+            The code emailed for this recovery; required while the instance requires two-factor
+            sign-in and ignored otherwise
     StorageType:
       type: string
       description: The provider of a storage
@@ -6805,7 +6712,6 @@ components:
         - insufficient_disk_space
         - instance_unhealthy
         - databasus_backup_in_use
-        - recovery_paused
         - storage_unavailable
         - recovery_incompatible
         - recovery_not_ready

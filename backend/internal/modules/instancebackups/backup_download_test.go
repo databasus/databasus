@@ -23,7 +23,9 @@ func TestDownloadInstanceBackup(t *testing.T) {
 		owner.selectDestinations(t, storageID)
 		backup := owner.backUp(t)
 		downloadToken := owner.createDownloadToken(t, backup.Id, getCopy(t, backup, storageID).Id)
-		storedContent, err := os.ReadFile(owner.App.GetLocalStorageFilePath(downloadToken.FileName))
+		storedContent, err := os.ReadFile(
+			owner.App.GetLocalStorageFilePath(owner.getStoredFileName(t, backup, storageID)),
+		)
 		require.NoError(t, err)
 
 		firstDownload := downloadBackup(t, owner, downloadToken.Token)
@@ -32,7 +34,9 @@ func TestDownloadInstanceBackup(t *testing.T) {
 		require.Equal(t, http.StatusOK, firstDownload.StatusCode(), string(firstDownload.Body))
 		assert.Equal(t, storedContent, firstDownload.Body)
 		assert.Equal(t, "no-store", firstDownload.HTTPResponse.Header.Get("Cache-Control"))
-		assert.Contains(t, firstDownload.HTTPResponse.Header.Get("Content-Disposition"), downloadToken.FileName)
+		snapshotFileName := "databasus-backup-" + backup.SnapshotAt.UTC().Format("2006-01-02-15-04-05") + ".dbbackup"
+		assert.Equal(t, snapshotFileName, downloadToken.FileName)
+		assert.Contains(t, firstDownload.HTTPResponse.Header.Get("Content-Disposition"), snapshotFileName)
 		requireProblemCode(t, secondDownload.StatusCode(), secondDownload.Body, http.StatusUnauthorized,
 			apiclient.ProblemCodeUnauthenticated)
 	})
@@ -57,7 +61,7 @@ func TestDownloadInstanceBackup(t *testing.T) {
 		owner.selectDestinations(t, storageID)
 		backup := owner.backUp(t)
 		downloadToken := owner.createDownloadToken(t, backup.Id, getCopy(t, backup, storageID).Id)
-		require.NoError(t, os.Remove(owner.App.GetLocalStorageFilePath(downloadToken.FileName)))
+		require.NoError(t, os.Remove(owner.App.GetLocalStorageFilePath(owner.getStoredFileName(t, backup, storageID))))
 
 		download := downloadBackup(t, owner, downloadToken.Token)
 

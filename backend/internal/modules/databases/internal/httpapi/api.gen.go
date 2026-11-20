@@ -378,7 +378,6 @@ const (
 	ProblemCodeRateLimited                ProblemCode = "rate_limited"
 	ProblemCodeRecoveryIncompatible       ProblemCode = "recovery_incompatible"
 	ProblemCodeRecoveryNotReady           ProblemCode = "recovery_not_ready"
-	ProblemCodeRecoveryPaused             ProblemCode = "recovery_paused"
 	ProblemCodeRegistrationClosed         ProblemCode = "registration_closed"
 	ProblemCodeRegistrationIncomplete     ProblemCode = "registration_incomplete"
 	ProblemCodeSignInCodeIncorrect        ProblemCode = "sign_in_code_incorrect"
@@ -470,8 +469,6 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeRecoveryIncompatible:
 		return true
 	case ProblemCodeRecoveryNotReady:
-		return true
-	case ProblemCodeRecoveryPaused:
 		return true
 	case ProblemCodeRegistrationClosed:
 		return true

@@ -9,7 +9,7 @@ Restores Databasus from an encrypted backup file and its separately retained mas
 
 Both startup recovery and UI file import SHALL accept a Databasus backup file only when its authenticated source release exactly matches the running Databasus release, including the patch version, and its schema identity is compatible with the running build under the rules below. Both older and newer releases SHALL be refused before importing data, applying application migrations or replacing the destination key. The refusal SHALL name the source and running releases and instruct the owner to start the source release, recover there, and then upgrade normally. There SHALL be no override accepting a different release. Successfully consumed startup inputs SHALL be skipped on later normal starts as specified below; leaving them configured SHALL NOT turn an ordinary upgrade into a new recovery attempt.
 
-Schema identity SHALL contain a digest of the ordered migration bundle and the effective applied migration versions captured in the snapshot. Compatibility SHALL require an identical bundle digest, every migration carried by the target recorded as applied in the snapshot, and no applied version newer than the target's newest migration. Additional historical applied versions absent from the current bundle SHALL be accepted when they are no newer than that newest version, as ordinary upgraded installations permit. Those historical entries SHALL be preserved. Recovery SHALL compare the imported migration history with the authenticated snapshot identity before activation; it SHALL NOT require the entire applied-version set to equal the current bundle's version set.
+Schema identity SHALL contain a digest of the ordered migration bundle and the effective applied migration versions captured in the snapshot. Compatibility SHALL require an identical bundle digest, every migration carried by the target recorded as applied in the snapshot, and no applied version newer than the target's newest migration. Additional historical applied versions absent from the current bundle SHALL be accepted when they are no newer than that newest version, as ordinary upgraded installations permit. Those historical entries SHALL be preserved. Recovery SHALL compare the imported migration history with the authenticated snapshot identity before publication; it SHALL NOT require the entire applied-version set to equal the current bundle's version set.
 
 #### Scenario: Newer Databasus tries to restore an older backup
 
@@ -55,7 +55,7 @@ Recovery SHALL authenticate and validate the complete archive before publishing 
 
 - **WHEN** the owner starts Databasus normally without recovery inputs, stops it without creating accounts, user data or changing persisted settings, then adds the archive and source key to the same mounted volume and restarts the exact source release with both paths configured
 - **THEN** startup accepts the automatically initialized target without requiring deletion of its volume
-- **AND** successful recovery replaces its automatically generated key with the exact source key and opens the recovered instance paused
+- **AND** successful recovery replaces its automatically generated key with the exact source key and opens the recovered instance with its work running
 
 #### Scenario: A root account exists without workspace data
 
@@ -114,7 +114,7 @@ When configured startup recovery is skipped or refused, the application SHALL lo
 
 ### Requirement: Completed startup recovery is deduplicated by archive content
 
-Startup recovery SHALL identify an archive by SHA-256 of the complete encrypted file. Successful consumption SHALL survive replacement of snapshot state and SHALL be recorded only after the database, exact source key and recovery pause are durably published. Restarting with the same successfully consumed archive SHALL start the current installation without importing it again, even when the file is renamed, an explicit UI import has since replaced the snapshot or the application is being upgraded normally. A different archive at the same configured path SHALL NOT be treated as consumed and SHALL be refused on a target containing user accounts, user data or user-changed settings. A failed attempt SHALL NOT be marked successfully consumed. An interrupted accepted recovery SHALL resume or finish its recorded publication safely rather than begin another import. A deliberate new UI import of identical bytes SHALL remain possible; retries of one accepted operation SHALL NOT publish it twice.
+Startup recovery SHALL identify an archive by SHA-256 of the complete encrypted file. Successful consumption SHALL survive replacement of snapshot state and SHALL be recorded only after the database, exact source key and the marker of the recovery that produced them are durably published. Restarting with the same successfully consumed archive SHALL start the current installation without importing it again, even when the file is renamed, an explicit UI import has since replaced the snapshot or the application is being upgraded normally. A different archive at the same configured path SHALL NOT be treated as consumed and SHALL be refused on a target containing user accounts, user data or user-changed settings. A failed attempt SHALL NOT be marked successfully consumed. An interrupted accepted recovery SHALL resume or finish its recorded publication safely rather than begin another import. A deliberate new UI import of identical bytes SHALL remain possible; retries of one accepted operation SHALL NOT publish it twice.
 
 #### Scenario: Restart with unchanged startup inputs
 
@@ -170,7 +170,7 @@ Preparation SHALL authenticate the entire archive, validate release and schema c
 
 ### Requirement: UI replacement requires current root authorization and explicit confirmation
 
-Upload, preparation status, cancellation and apply SHALL require the target installation's current root admin; other administrators and workspace members SHALL be refused. Applying SHALL require a recent single-use password or email identity proof bound to the current root account/session, that recovery operation and the immutable archive content. The owner SHALL explicitly confirm replacement after seeing the snapshot date, source version and warning that current users, settings and backup catalog will be replaced. Possession of the source key alone SHALL NOT authorize replacement. Invalid, expired, reused or wrong-purpose proofs SHALL NOT apply an import. If root cannot provide password or email proof, the interface SHALL explain mounted-file startup recovery into a separate fresh target; it SHALL NOT imply that mounted files can replace the current account-bearing target.
+Upload, preparation status, cancellation and apply SHALL require the target installation's current root admin; other administrators and workspace members SHALL be refused. The owner SHALL explicitly confirm replacement after seeing the snapshot date, source version and warning that current users, settings and backup catalog will be replaced. While the instance requires two-factor sign-in, applying SHALL also require a single-use code emailed to root admin and bound to the current root account/session, that recovery operation and the immutable archive content; while it does not, the session and the replacement confirmation SHALL be enough. The account password SHALL NOT be accepted as a confirmation. A code SHALL be sent only while the instance requires two-factor sign-in, a system mail server is configured and root admin's address is usable; otherwise a code request SHALL be refused with 409 `identity_proof_unavailable`. Possession of the source key alone SHALL NOT authorize replacement. While a code is required, a missing, invalid, expired, reused or wrong-purpose code SHALL NOT apply an import. If the code cannot be sent, the interface SHALL show the sending error; the owner can still recover from mounted files into a separate fresh target, and the interface SHALL NOT imply that mounted files can replace the current account-bearing target.
 
 #### Scenario: Another administrator imports an archive
 
@@ -187,11 +187,22 @@ Upload, preparation status, cancellation and apply SHALL require the target inst
 - **WHEN** a caller supplies a master-key export proof or a proof for another prepared import
 - **THEN** recovery apply is refused without replacing the active installation
 
-### Requirement: UI publication stops live work and returns a paused application
+#### Scenario: Two-factor sign-in is off
+
+- **WHEN** the instance does not require two-factor sign-in and root admin confirms replacement of a prepared import
+- **THEN** apply is accepted without a code or a password
+- **AND** a request for an emailed code is refused with 409 `identity_proof_unavailable` without sending mail
+
+#### Scenario: Two-factor sign-in is on
+
+- **WHEN** the instance requires two-factor sign-in and root admin confirms replacement without a code or with a wrong one
+- **THEN** apply is refused with 400 `identity_proof_invalid` and the prepared recovery stays ready
+
+### Requirement: UI publication stops live work and returns a running application
 
 Before replacing active state, UI recovery SHALL prevent new mutations and background execution, stop and drain active requests and operations, and close active database connections. A timeout or failure to establish exclusive access SHALL refuse publication and preserve the current database/key pair. Applying SHALL publish a validated, normalized snapshot and its source key consistently; a crash SHALL NOT expose a partial or mismatched installation. The application SHALL become available again without requiring a browser request, operator restart or configured container restart policy to complete the operation.
 
-Successful application SHALL invalidate both the replaced installation's sessions and credentials copied from the snapshot. The interface SHALL tolerate the temporary interruption, require sign-in using accounts and credentials from the snapshot, and expose the durable paused recovery result after authentication. Lost connectivity alone SHALL NOT be shown as success. Root activation and recovered-runtime restrictions below SHALL apply to both startup and UI recovery, even when the UI import uses the same host or archive as an earlier recovery.
+Successful application SHALL invalidate both the replaced installation's sessions and credentials copied from the snapshot. The interface SHALL tolerate the temporary interruption, require sign-in using accounts and credentials from the snapshot, and expose the completed recovery result after authentication. Lost connectivity alone SHALL NOT be shown as success. The published installation SHALL run its schedules and accept its actions at once, without an activation step. The recovered-runtime rules below SHALL apply to both startup and UI recovery, even when the UI import uses the same host or archive as an earlier recovery.
 
 #### Scenario: Work cannot stop before replacement
 
@@ -202,7 +213,7 @@ Successful application SHALL invalidate both the replaced installation's session
 #### Scenario: Recovery completes after the browser disconnects
 
 - **WHEN** root admin confirms a valid import and closes the browser after apply is accepted
-- **THEN** the application completes recovery and becomes available paused without an external restart
+- **THEN** the application completes recovery and becomes available with its work running, without an external restart
 - **AND** the owner can sign in with restored credentials and inspect the durable result
 
 #### Scenario: An apply response is lost and retried
@@ -215,82 +226,36 @@ Successful application SHALL invalidate both the replaced installation's session
 - **WHEN** root admin uploads identical archive bytes as a new import and provides fresh replacement confirmation and identity proof
 - **THEN** that explicit operation can restore the snapshot again despite earlier consumption of the same archive
 
-### Requirement: Recovery starts in a durable pause
-
-A recovered instance SHALL remain paused across restarts until root admin explicitly confirms that the old instance is stopped. While paused, it SHALL permit authentication, inspection and the activation action, but SHALL start no backup, restore, verification or healthcheck execution, send no automatic notifications and perform no remote write or deletion, including through manual actions or previously issued download/action tokens with side effects. The interface SHALL explain the pause, require explicit root confirmation before activation, and keep the pause visible during a pending or failed activation. Only successful server acknowledgment SHALL clear it. Other administrators SHALL NOT activate it. Restarting or upgrading SHALL NOT clear the pause.
-
-#### Scenario: Owner inspects a recovered instance
-
-- **WHEN** root admin signs in after recovery and has not confirmed activation
-- **THEN** the interface explains the pause and the need to stop the old instance
-- **AND** no background or manual operation changes a remote storage or source database
-
-#### Scenario: Another administrator attempts activation
-
-- **WHEN** an administrator other than root admin requests activation
-- **THEN** the request is refused and the instance stays paused
-
-#### Scenario: Activation fails after confirmation
-
-- **WHEN** root admin confirms that the old instance is stopped but the activation request fails
-- **THEN** the interface keeps the pause explanation and shows an actionable error without claiming that execution has resumed
-
-#### Scenario: Activation succeeds after confirmation
-
-- **WHEN** root admin explicitly confirms and the server acknowledges successful activation
-- **THEN** the interface clears the instance-wide pause while independently retaining any local-storage validation restriction
-
 ### Requirement: Recovered runtime state does not claim work survived the lost server
 
-Recovery SHALL end operations that were in progress at the snapshot as interrupted, invalidate sessions, temporary action/download credentials and verification-agent credentials, discard obsolete runtime claims and local work, and preserve the original schedules without executing them until activation. It SHALL discard source-instance unfinished-write and deletion obligations rather than replay potentially stale cleanup against surviving storages, and SHALL inform root admin that leftover files can require manual cleanup. Local storage SHALL be unavailable until validated on the new host as the requirement below specifies. After activation, physical backup creation SHALL start a new full chain rather than continuing a chain whose local WAL queue was lost. Previously completed backup history SHALL remain available, subject to its actual remote files and coverage at the snapshot; files created after the snapshot SHALL NOT be claimed as recovered history.
+Recovery SHALL end operations that were in progress at the snapshot as interrupted, invalidate sessions, temporary action/download credentials and verification-agent credentials, discard obsolete runtime claims and local work, and preserve the original schedules, which run from the first start of the recovered installation. It SHALL discard source-instance unfinished-write and deletion obligations rather than replay potentially stale cleanup against surviving storages, and SHALL inform root admin in the Databasus backups section that leftover files can require manual cleanup when it dropped any. Recovered storages, local ones included, SHALL be used as they were at the snapshot from the first start, without a connection test or any other validation; root admin is responsible for a local storage's folder existing on the new host. Physical backup creation SHALL start a new full chain rather than continuing a chain whose local WAL queue was lost. Previously completed backup history SHALL remain available, subject to its actual remote files and coverage at the snapshot; files created after the snapshot SHALL NOT be claimed as recovered history.
 
 #### Scenario: Physical backup configuration survives recovery
 
-- **WHEN** the recovered instance is activated and a physical backup becomes due
+- **WHEN** a physical backup of the recovered instance becomes due
 - **THEN** it requests a new full backup and does not rely on the lost local WAL queue
 
 #### Scenario: A remote logical backup existed at the snapshot
 
-- **WHEN** the recovered instance is activated and the owner restores a cataloged logical backup whose remote files still exist
+- **WHEN** the owner of the recovered instance restores a cataloged logical backup whose remote files still exist
 - **THEN** its recovered credentials and encryption key permit restoration
 
 #### Scenario: A completed physical restore set existed at the snapshot
 
-- **WHEN** the owner downloads and restores a cataloged physical restore set after activation
+- **WHEN** the owner downloads and restores a cataloged physical restore set after the recovery
 - **THEN** its retained full backup, increments, WAL and timeline history support the recovery target that was available at the snapshot
 
-### Requirement: Recovered local storages remain unavailable until validated on the new host
+#### Scenario: Recovered installation starts its work at once
 
-Recovered local storages SHALL expose a requires-validation state and an explanation that the original host files were not restored by the Databasus backup. Activation alone SHALL NOT make them available. Until a successful validation, automated and manual backup writes, backup reads/downloads/restores and file cleanup against them SHALL be blocked with an explicit storage-unavailable outcome. Other validated destinations SHALL continue to operate independently.
+- **WHEN** a recovery is published and its database has an enabled backup schedule, a healthcheck and a notifier
+- **THEN** the schedule, the healthcheck and notifications run without any confirmation from root admin
+- **AND** no operation answers that the instance is paused
 
-After activation, the existing saved connection-test action SHALL be the only file-access exception to the unavailable state. In addition to the ordinary temporary-storage check, it SHALL verify the actual backup directory by creating a unique probe, writing non-empty content, reading and verifying it, and removing the probe without changing existing backups. Every step SHALL succeed; writable temporary storage alone SHALL NOT establish backup-directory access. A successful probe by a user authorized to edit that storage SHALL make it available only if its saved settings have not changed since the probe began. Viewers SHALL retain permission to test saved storages with the same extended probe, but their results SHALL remain diagnostic only and SHALL NOT change availability. The interface SHALL explain when an editor's validation is still required. A failed probe SHALL attempt cleanup, retain the unavailable state and show a safe failure reason. Before instance activation the recovery pause SHALL still block a writing probe. Validation SHALL NOT claim that missing historical backup files were recovered.
+#### Scenario: Recovered local storage is used at once
 
-#### Scenario: Activation leaves local storage unvalidated
-
-- **WHEN** root admin activates the recovered instance without validating its local storage
-- **THEN** its interface still reports requires-validation and backup, restore/download and cleanup operations against it remain blocked
-
-#### Scenario: Local storage validation succeeds
-
-- **WHEN** an authorized editor validates a local storage after activation and its configured location passes the read/write probe
-- **THEN** the storage becomes available for ordinary operations
-- **AND** historical files not present on the new host remain unavailable rather than being reported as recovered
-
-#### Scenario: Local storage validation fails
-
-- **WHEN** validation cannot read or write the configured local location
-- **THEN** the storage remains unavailable with a safe diagnostic and its backup, restore/download and cleanup operations stay blocked
-
-#### Scenario: Backup directory is inaccessible despite writable temporary storage
-
-- **WHEN** an authorized editor tests a recovered local storage after activation and its temporary directory is writable but the actual backup directory is inaccessible
-- **THEN** validation fails and the storage remains `REQUIRES_VALIDATION`
-- **AND** its settings, secrets and existing backup files stay unchanged and ordinary storage operations remain blocked
-
-#### Scenario: Viewer tests connectivity without validating recovery
-
-- **WHEN** a viewer successfully tests a recovered local storage after activation
-- **THEN** the test reports connected but the storage remains unavailable pending an authorized editor's validation
+- **WHEN** a recovery is published and a Databasus backup or a database backup becomes due for a local storage whose folder exists on the new host
+- **THEN** the backup writes its file to that storage without anyone testing the storage first
+- **AND** no operation answers that the storage is unavailable because of the recovery
 
 ### Requirement: Recovery uploads remain private and bounded over any connection
 

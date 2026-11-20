@@ -210,6 +210,7 @@ func TestRequestMasterKeyConfirmation(t *testing.T) {
 		t.Parallel()
 		app := apptest.New(t, apptest.WithoutMailServer())
 		rootAdmin := app.CreateAdmin(t)
+		requireTwoFactorAfterMailServerLoss(t, app)
 
 		response, err := rootAdmin.Client.RequestMasterKeyConfirmationWithResponse(t.Context())
 
@@ -220,7 +221,7 @@ func TestRequestMasterKeyConfirmation(t *testing.T) {
 
 	t.Run("refuses a second code within a minute", func(t *testing.T) {
 		t.Parallel()
-		owner := newInstanceOwner(t)
+		owner := newTwoFactorInstanceOwner(t)
 		requireMasterKeyCode(t, owner)
 
 		response, err := owner.RootAdmin.Client.RequestMasterKeyConfirmationWithResponse(t.Context())
@@ -290,12 +291,12 @@ func TestMasterKeyExportCodeRequirement(t *testing.T) {
 	t.Run("reports a code required only after the instance requires two-factor sign-in", func(t *testing.T) {
 		t.Parallel()
 		owner := newInstanceOwner(t)
-		isRequiredBefore := getStatus(t, owner.RootAdmin).IsMasterKeyExportCodeRequired
+		isRequiredBefore := getStatus(t, owner.RootAdmin).IsConfirmationCodeRequired
 
 		requireTwoFactorSignIn(t, owner.RootAdmin)
 
 		assert.False(t, isRequiredBefore)
-		assert.True(t, getStatus(t, owner.RootAdmin).IsMasterKeyExportCodeRequired)
+		assert.True(t, getStatus(t, owner.RootAdmin).IsConfirmationCodeRequired)
 	})
 }
 
@@ -308,7 +309,21 @@ func newTwoFactorInstanceOwner(t *testing.T) instanceOwner {
 	return owner
 }
 
+// requireTwoFactorAfterMailServerLoss turns two-factor sign-in on directly, as on an instance that
+// lost its mail server after root admin turned it on; the API refuses to turn it on without one.
+func requireTwoFactorAfterMailServerLoss(t *testing.T, app *apptest.App) {
+	t.Helper()
+
+	app.ExecuteSQL(t, "UPDATE users_settings SET is_two_factor_auth_required = TRUE")
+}
+
 func requireTwoFactorSignIn(t *testing.T, rootAdmin apptest.Session) {
+	t.Helper()
+
+	setTwoFactorSignIn(t, rootAdmin, true)
+}
+
+func setTwoFactorSignIn(t *testing.T, rootAdmin apptest.Session, isRequired bool) {
 	t.Helper()
 
 	currentSettings, err := rootAdmin.Client.GetInstanceSettingsWithResponse(t.Context())
@@ -319,7 +334,7 @@ func requireTwoFactorSignIn(t *testing.T, rootAdmin apptest.Session) {
 		IsAllowExternalRegistrations:      currentSettings.JSON200.IsAllowExternalRegistrations,
 		IsAllowMemberInvitations:          currentSettings.JSON200.IsAllowMemberInvitations,
 		IsMemberAllowedToCreateWorkspaces: currentSettings.JSON200.IsMemberAllowedToCreateWorkspaces,
-		IsTwoFactorAuthRequired:           true,
+		IsTwoFactorAuthRequired:           isRequired,
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))

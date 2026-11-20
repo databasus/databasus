@@ -12,8 +12,8 @@ var errConfigMissing = errors.New("the Databasus backup settings row is missing"
 // has it selected as a Databasus backup destination.
 var ErrDatabasusBackupInUse = &apierror.Problem{
 	Code: apierror.CodeDatabasusBackupInUse,
-	Detail: "the storage is a destination of Databasus backups; root admin removes it from the " +
-		"Databasus backups section first",
+	Detail: "the storage is used for Databasus backups; remove it from the Databasus backup settings " +
+		"first, or ask the server administrator to do it",
 	Errors: nil,
 }
 

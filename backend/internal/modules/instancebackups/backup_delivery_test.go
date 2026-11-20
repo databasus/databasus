@@ -31,13 +31,12 @@ func TestDeliverInstanceBackup(t *testing.T) {
 		owner.selectDestinations(t, namespace.StorageID)
 
 		backup := owner.backUp(t)
-		storedCopy := getCopy(t, backup, namespace.StorageID)
-		downloadToken := owner.createDownloadToken(t, backup.Id, storedCopy.Id)
+		storedFileName := owner.getStoredFileName(t, backup, namespace.StorageID)
 
 		assert.Equal(t, apiclient.InstanceBackupStatusValueCOMPLETED, backup.Status)
-		assert.True(t, strings.HasPrefix(downloadToken.FileName, backupFilePrefix), downloadToken.FileName)
-		assert.Contains(t, downloadToken.FileName, backup.Id.String())
-		namespace.RequireFile(t, downloadToken.FileName)
+		assert.True(t, strings.HasPrefix(storedFileName, backupFilePrefix), storedFileName)
+		assert.Contains(t, storedFileName, backup.Id.String())
+		namespace.RequireFile(t, storedFileName)
 		assert.Empty(t, owner.getSpoolFileNames(t))
 	})
 
@@ -199,7 +198,7 @@ func TestRestartDuringInstanceBackup(t *testing.T) {
 		assert.Equal(t, apiclient.InstanceBackupStatusValueCOMPLETED, storedBackup.Status)
 		storedCopy := getCopy(t, storedBackup, namespace.StorageID)
 		assert.Equal(t, 2, storedCopy.AttemptCount)
-		namespace.RequireFile(t, owner.createDownloadToken(t, storedBackup.Id, storedCopy.Id).FileName)
+		namespace.RequireFile(t, owner.getStoredFileName(t, storedBackup, namespace.StorageID))
 	})
 
 	t.Run("interrupts the copies and asks for a new dump when the local file was lost", func(t *testing.T) {

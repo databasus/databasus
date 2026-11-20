@@ -26,12 +26,3 @@ export const INSTANCE_BACKUP_COPY_STATUS_LABEL_KEYS: Record<
   INTERRUPTED: 'instanceBackups.copyStatuses.interrupted',
   DELETED: 'instanceBackups.copyStatuses.deleted',
 };
-
-export const INSTANCE_BACKUP_TRIGGER_LABEL_KEYS: Record<
-  Schemas['InstanceBackupTrigger'],
-  TranslationKey
-> = {
-  SCHEDULE: 'instanceBackups.triggers.schedule',
-  MANUAL: 'instanceBackups.triggers.manual',
-  DESTINATION_ADDED: 'instanceBackups.triggers.destinationAdded',
-};

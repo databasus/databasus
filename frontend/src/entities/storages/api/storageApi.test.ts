@@ -10,7 +10,6 @@ const mockServer = setUpMockApi();
 const buildStorage = (name: string): ApiComponents['schemas']['Storage'] => ({
   id: `${name}-id`,
   workspaceId: 'workspace-id',
-  recoveryValidationStatus: 'AVAILABLE',
   name,
   settings: { type: 'LOCAL' },
 });

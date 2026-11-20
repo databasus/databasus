@@ -8,7 +8,6 @@ type Schemas = ApiComponents['schemas'];
 export const offsiteStorage: Schemas['Storage'] = {
   id: 'offsite-storage-id',
   workspaceId: workspace.id,
-  recoveryValidationStatus: 'AVAILABLE',
   name: 'Offsite archive',
   settings: { type: 'LOCAL' },
 };
@@ -37,11 +36,8 @@ export const buildInstanceBackupStatus = (
   isEmailConfigured: true,
   isRootEmailUsable: true,
   isMasterKeyAcknowledged: true,
-  isMasterKeyExportCodeRequired: false,
-  identityProofMethods: ['PASSWORD'],
-  masterKeyPath: '/databasus-data/secret.key',
+  isConfirmationCodeRequired: false,
   reminder: { isEligible: false },
-  isRecoveryPaused: false,
   recovery: null,
   ...status,
 });

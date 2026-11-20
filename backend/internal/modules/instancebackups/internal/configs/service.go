@@ -12,7 +12,6 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
-	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/lib/schedule"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
@@ -37,9 +36,6 @@ type Deps struct {
 	// OnLastDestinationRemoved runs in the transaction of the settings update that removed the last
 	// destination, so the stopped protection is recorded exactly when the removal commits.
 	OnLastDestinationRemoved func(ctx context.Context) error
-	// RecoveryPause refuses settings changes while a recovered instance is paused, because a
-	// change can request a backup at once.
-	RecoveryPause *recoverypause.Gate
 }
 
 type Service struct {
@@ -54,12 +50,10 @@ type Service struct {
 	databases    databases.Module
 	onCommitted  func(change SettingsChange)
 	onStopped    func(ctx context.Context) error
-	pause        *recoverypause.Gate
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		pause:        deps.RecoveryPause,
 		configs:      deps.Repositories.configs,
 		destinations: deps.Repositories.destinations,
 		transactor:   deps.Transactor,
@@ -106,10 +100,6 @@ func (s *Service) GetDestinations(ctx context.Context) ([]Destination, error) {
 func (s *Service) UpdateSettings(ctx context.Context, actor users.Actor, settings Settings) (Settings, error) {
 	rootAdmin, err := s.users.RequireRootAdmin(ctx, actor)
 	if err != nil {
-		return Settings{}, err
-	}
-
-	if err := s.pause.Check(); err != nil {
 		return Settings{}, err
 	}
 
@@ -333,31 +323,6 @@ func (s *Service) AcknowledgeMasterKey(ctx context.Context, actor users.Actor, m
 			Message:     "Root admin confirmed that the master key is saved outside the server",
 		})
 	})
-}
-
-// GetRecoveryPause returns the recovery that keeps the instance paused, or nil for an active one.
-func (s *Service) GetRecoveryPause(ctx context.Context) (*uuid.UUID, error) {
-	config, err := s.configs.get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return config.RecoveryPausedOperationID, nil
-}
-
-// EndRecoveryPause clears the pause the operation set, in the caller's transaction. It reports
-// false when that operation does not hold the pause.
-func (s *Service) EndRecoveryPause(ctx context.Context, operationID uuid.UUID) (bool, error) {
-	config, err := s.configs.getForUpdate(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	if config.RecoveryPausedOperationID == nil || *config.RecoveryPausedOperationID != operationID {
-		return false, nil
-	}
-
-	return true, s.configs.updateRecoveryPause(ctx, nil, nil)
 }
 
 func (s *Service) recordOutstanding(ctx context.Context, currentSchedule schedule.Schedule, now time.Time) error {

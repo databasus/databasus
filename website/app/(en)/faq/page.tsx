@@ -97,7 +97,7 @@ export default function FAQPage() {
                 name: "How to backup Databasus itself?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus is built to stay recoverable even if its own server is lost or corrupted. It can back up its own internal database: accounts, settings, the encrypted credentials of databases, storages and notifiers, schedules and the backup catalog. Turn it on in Databasus settings → Databasus backups by selecting one or more existing storages; by default a Databasus backup runs every hour and is kept for 30 days. The file is encrypted with the master key and contains neither the key nor the backup files of your databases, so save the master key separately: Databasus asks you to download it, and it is also . /databasus-data/secret. key on the host. Recovery needs the backup file, its master key and exactly the same Databasus version, patch included. Either put both files into the mounted data directory and start Databasus with RECOVERY_DUMP_PATH and RECOVERY_MASTER_KEY_PATH on a server without accounts or changed settings, or upload the file and paste the key in Databasus settings → Databasus backups, which replaces the current installation.",
+                  text: "Databasus is built to stay recoverable even if its own server is lost or corrupted. It can back up its own internal database: accounts, settings, the encrypted credentials of databases, storages and notifiers, schedules and the backup catalog. Turn it on in Databasus settings → Databasus backups by selecting one or more existing storages; by default a Databasus backup runs every hour and is kept for 30 days. The file is encrypted with the master key and contains neither the key nor the backup files of your databases, so save the master key separately: Databasus asks you to download it, and it is also . /databasus-data/secret. key on the host. Recovery needs the backup file, its master key and exactly the same Databasus version, patch included. Either put both files into the mounted data directory and start Databasus with RECOVERY_DUMP_PATH and RECOVERY_MASTER_KEY_PATH on a server without accounts or changed settings, or upload the file and paste the key in Databasus settings → Databasus backups, which replaces the current installation. Stop the old installation before you recover. A recovered installation starts its backups, notifications and storage writes at once, so two running installations would write to the same storages and databases.",
                 },
               },
               {
@@ -594,6 +594,13 @@ export default function FAQPage() {
                 </strong>{" "}
                 For any other version Databasus refuses and names the version to
                 start: recover on that version, then upgrade as usual.
+              </p>
+
+              <p>
+                <strong>Stop the old installation before you recover.</strong> A
+                recovered installation starts its backups, notifications and
+                storage writes at once, so two running installations would write
+                to the same storages and databases.
               </p>
 
               <p>

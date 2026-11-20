@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/notifiers/internal/notification"
 	"databasus-backend/internal/modules/notifiers/internal/providers"
 	"databasus-backend/internal/modules/users"
@@ -21,8 +20,6 @@ type TestSendServiceDeps struct {
 	Workspaces workspaces.Module
 	// Timeout ends a test send that the channel does not answer.
 	Timeout time.Duration
-	// RecoveryPause refuses test sends while a recovered instance is paused.
-	RecoveryPause *recoverypause.Gate
 }
 
 // SettingsTest is a test of settings that are not saved. NotifierID names the saved notifier whose
@@ -39,7 +36,6 @@ type TestSendService struct {
 	registry   *providers.Registry
 	workspaces workspaces.Module
 	timeout    time.Duration
-	pause      *recoverypause.Gate
 }
 
 func NewTestSendService(deps TestSendServiceDeps) *TestSendService {
@@ -48,7 +44,6 @@ func NewTestSendService(deps TestSendServiceDeps) *TestSendService {
 		registry:   deps.Registry,
 		workspaces: deps.Workspaces,
 		timeout:    deps.Timeout,
-		pause:      deps.RecoveryPause,
 	}
 }
 
@@ -61,10 +56,6 @@ func (s *TestSendService) TestNotifier(
 ) (TestResult, error) {
 	testedNotifier, err := s.notifiers.getAuthorized(ctx, actor, notifierID, workspaces.ActionView)
 	if err != nil {
-		return TestResult{}, err
-	}
-
-	if err := s.pause.Check(); err != nil {
 		return TestResult{}, err
 	}
 
@@ -94,10 +85,6 @@ func (s *TestSendService) TestSettings(
 ) (TestResult, error) {
 	err := s.workspaces.Authorize(ctx, actor, settingsTest.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
-		return TestResult{}, err
-	}
-
-	if err := s.pause.Check(); err != nil {
 		return TestResult{}, err
 	}
 

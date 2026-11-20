@@ -1,12 +1,14 @@
 import { ActionIcon, Button, Combobox, Loader, Pill, PillsInput, useCombobox } from '@mantine/core';
-import { ChevronDown, X } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// A long translated label wraps inside its pill instead of overflowing a narrow picker.
+// A long translated label wraps inside its pill instead of overflowing a narrow picker. The pill
+// keeps its content width rather than Mantine's zero basis, which a wrapping label would let
+// shrink to one letter per line.
 /* eslint-disable i18next/no-literal-string -- Tailwind classes, not copy */
 const WRAPPING_PILL_CLASS_NAMES = {
-  root: '!h-auto max-w-full',
+  root: '!h-auto max-w-full !flex-none',
   label: 'wrap-anywhere !whitespace-normal',
 };
 /* eslint-enable i18next/no-literal-string */
@@ -28,10 +30,12 @@ interface Props {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   placeholder?: string;
+  searchPlaceholder?: string;
   createLabel?: string;
   onCreate?: () => void;
   targetRef?: Ref<HTMLButtonElement | HTMLInputElement>;
   className?: string;
+  size?: 'xs' | 'sm';
 }
 
 export const ResourcePicker = ({
@@ -48,10 +52,12 @@ export const ResourcePicker = ({
   isOpen,
   onOpenChange,
   placeholder,
+  searchPlaceholder,
   createLabel,
   onCreate,
   targetRef,
   className,
+  size = 'xs',
 }: Props) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -105,7 +111,12 @@ export const ResourcePicker = ({
           active={selectedValues.includes(option.value)}
           aria-selected={selectedValues.includes(option.value)}
         >
-          <span className="block wrap-anywhere whitespace-normal">{option.label}</span>
+          <span className="flex items-start justify-between gap-2">
+            <span className="block min-w-0 wrap-anywhere whitespace-normal">{option.label}</span>
+            {selectedValues.includes(option.value) && (
+              <Check aria-hidden size={16} className="mt-0.5 shrink-0 text-accent" />
+            )}
+          </span>
         </Combobox.Option>
       ))}
     </Combobox.Options>
@@ -128,7 +139,7 @@ export const ResourcePicker = ({
         {isMultiple ? (
           <Combobox.DropdownTarget>
             <PillsInput
-              size="xs"
+              size={size}
               className="min-w-0 flex-1"
               onClick={() => combobox.openDropdown()}
             >
@@ -139,6 +150,9 @@ export const ResourcePicker = ({
                     classNames={WRAPPING_PILL_CLASS_NAMES}
                     withRemoveButton
                     removeButtonProps={{
+                      // A percentage icon size makes the button's intrinsic width that of a
+                      // default SVG, which stretches every pill to the full picker width.
+                      iconSize: 14,
                       'aria-label': `${t('common.actions.remove')} ${option.label}`,
                       'aria-hidden': false,
                       tabIndex: 0,
@@ -153,6 +167,9 @@ export const ResourcePicker = ({
                     ref={targetRef as Ref<HTMLInputElement>}
                     id={id}
                     aria-label={label}
+                    // The field only receives keys, so beside pills it stays two pixels wide: it never
+                    // wraps onto a line of its own, and its focus outline reads as a caret.
+                    className={selectedOptions.length ? '!w-0.5 !min-w-0 !flex-none' : undefined}
                     placeholder={selectedOptions.length ? undefined : placeholder}
                     readOnly
                     onKeyDown={handleTargetKeyDown}
@@ -168,7 +185,7 @@ export const ResourcePicker = ({
               id={id}
               aria-label={label}
               className="min-w-0 flex-1"
-              size="xs"
+              size={size}
               onClick={() => combobox.toggleDropdown()}
               onKeyDown={handleTargetKeyDown}
               styles={{ inner: { justifyContent: 'space-between' }, label: { textAlign: 'start' } }}
@@ -190,6 +207,7 @@ export const ResourcePicker = ({
             <Combobox.Search
               className="shrink-0"
               aria-label={label}
+              placeholder={searchPlaceholder}
               value={query}
               onChange={(event) => {
                 setQuery(event.currentTarget.value);

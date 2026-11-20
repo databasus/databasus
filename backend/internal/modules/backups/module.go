@@ -20,7 +20,6 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
-	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/config"
@@ -135,9 +134,6 @@ type Deps struct {
 	Notifiers  notifiers.Module
 	Storages   storages.Module
 	Databases  databases.Module
-	// RecoveryPause refuses manual backups, deletions and restores while a recovered instance is
-	// paused.
-	RecoveryPause *recoverypause.Gate
 }
 
 // NormalizeRecoveredState ends, in a database a recovery staged, the work the lost instance had
@@ -197,7 +193,6 @@ func New(deps Deps) Module {
 		Storages:      deps.Storages,
 		Notifiers:     deps.Notifiers,
 		Restores:      restoreRepositories,
-		RecoveryPause: deps.RecoveryPause,
 	})
 
 	userStreams := download.NewUserStreams(deps.Cache)
@@ -226,7 +221,6 @@ func New(deps Deps) Module {
 		Audit:          recorder,
 		Workspaces:     deps.Workspaces,
 		TempDir:        deps.TempDir,
-		RecoveryPause:  deps.RecoveryPause,
 	})
 
 	physicalService := physical.New(physical.Deps{
@@ -257,7 +251,6 @@ func New(deps Deps) Module {
 		ClientToolsDir:   deps.ClientToolsDir,
 		WalQueueDir:      deps.WalQueueDir,
 		WalStreamTimings: deps.WalStreamTimings,
-		RecoveryPause:    deps.RecoveryPause,
 	})
 
 	configSaveService := configsave.NewService(configsave.Deps{

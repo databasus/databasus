@@ -343,23 +343,6 @@ func (r runningInstance) queryInternalDatabase(t *testing.T, statement string) s
 	return strings.TrimSpace(output)
 }
 
-// executeAsRuntimeUser runs a shell command in the container as the identity Databasus runs as.
-func (r runningInstance) executeAsRuntimeUser(t *testing.T, command string) {
-	t.Helper()
-
-	_, err := r.cycle.docker.Execute(t.Context(), r.containerName, []string{"gosu", "databasus", "sh", "-ec", command})
-	require.NoError(t, err)
-}
-
-// executeAsRoot runs a shell command in the container as root, which can make a directory
-// inaccessible to Databasus.
-func (r runningInstance) executeAsRoot(t *testing.T, command string) {
-	t.Helper()
-
-	_, err := r.cycle.docker.Execute(t.Context(), r.containerName, []string{"sh", "-ec", command})
-	require.NoError(t, err)
-}
-
 func (r runningInstance) requireRunning(t *testing.T) {
 	t.Helper()
 

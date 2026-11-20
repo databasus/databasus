@@ -3,6 +3,7 @@ import type {
   InstanceBackupDestinationChoice,
   InstanceBackupSettings,
   InstanceBackupStatus,
+  InstanceRecovery,
 } from '@/entities/instance-backups';
 
 export const s3Choice: InstanceBackupDestinationChoice = {
@@ -39,11 +40,8 @@ export const buildStatus = (status: Partial<InstanceBackupStatus> = {}): Instanc
   isEmailConfigured: true,
   isRootEmailUsable: true,
   isMasterKeyAcknowledged: true,
-  isMasterKeyExportCodeRequired: false,
-  identityProofMethods: ['PASSWORD'],
-  masterKeyPath: '/databasus-data/secret.key',
+  isConfirmationCodeRequired: false,
   reminder: { isEligible: false },
-  isRecoveryPaused: false,
   recovery: null,
   ...status,
 });
@@ -72,4 +70,20 @@ export const buildBackup = (backup: Partial<InstanceBackup> = {}): InstanceBacku
     },
   ],
   ...backup,
+});
+
+export const buildRecovery = (recovery: Partial<InstanceRecovery> = {}): InstanceRecovery => ({
+  id: '99999999-9999-4999-8999-999999999999',
+  status: 'VALIDATING',
+  origin: 'UPLOAD',
+  archiveSha256: 'b'.repeat(64),
+  runningRelease: '3.1.0',
+  sourceRelease: null,
+  snapshotAt: null,
+  createdAt: '2026-11-14T10:00:00Z',
+  expiresAt: '2026-11-14T11:00:00Z',
+  completedAt: null,
+  failure: null,
+  discardedCleanupCount: 0,
+  ...recovery,
 });

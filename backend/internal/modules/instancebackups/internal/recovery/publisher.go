@@ -27,7 +27,7 @@ type PublisherDeps struct {
 }
 
 // Publisher installs a prepared recovery: it swaps the staging database in under the active name,
-// installs the exact source key and records completion only once both, with the recovery pause,
+// installs the exact source key and records completion only once both, with the recovery marker,
 // are durable. Every step can be repeated, so a restart resumes from the journal.
 type Publisher struct {
 	directory     Directory
@@ -81,7 +81,7 @@ func (p *Publisher) Publish(ctx context.Context, journal Journal) (Journal, erro
 		return journal, fmt.Errorf("install the recovered master key: %w", err)
 	}
 
-	if err := p.checkPause(ctx, journal); err != nil {
+	if err := p.checkRecoveryMarker(ctx, journal); err != nil {
 		return journal, err
 	}
 
@@ -211,20 +211,20 @@ func (p *Publisher) swapDatabasesOnce(ctx context.Context, journal Journal) erro
 	})
 }
 
-func (p *Publisher) checkPause(ctx context.Context, journal Journal) error {
+func (p *Publisher) checkRecoveryMarker(ctx context.Context, journal Journal) error {
 	active, err := openDatabaseRepository(ctx, p.server)
 	if err != nil {
 		return err
 	}
 	defer active.close()
 
-	pausedBy, err := active.getPause(ctx)
+	recoveredBy, err := active.getRecoveredByOperationID(ctx)
 	if err != nil {
 		return err
 	}
 
-	if pausedBy == nil || *pausedBy != journal.Operation.ID {
-		return fmt.Errorf("%w: the active database is not paused by this recovery", ErrStagedStateInvalid)
+	if recoveredBy == nil || *recoveredBy != journal.Operation.ID {
+		return fmt.Errorf("%w: the active database was not produced by this recovery", ErrStagedStateInvalid)
 	}
 
 	return nil

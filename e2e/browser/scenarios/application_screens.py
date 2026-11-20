@@ -74,8 +74,9 @@ def _is_master_key_acknowledged(page: Page) -> bool:
 
 def download_master_key(page: Page) -> None:
     """Root admin sees the onboarding screen instead of the application until they copy or
-    download the current key and confirm saving it; the confirmation records the key as saved,
-    so no browser shows onboarding for that key again."""
+    download the current key and confirm saving it; the confirmation unlocks 15 seconds after the
+    screen appears and records the key as saved, so no browser shows onboarding for that key
+    again."""
     onboarding = _master_key_onboarding(page)
 
     if _is_master_key_acknowledged(page):
@@ -83,13 +84,15 @@ def download_master_key(page: Page) -> None:
         return
 
     expect(onboarding).to_be_visible()
-    confirmation = page.get_by_role("button", name="I've saved it in a safe place", exact=True)
+    confirmation = page.get_by_role("button", name="I've saved it in a safe place")
     expect(confirmation).to_be_disabled()
     with page.expect_download() as download_info:
         page.get_by_role("button", name="Download", exact=True).click()
     assert download_info.value.failure() is None
     assert download_info.value.suggested_filename == "databasus-master-key.txt"
 
+    expect(confirmation).to_have_text("I've saved it in a safe place", timeout=20_000)
+    expect(confirmation).to_be_enabled()
     confirmation.click()
 
     expect(onboarding).to_be_hidden()

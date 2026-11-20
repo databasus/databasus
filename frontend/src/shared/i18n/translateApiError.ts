@@ -48,7 +48,6 @@ const CONTRACT_ERROR_CODE_KEYS = {
   instance_unhealthy: 'errors.instanceUnhealthy',
   insufficient_disk_space: 'errors.insufficientDiskSpace',
   databasus_backup_in_use: 'errors.databasusBackupInUse',
-  recovery_paused: 'errors.recoveryPaused',
   storage_unavailable: 'errors.storageUnavailable',
   recovery_incompatible: 'errors.recoveryIncompatible',
   recovery_not_ready: 'errors.recoveryNotReady',

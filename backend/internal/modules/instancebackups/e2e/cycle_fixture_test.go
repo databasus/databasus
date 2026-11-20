@@ -50,7 +50,7 @@ type recoveryCycle struct {
 	postgresImage string
 
 	// physicalSourceTurn lets one recovered installation at a time stream WAL from the source server:
-	// its replication slot serves a single consumer, so two activated installations would take it
+	// its replication slot serves a single consumer, so two recovered installations would take it
 	// from each other.
 	physicalSourceTurn sync.Mutex
 
@@ -179,20 +179,6 @@ func (c *recoveryCycle) openSourceDatabase(t *testing.T, databaseName string) *p
 	t.Cleanup(func() { _ = connection.Close(context.WithoutCancel(t.Context())) })
 
 	return connection
-}
-
-// countStoredObjects counts the objects of the remote storage, the measure of a remote effect.
-func (c *recoveryCycle) countStoredObjects(t *testing.T) int {
-	t.Helper()
-
-	objectCount := 0
-	for object := range c.storageClient.ListObjects(t.Context(), backupBucket, minio.ListObjectsOptions{Recursive: true}) {
-		require.NoError(t, object.Err)
-
-		objectCount++
-	}
-
-	return objectCount
 }
 
 func (c *recoveryCycle) waitForPublishedPort(t *testing.T, containerName, publishedPort string) int {

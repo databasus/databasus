@@ -42,10 +42,6 @@ func (s *Service) CreateDownloadToken(
 		return IssuedDownload{}, err
 	}
 
-	if err := s.pause.Check(); err != nil {
-		return IssuedDownload{}, err
-	}
-
 	storedCopy, err := s.getDownloadableCopy(ctx, copyID)
 	if err != nil {
 		return IssuedDownload{}, err
@@ -53,6 +49,11 @@ func (s *Service) CreateDownloadToken(
 
 	if storedCopy.BackupID != backupID {
 		return IssuedDownload{}, ErrCopyNotFound
+	}
+
+	backup, _, err := s.backups.get(ctx, backupID)
+	if err != nil {
+		return IssuedDownload{}, err
 	}
 
 	var issued tokens.IssuedToken
@@ -78,16 +79,12 @@ func (s *Service) CreateDownloadToken(
 		return IssuedDownload{}, err
 	}
 
-	return IssuedDownload{Token: issued.Token, FileName: *storedCopy.FileName, ExpiresAt: issued.ExpiresAt}, nil
+	return IssuedDownload{Token: issued.Token, FileName: getDownloadFileName(backup), ExpiresAt: issued.ExpiresAt}, nil
 }
 
 // OpenDownload spends the token and opens the stored file. A token stays spent when the storage
 // cannot serve the file, because a new one is cheap and a retried one could be replayed.
 func (s *Service) OpenDownload(ctx context.Context, tokenText string) (Download, error) {
-	if err := s.pause.Check(); err != nil {
-		return Download{}, err
-	}
-
 	token, isConsumed, err := s.tokens.Consume(ctx, tokenText, tokens.PurposeInstanceBackupDownload)
 	if err != nil {
 		return Download{}, err
@@ -132,7 +129,7 @@ func (s *Service) OpenDownload(ctx context.Context, tokenText string) (Download,
 		return Download{}, err
 	}
 
-	return Download{File: file, FileName: *storedCopy.FileName, SizeBytes: getSizeBytes(backup)}, nil
+	return Download{File: file, FileName: getDownloadFileName(backup), SizeBytes: getSizeBytes(backup)}, nil
 }
 
 func (s *Service) getDownloadableCopy(ctx context.Context, copyID uuid.UUID) (Copy, error) {

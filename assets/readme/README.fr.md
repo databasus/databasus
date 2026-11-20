@@ -291,10 +291,13 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 ### 💾 Sauvegarder Databasus lui-même
 
-Databasus est conçu pour rester récupérable même si son propre serveur est perdu ou corrompu. Il sait se sauvegarder lui-même et vous guide pour mettre la clé à l'abri :
+Databasus est conçu pour rester récupérable même si son propre serveur est perdu ou corrompu. Il sait se sauvegarder lui-même et vous aide à mettre la clé à l'abri :
 
-- **Activez les sauvegardes Databasus** dans **Databasus settings → Databasus backups**. Databasus enregistre alors toutes les heures une copie chiffrée de sa base interne (comptes, paramètres, identifiants et catalogue des sauvegardes) dans les stockages que vous sélectionnez. Préférez un stockage distant à un disque local sur le même serveur. Tant que vous ne les activez pas, Databasus affiche un rappel dès que la première base de données ou le premier stockage est ajouté.
-- **Conservez la clé maîtresse séparément.** Databasus vous demande de la télécharger lors de votre première visite, et elle correspond aussi au fichier `./databasus-data/secret.key`. Sans elle, ni les sauvegardes Databasus ni les sauvegardes de vos bases ne peuvent être déchiffrées.
+**Activez les sauvegardes Databasus** dans **Databasus settings → Databasus backups**. Databasus enregistre alors toutes les heures une copie chiffrée de sa base interne dans les stockages que vous sélectionnez. Tant que vous ne les activez pas, un rappel flottant s'affiche dès que la première base de données ou le premier stockage est ajouté.
+
+**Conservez la clé maîtresse séparément.** Databasus vous demande de la télécharger lors de votre première visite, et elle est aussi enregistrée dans `./databasus-data/secret.key`. Sans elle, ni les sauvegardes Databasus ni les sauvegardes de vos bases ne peuvent être déchiffrées.
+
+Préférez un stockage distant à un disque local sur le même serveur.
 
 Voir [comment sauvegarder et restaurer Databasus](https://databasus.com/fr/faq/#backup-databasus).
 

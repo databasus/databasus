@@ -2,7 +2,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 
 import { renderApp } from '@/app/ui/renderApp';
 import { backupConfigApi } from '@/entities/backup-configs';
@@ -929,7 +929,6 @@ describe('Application workspace switch', () => {
       buildResource: (workspace: Workspace, name: string) => ({
         id: `${workspace.id}-${name.replace(/ /g, '-')}`,
         workspaceId: workspace.id,
-        recoveryValidationStatus: 'AVAILABLE',
         name,
         settings: { type: 'LOCAL' },
       }),
@@ -942,7 +941,6 @@ describe('Application workspace switch', () => {
       buildResource: (workspace: Workspace, name: string) => ({
         id: `${workspace.id}-${name.replace(/ /g, '-')}`,
         workspaceId: workspace.id,
-        recoveryValidationStatus: 'AVAILABLE',
         name,
         settings: { type: 'DISCORD' },
         lastSendError: null,
@@ -1185,7 +1183,6 @@ describe('Application workspace switch', () => {
 const inlineStorage = {
   id: 'inline-storage',
   workspaceId: thirdWorkspace.id,
-  recoveryValidationStatus: 'AVAILABLE' as const,
   name: 'Databasus archive',
   settings: { type: 'LOCAL' as const },
 };
@@ -1219,11 +1216,8 @@ const openApplicationAsRootAdmin = (
       isEmailConfigured: true,
       isRootEmailUsable: true,
       isMasterKeyAcknowledged: true,
-      isMasterKeyExportCodeRequired: false,
-      identityProofMethods: ['PASSWORD'],
-      masterKeyPath: '/databasus-data/secret.key',
+      isConfirmationCodeRequired: false,
       reminder: { isEligible: false },
-      isRecoveryPaused: false,
       recovery: null,
     }),
     mockApi.get('/instance-backup-destinations', 200, { items: [] }),
@@ -1237,6 +1231,9 @@ const openApplicationAsRootAdmin = (
 };
 
 describe('Inline workspace creation in Databasus backup settings', () => {
+  const startSetup = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(await screen.findByRole('button', { name: 'Set up backups' }));
+  };
   const editRetention = async (user: ReturnType<typeof userEvent.setup>) => {
     const retention = await screen.findByRole('textbox', { name: 'Keep copies, days' });
     await user.clear(retention);
@@ -1256,7 +1253,9 @@ describe('Inline workspace creation in Databasus backup settings', () => {
     await user.click(dialog.getByRole('button', { name: 'Test connection' }));
     await user.click(await dialog.findByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Create a destination storage' })).toBeNull(),
+    );
   };
   const getRetentionValue = () =>
     (screen.getByRole('textbox', { name: 'Keep copies, days' }) as HTMLInputElement).value;
@@ -1268,6 +1267,7 @@ describe('Inline workspace creation in Databasus backup settings', () => {
       secondWorkspace.id,
     );
 
+    await startSetup(user);
     await editRetention(user);
     await createWorkspaceAndStorage(user);
 
@@ -1281,6 +1281,7 @@ describe('Inline workspace creation in Databasus backup settings', () => {
   it('keeps no workspace selected and the draft after creating a workspace and storage without workspaces', async () => {
     const user = openApplicationAsRootAdmin('/databasus-settings', []);
 
+    await startSetup(user);
     await editRetention(user);
     await createWorkspaceAndStorage(user);
 
@@ -1327,6 +1328,10 @@ describe('Databasus backup destination deletion refusal', () => {
 
 describe('Master key onboarding before the application', () => {
   it('shows the onboarding screen instead of the application until root admin confirms saving the key', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const user = openApplicationAsRootAdmin('/databasus-settings', [firstWorkspace]);
     const unsavedStatus = {
       health: 'NOT_CONFIGURED' as const,
@@ -1335,11 +1340,8 @@ describe('Master key onboarding before the application', () => {
       isEmailConfigured: true,
       isRootEmailUsable: true,
       isMasterKeyAcknowledged: false,
-      isMasterKeyExportCodeRequired: false,
-      identityProofMethods: ['PASSWORD' as const],
-      masterKeyPath: '/databasus-data/secret.key',
+      isConfirmationCodeRequired: false,
       reminder: { isEligible: false },
-      isRecoveryPaused: false,
       recovery: null,
     };
     server.use(
@@ -1370,6 +1372,7 @@ describe('Master key onboarding before the application', () => {
     expect(screen.queryByRole('heading', { name: 'Databasus backups' })).toBeNull();
 
     await user.click(await screen.findByRole('button', { name: 'Copy' }));
+    act(() => vi.advanceTimersByTime(15_000));
     await user.click(screen.getByRole('button', { name: "I've saved it in a safe place" }));
 
     expect(await screen.findByRole('heading', { name: 'Databasus backups' })).toBeTruthy();

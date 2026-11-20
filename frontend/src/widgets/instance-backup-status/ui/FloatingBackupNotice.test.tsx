@@ -21,11 +21,8 @@ const buildStatus = (status: Partial<InstanceBackupStatus> = {}): InstanceBackup
   isEmailConfigured: true,
   isRootEmailUsable: true,
   isMasterKeyAcknowledged: true,
-  isMasterKeyExportCodeRequired: false,
-  identityProofMethods: ['PASSWORD'],
-  masterKeyPath: '/databasus-data/secret.key',
+  isConfirmationCodeRequired: false,
   reminder: { isEligible: false },
-  isRecoveryPaused: false,
   recovery: null,
   ...status,
 });

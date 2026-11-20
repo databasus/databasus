@@ -18,6 +18,7 @@ import { CreateDestinationDialog } from '@/pages/instance-settings/ui/instance-b
 import { InstanceBackupDestinationList } from '@/pages/instance-settings/ui/instance-backups/InstanceBackupDestinationList';
 import { useSessionMutation, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
+import { useLatestRef } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure, ResourcePicker } from '@/shared/ui';
@@ -29,7 +30,8 @@ interface Props {
   destinationHealth: InstanceBackupDestinationHealth[];
   workspaces: Workspace[];
   onWorkspaceCreated: (workspace: Workspace) => void;
-  onSaved: (settings: InstanceBackupSettings) => void;
+  onSaved: (settings: InstanceBackupSettings) => Promise<void>;
+  onClose: () => void;
 }
 
 export function InstanceBackupSettingsForm({
@@ -37,12 +39,14 @@ export function InstanceBackupSettingsForm({
   workspaces,
   onWorkspaceCreated,
   onSaved,
+  onClose,
 }: Props) {
   const { t, i18n } = useTranslation();
   const notify = useFeedback();
   const isCurrent = useSessionGuard();
   const pickerId = useId();
   const retentionId = useId();
+  const storagesHeadingId = useId();
 
   const settingsQuery = useSessionQuery({
     queryKey: ['instance-backup-settings'],
@@ -58,6 +62,7 @@ export function InstanceBackupSettingsForm({
 
   const [acknowledged, setAcknowledged] = useState<InstanceBackupSettings>();
   const [draft, setDraft] = useState<InstanceBackupSettings>();
+  const draftRef = useLatestRef(draft);
   const [saveError, setSaveError] = useState<unknown>();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isCreatingDestination, setIsCreatingDestination] = useState(false);
@@ -109,8 +114,12 @@ export function InstanceBackupSettingsForm({
   useEffect(() => {
     if (!settingsQuery.data) return;
 
-    setAcknowledged(settingsQuery.data);
-    setDraft(settingsQuery.data);
+    const loadedSettings = settingsQuery.data;
+
+    // The form is opened for one edit, so the first read is its baseline. Later cache updates, such
+    // as the owner storing a saved result, must not overwrite an edit made while saving.
+    setAcknowledged((current) => current ?? loadedSettings);
+    setDraft((current) => current ?? loadedSettings);
   }, [settingsQuery.data]);
 
   const updateDraft = (change: Partial<InstanceBackupSettings>) =>
@@ -146,13 +155,15 @@ export function InstanceBackupSettingsForm({
       const saved = await updateSettingsMutation.mutateAsync(submitted);
       if (!isCurrent()) return;
 
+      const nextDraft = draftRef.current
+        ? acknowledgeInstanceBackupSettings({
+            current: draftRef.current,
+            submitted,
+            acknowledged: saved,
+          })
+        : saved;
       setAcknowledged(saved);
-      setDraft((current) =>
-        current
-          ? acknowledgeInstanceBackupSettings({ current, submitted, acknowledged: saved })
-          : saved,
-      );
-      onSaved(saved);
+      setDraft(nextDraft);
 
       if (wasProtected && saved.storageIds.length === 0) {
         notify({ kind: 'warning', title: i18n.t('instanceBackups.settings.stopped') });
@@ -161,6 +172,12 @@ export function InstanceBackupSettingsForm({
       } else {
         notify({ kind: 'success', title: i18n.t('instanceBackups.settings.saved') });
       }
+
+      await onSaved(saved);
+      if (!isCurrent()) return;
+
+      // An edit made while the save was in flight stays open instead of being dropped with the form.
+      if (!isInstanceBackupSettingsChanged({ acknowledged: saved, shown: nextDraft })) onClose();
     } catch (error: unknown) {
       if (isCurrent()) setSaveError(error);
     } finally {
@@ -190,46 +207,62 @@ export function InstanceBackupSettingsForm({
     draft.retentionDays <= MAX_RETENTION_DAYS;
 
   return (
-    <div className="mt-4">
-      <h3 className="text-base font-semibold">{t('instanceBackups.destinations.title')}</h3>
-      <p className="mt-1 text-muted">{t('instanceBackups.destinations.description')}</p>
+    <div>
+      <p className="text-muted">{t('instanceBackups.retainSeparately')}</p>
 
-      {choicesQuery.error ? (
-        <LoadFailure
-          className="mt-2"
-          error={choicesQuery.error}
-          onRetry={() => void choicesQuery.refetch()}
-        />
-      ) : (
-        <ResourcePicker
-          id={pickerId}
-          className="mt-2 max-w-md"
-          label={t('instanceBackups.destinations.picker')}
-          placeholder={t('instanceBackups.destinations.pickerPlaceholder')}
-          data={choices.map((choice) => ({
-            value: choice.storageId,
-            label: t('instanceBackups.destinations.choice', {
-              storage: choice.storageName,
-              workspace: choice.workspaceName,
-              provider: t(STORAGE_TYPE_LABEL_KEYS[choice.storageType]),
-            }),
-          }))}
-          selectedValues={draft.storageIds}
-          onSelect={toggleDestination}
+      <section className="mt-5" aria-labelledby={storagesHeadingId}>
+        <h3 id={storagesHeadingId} className="font-medium">
+          {t('instanceBackups.settings.storages')}
+        </h3>
+        <p className="mt-0.5 text-xs text-muted">{t('instanceBackups.destinations.description')}</p>
+
+        {choicesQuery.error ? (
+          <LoadFailure
+            className="mt-2"
+            error={choicesQuery.error}
+            onRetry={() => void choicesQuery.refetch()}
+          />
+        ) : (
+          <ResourcePicker
+            id={pickerId}
+            className="mt-2"
+            size="sm"
+            label={t('instanceBackups.destinations.picker')}
+            placeholder={t('instanceBackups.destinations.pickerPlaceholder')}
+            searchPlaceholder={t('storages.list.searchPlaceholder')}
+            data={choices.map((choice) => ({
+              value: choice.storageId,
+              label: t('instanceBackups.destinations.choice', {
+                storage: choice.storageName,
+                workspace: choice.workspaceName,
+                provider: t(STORAGE_TYPE_LABEL_KEYS[choice.storageType]),
+              }),
+            }))}
+            selectedValues={draft.storageIds}
+            onSelect={toggleDestination}
+            onRemove={removeDestination}
+            isMultiple
+            isSearchable
+            isLoading={choicesQuery.isLoading}
+            isOpen={isPickerOpen}
+            onOpenChange={setIsPickerOpen}
+            targetRef={pickerRef}
+            createLabel={t('instanceBackups.destinations.create')}
+            onCreate={() => {
+              setIsPickerOpen(false);
+              setIsCreatingDestination(true);
+            }}
+          />
+        )}
+
+        <InstanceBackupDestinationList
+          storageIds={draft.storageIds}
+          choices={choices}
+          destinationHealth={destinationHealth}
+          isDisabled={isSaving}
           onRemove={removeDestination}
-          isMultiple
-          isSearchable
-          isLoading={choicesQuery.isLoading}
-          isOpen={isPickerOpen}
-          onOpenChange={setIsPickerOpen}
-          targetRef={pickerRef}
-          createLabel={t('instanceBackups.destinations.create')}
-          onCreate={() => {
-            setIsPickerOpen(false);
-            setIsCreatingDestination(true);
-          }}
         />
-      )}
+      </section>
 
       {isCreatingDestination && (
         <CreateDestinationDialog
@@ -240,45 +273,36 @@ export function InstanceBackupSettingsForm({
         />
       )}
 
-      <InstanceBackupDestinationList
-        storageIds={draft.storageIds}
-        choices={choices}
-        destinationHealth={destinationHealth}
-        isDisabled={isSaving}
-        onRemove={removeDestination}
-      />
-      <p className="mt-2 text-xs text-muted">{t('instanceBackups.destinations.sharedStorage')}</p>
-
-      <ScheduleEditor
-        label={t('instanceBackups.settings.schedule')}
-        schedule={draft.schedule}
-        onChange={(schedule) => updateDraft({ schedule })}
-      />
-
-      <div className="mt-3 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <label
-          htmlFor={retentionId}
-          className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2"
-        >
-          {t('instanceBackups.settings.retentionDays')}
-        </label>
-        <NumberInput
-          id={retentionId}
-          size="xs"
-          className="w-full max-w-[200px]"
-          min={MIN_RETENTION_DAYS}
-          max={MAX_RETENTION_DAYS}
-          allowDecimal={false}
-          allowNegative={false}
-          value={draft.retentionDays || ''}
-          onChange={(value) =>
-            updateDraft({ retentionDays: typeof value === 'number' ? value : 0 })
-          }
+      <section className="mt-5 border-t border-border">
+        <ScheduleEditor
+          label={t('instanceBackups.settings.schedule')}
+          schedule={draft.schedule}
+          size="sm"
+          onChange={(schedule) => updateDraft({ schedule })}
         />
-      </div>
-      <p className="mt-1 text-xs text-muted">
-        {t('instanceBackups.settings.retentionDescription')}
-      </p>
+
+        <div className="mt-2 flex w-full flex-col items-start sm:flex-row sm:items-center">
+          <label
+            htmlFor={retentionId}
+            className="mb-1 min-w-0 wrap-anywhere sm:mb-0 sm:w-[150px] sm:shrink-0 sm:pr-2"
+          >
+            {t('instanceBackups.settings.retentionDays')}
+          </label>
+          <NumberInput
+            id={retentionId}
+            size="sm"
+            className="w-full max-w-[200px]"
+            min={MIN_RETENTION_DAYS}
+            max={MAX_RETENTION_DAYS}
+            allowDecimal={false}
+            allowNegative={false}
+            value={draft.retentionDays || ''}
+            onChange={(value) =>
+              updateDraft({ retentionDays: typeof value === 'number' ? value : 0 })
+            }
+          />
+        </div>
+      </section>
 
       {saveError !== undefined && (
         <Alert
@@ -289,28 +313,26 @@ export function InstanceBackupSettingsForm({
         />
       )}
 
-      {isChanged && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            className="!h-auto min-h-8 max-w-full !whitespace-normal"
-            variant="filled"
-            onClick={() => void save()}
-            loading={isSaving}
-            disabled={isSaving || !isComplete}
-            aria-busy={isSaving}
-          >
-            {t('instanceBackups.settings.save')}
-          </Button>
-          <Button
-            className="!h-auto min-h-8 max-w-full !whitespace-normal"
-            variant="default"
-            disabled={isSaving}
-            onClick={() => setDraft(acknowledged)}
-          >
-            {t('settings.reset')}
-          </Button>
-        </div>
-      )}
+      <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+        <Button
+          className="!h-auto min-h-8 max-w-full !whitespace-normal"
+          variant="default"
+          disabled={isSaving}
+          onClick={onClose}
+        >
+          {t('common.actions.cancel')}
+        </Button>
+        <Button
+          className="!h-auto min-h-8 max-w-full !whitespace-normal"
+          variant="filled"
+          onClick={() => void save()}
+          loading={isSaving}
+          disabled={isSaving || !isChanged || !isComplete}
+          aria-busy={isSaving}
+        >
+          {t('instanceBackups.settings.save')}
+        </Button>
+      </div>
     </div>
   );
 }

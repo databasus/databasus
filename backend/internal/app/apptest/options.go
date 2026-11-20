@@ -21,11 +21,11 @@ type settings struct {
 	physicalBackupStopTimeout    time.Duration
 	isMailServerMissing          bool
 	// instanceMailServer is nil for the recorder that stands in for the operator's mail server.
-	instanceMailServer *mailer.Settings
-	isTurnstileEnabled bool
-	isGitHubEnabled    bool
-	isGoogleEnabled    bool
-	isRecoveryPaused   bool
+	instanceMailServer  *mailer.Settings
+	isTurnstileEnabled  bool
+	isGitHubEnabled     bool
+	isGoogleEnabled     bool
+	isRecoveryPublished bool
 	// recoveryMaxArchiveBytes is zero for the configured limit.
 	recoveryMaxArchiveBytes int64
 	publicURL               string

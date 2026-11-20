@@ -97,7 +97,7 @@ export default function FAQPage() {
                 name: "Comment sauvegarder Databasus lui-même ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus est conçu pour rester récupérable même si son propre serveur est perdu ou corrompu. Il peut sauvegarder sa propre base interne : comptes, paramètres, identifiants chiffrés des bases de données, stockages et canaux de notification, planifications et catalogue des sauvegardes. Activez cette fonction dans Databasus settings → Databasus backups en sélectionnant un ou plusieurs stockages existants ; par défaut, une sauvegarde Databasus est créée toutes les heures et conservée 30 jours. Le fichier est chiffré avec la clé maîtresse et ne contient ni cette clé ni les fichiers de sauvegarde de vos bases : conservez donc la clé maîtresse séparément. Databasus vous demande de la télécharger, et elle correspond aussi au fichier . /databasus-data/secret. key sur l'hôte. La restauration exige le fichier de sauvegarde, sa clé maîtresse et exactement la même version de Databasus, patch compris. Soit vous placez les deux fichiers dans le répertoire de données monté et démarrez Databasus avec RECOVERY_DUMP_PATH et RECOVERY_MASTER_KEY_PATH sur un serveur sans comptes ni paramètres modifiés, soit vous importez le fichier et collez la clé dans Databasus settings → Databasus backups, ce qui remplace l'installation actuelle.",
+                  text: "Databasus est conçu pour rester récupérable même si son propre serveur est perdu ou corrompu. Il peut sauvegarder sa propre base interne : comptes, paramètres, identifiants chiffrés des bases de données, stockages et canaux de notification, planifications et catalogue des sauvegardes. Activez cette fonction dans Databasus settings → Databasus backups en sélectionnant un ou plusieurs stockages existants ; par défaut, une sauvegarde Databasus est créée toutes les heures et conservée 30 jours. Le fichier est chiffré avec la clé maîtresse et ne contient ni cette clé ni les fichiers de sauvegarde de vos bases : conservez donc la clé maîtresse séparément. Databasus vous demande de la télécharger, et elle correspond aussi au fichier . /databasus-data/secret. key sur l'hôte. La restauration exige le fichier de sauvegarde, sa clé maîtresse et exactement la même version de Databasus, patch compris. Soit vous placez les deux fichiers dans le répertoire de données monté et démarrez Databasus avec RECOVERY_DUMP_PATH et RECOVERY_MASTER_KEY_PATH sur un serveur sans comptes ni paramètres modifiés, soit vous importez le fichier et collez la clé dans Databasus settings → Databasus backups, ce qui remplace l'installation actuelle. Arrêtez l'ancienne installation avant de restaurer. L'installation restaurée lance aussitôt ses sauvegardes, ses notifications et ses écritures dans les stockages : deux installations en marche écriraient donc dans les mêmes stockages et les mêmes bases.",
                 },
               },
               {
@@ -641,6 +641,14 @@ export default function FAQPage() {
                 Pour toute autre version, Databasus refuse et indique la version
                 à démarrer : restaurez sur cette version, puis mettez à niveau
                 comme d&apos;habitude.
+              </p>
+
+              <p>
+                <strong>Arrêtez l&apos;ancienne installation avant de restaurer.</strong>{" "}
+                L&apos;installation restaurée lance aussitôt ses sauvegardes, ses
+                notifications et ses écritures dans les stockages : deux
+                installations en marche écriraient donc dans les mêmes stockages
+                et les mêmes bases.
               </p>
 
               <p>

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"databasus-backend/internal/lib/logging"
-	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/databases/internal/providers"
 	"databasus-backend/internal/modules/databases/internal/userdatabase"
 	"databasus-backend/internal/modules/users"
@@ -22,30 +21,25 @@ const (
 )
 
 type Deps struct {
-	// RecoveryPause refuses creating a limited user, which changes the source database, while a
-	// recovered instance is paused.
-	RecoveryPause *recoverypause.Gate
-	Databases     *userdatabase.Service
-	Registry      *providers.Registry
-	Logger        *slog.Logger
+	Databases *userdatabase.Service
+	Registry  *providers.Registry
+	Logger    *slog.Logger
 }
 
 // Service needs the right to change the workspace's content for both operations, because each of them
 // connects to the host in the request, with the stored secrets of a named database while its resource
 // address stays the stored one.
 type Service struct {
-	recoveryPause *recoverypause.Gate
-	databases     *userdatabase.Service
-	registry      *providers.Registry
-	logger        *slog.Logger
+	databases *userdatabase.Service
+	registry  *providers.Registry
+	logger    *slog.Logger
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		recoveryPause: deps.RecoveryPause,
-		databases:     deps.Databases,
-		registry:      deps.Registry,
-		logger:        deps.Logger,
+		databases: deps.Databases,
+		registry:  deps.Registry,
+		logger:    deps.Logger,
 	}
 }
 
@@ -89,10 +83,6 @@ func (s *Service) CreateLimitedUser(
 ) (providers.LimitedUser, error) {
 	resolvedTarget, err := s.databases.ResolveSettingsTarget(ctx, actor, target)
 	if err != nil {
-		return providers.LimitedUser{}, err
-	}
-
-	if err := s.recoveryPause.Check(); err != nil {
 		return providers.LimitedUser{}, err
 	}
 

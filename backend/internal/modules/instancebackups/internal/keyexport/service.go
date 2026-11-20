@@ -193,5 +193,5 @@ func (s *Service) verifyCodeWhenRequired(ctx context.Context, actor users.Actor,
 		return err
 	}
 
-	return s.users.VerifyIdentityProof(ctx, actor, exportBinding(), users.IdentityProof{Password: nil, Code: code})
+	return s.users.VerifyIdentityCode(ctx, actor, exportBinding(), code)
 }

@@ -105,7 +105,6 @@ describe('Application URL navigation', () => {
       const archiveStorage = {
         id: 'archive-id',
         workspaceId: workspace.id,
-        recoveryValidationStatus: 'AVAILABLE' as const,
         name: 'Archive',
         settings: { type: 'LOCAL' as const },
       };
@@ -486,7 +485,6 @@ describe('Application URL navigation', () => {
     const targetStorage = {
       id: 'target-storage',
       workspaceId: targetWorkspace.id,
-      recoveryValidationStatus: 'AVAILABLE' as const,
       name: 'Target archive',
       settings: { type: 'LOCAL' },
     };

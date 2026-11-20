@@ -12,11 +12,9 @@ import (
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
-const keptBackupFile = dataDirectory + "/backups/kept-on-the-new-host.dump"
-
 // requireRecoveredSnapshot checks what a recovery publishes: the snapshot's accounts with root
-// admin among them, its workspaces, no session of the lost installation and a durable pause. It
-// returns root admin's new session and the recovery that paused the installation.
+// admin among them, its workspaces, no session of the lost installation and a completed recovery.
+// It returns root admin's new session and that recovery.
 func requireRecoveredSnapshot(
 	t *testing.T,
 	instance runningInstance,
@@ -40,9 +38,8 @@ func requireRecoveredSnapshot(
 	assert.Equal(t, http.StatusUnauthorized, copiedSession.getOwnAccount(t).StatusCode())
 
 	status := root.getInstanceBackupStatus(t)
-	require.True(t, status.IsRecoveryPaused)
 	require.NotNil(t, status.Recovery)
-	assert.Equal(t, apiclient.InstanceRecoveryStatusPAUSED, status.Recovery.Status)
+	assert.Equal(t, apiclient.InstanceRecoveryStatusCOMPLETED, status.Recovery.Status)
 	assert.Equal(t, lost.archiveSha256, status.Recovery.ArchiveSha256)
 
 	assert.Equal(t, "1", instance.queryInternalDatabase(t,
@@ -52,60 +49,26 @@ func requireRecoveredSnapshot(
 	return root, *status.Recovery
 }
 
-// requireNoRemoteEffectsWhilePaused tries the manual actions that write to a storage and checks
-// that the remote storage holds exactly the objects it held before the recovery.
-func requireNoRemoteEffectsWhilePaused(
-	t *testing.T,
-	cycle *recoveryCycle,
-	root accountSession,
-	lost lostInstallation,
-	storedObjectCount int,
-) {
-	t.Helper()
-
-	backupResponse, err := root.Client.StartLogicalBackupWithResponse(t.Context(),
-		apiclient.LogicalBackupStart{DatabaseId: lost.remoteDatabaseID})
-	require.NoError(t, err)
-	requireProblem(t, backupResponse.StatusCode(), backupResponse.Body,
-		http.StatusConflict, apiclient.ProblemCodeRecoveryPaused)
-
-	settingsResponse, err := root.Client.UpdateInstanceBackupSettingsWithResponse(t.Context(),
-		apiclient.InstanceBackupSettings{
-			RetentionDays: 30,
-			Schedule:      apiclient.Schedule{Type: apiclient.ScheduleTypeHOURLY},
-			StorageIds:    []uuid.UUID{},
-		})
-	require.NoError(t, err)
-	requireProblem(t, settingsResponse.StatusCode(), settingsResponse.Body,
-		http.StatusConflict, apiclient.ProblemCodeRecoveryPaused)
-
-	assert.Equal(t, storedObjectCount, cycle.countStoredObjects(t))
-}
-
-// requireActivatedRecovery activates the paused installation and checks the work it resumes: a
-// new physical FULL, restores of the database backups the snapshot catalogs, and a recovered local
-// storage that stays unavailable until an editor validates its actual backup directory. The caller
-// holds the source server's turn, because an activated installation streams its WAL.
-func requireActivatedRecovery(
+// requireRunningRecovery checks the work a recovered installation does without any confirmation:
+// a new physical FULL after the recovery, restores of the database backups the snapshot catalogs,
+// and a recovered local storage used from the first start without any test. The caller holds the source server's turn, because a recovered installation streams
+// its WAL from its first start.
+func requireRunningRecovery(
 	t *testing.T,
 	instance runningInstance,
 	root accountSession,
-	recoveryID uuid.UUID,
+	recovery apiclient.InstanceRecovery,
 	lost lostInstallation,
 ) {
 	t.Helper()
 
 	cycle := instance.cycle
 
-	activatedAt := time.Now().Add(-time.Minute)
-	activatedRecovery := root.activateRecovery(t, recoveryID)
-	assert.Equal(t, apiclient.InstanceRecoveryStatusACTIVE, activatedRecovery.Status)
-	assert.False(t, root.getInstanceBackupStatus(t).IsRecoveryPaused)
-
+	require.NotNil(t, recovery.CompletedAt)
 	waitForPhysicalBackup(t, root, lost.physical.databaseID, physicalBackupQuery{
-		kind: apiclient.PhysicalBackupListRowTypeFULL, createdAfter: activatedAt,
+		kind: apiclient.PhysicalBackupListRowTypeFULL, createdAfter: recovery.CompletedAt.Add(-time.Minute),
 	})
-	requireLocalStorageValidation(t, instance, root, lost)
+	requireRecoveredLocalStorageInUse(t, instance, root, lost)
 
 	recoveredBackupIDs := listLogicalBackupIDs(t, root, lost.remoteDatabaseID)
 	assert.True(t, containsBackup(recoveredBackupIDs, lost.remoteBackupID))
@@ -115,37 +78,22 @@ func requireActivatedRecovery(
 	requirePointInTimeRestoreOfSnapshot(t, cycle, instance, root, lost.physical)
 }
 
-func requireLocalStorageValidation(t *testing.T, instance runningInstance, root accountSession, lost lostInstallation) {
+// requireRecoveredLocalStorageInUse checks that a recovered local storage works without any test:
+// a new backup is stored in it and downloads, while a backup whose file stayed on the lost server
+// answers that the file is missing.
+func requireRecoveredLocalStorageInUse(
+	t *testing.T,
+	instance runningInstance,
+	root accountSession,
+	lost lostInstallation,
+) {
 	t.Helper()
 
-	assert.Equal(t, apiclient.StorageRecoveryValidationStatusREQUIRESVALIDATION,
-		getRecoveryValidationStatus(t, root, lost.localStorageID), "activation alone does not validate it")
-
-	unvalidatedDownload := downloadLogicalBackup(t, instance, root, lost.localBackupID)
-	requireProblem(t, unvalidatedDownload.StatusCode(), unvalidatedDownload.Body,
-		http.StatusConflict, apiclient.ProblemCodeStorageUnavailable)
-
-	instance.executeAsRuntimeUser(t, "printf 'kept backup' > "+keptBackupFile)
-	instance.executeAsRoot(t, "chmod 0000 "+dataDirectory+"/backups")
-
-	failedTest := testStorage(t, root, lost.localStorageID)
-	assert.False(t, failedTest.IsConnected, "a writable temporary folder does not validate the backup folder")
-	assert.Equal(t, apiclient.StorageRecoveryValidationStatusREQUIRESVALIDATION,
-		getRecoveryValidationStatus(t, root, lost.localStorageID))
-
-	instance.executeAsRoot(t, "chmod 0770 "+dataDirectory+"/backups")
-
-	passedTest := testStorage(t, root, lost.localStorageID)
-	require.True(t, passedTest.IsConnected, "%v", passedTest.Error)
-	assert.Equal(t, apiclient.StorageRecoveryValidationStatusAVAILABLE,
-		getRecoveryValidationStatus(t, root, lost.localStorageID))
-
-	keptContent, err := instance.cycle.docker.Execute(t.Context(), instance.containerName,
-		[]string{"cat", keptBackupFile})
-	require.NoError(t, err)
-	assert.Equal(t, "kept backup", keptContent, "the probe leaves existing backup files unchanged")
-
+	newBackup := backUpLogically(t, root, lost.localDatabaseID)
+	newDownload := downloadLogicalBackup(t, instance, root, newBackup.Id)
 	missingDownload := downloadLogicalBackup(t, instance, root, lost.localBackupID)
+
+	assert.Equal(t, http.StatusOK, newDownload.StatusCode(), string(newDownload.Body))
 	requireProblem(t, missingDownload.StatusCode(), missingDownload.Body,
 		http.StatusNotFound, apiclient.ProblemCodeNotFound)
 }
@@ -169,30 +117,6 @@ func downloadLogicalBackup(
 	require.NoError(t, err)
 
 	return response
-}
-
-func testStorage(t *testing.T, root accountSession, storageID uuid.UUID) apiclient.StorageTestResult {
-	t.Helper()
-
-	response, err := root.Client.TestStorageWithResponse(t.Context(), storageID)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
-
-	return *response.JSON200
-}
-
-func getRecoveryValidationStatus(
-	t *testing.T,
-	root accountSession,
-	storageID uuid.UUID,
-) apiclient.StorageRecoveryValidationStatus {
-	t.Helper()
-
-	response, err := root.Client.GetStorageWithResponse(t.Context(), storageID)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
-
-	return response.JSON200.RecoveryValidationStatus
 }
 
 // requireRefusalLog checks the operator-facing record of a startup recovery that did not run.

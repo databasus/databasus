@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { InstanceBackupStatus } from '@/entities/instance-backups';
 import { MasterKeyOnboardingPage } from '@/pages/master-key-onboarding/ui/MasterKeyOnboardingPage';
@@ -24,11 +24,8 @@ const buildStatus = (status: Partial<InstanceBackupStatus> = {}): InstanceBackup
   isEmailConfigured: true,
   isRootEmailUsable: true,
   isMasterKeyAcknowledged: false,
-  isMasterKeyExportCodeRequired: false,
-  identityProofMethods: ['PASSWORD'],
-  masterKeyPath: '/databasus-data/secret.key',
+  isConfirmationCodeRequired: false,
   reminder: { isEligible: false },
-  isRecoveryPaused: false,
   recovery: null,
   ...status,
 });
@@ -47,9 +44,16 @@ const renderPage = (
   return renderScreen(<MasterKeyOnboardingPage status={status} onAcknowledged={onAcknowledged} />);
 };
 
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+});
+
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
+
+const waitOutConfirmationDelay = () => act(() => vi.advanceTimersByTime(15_000));
 
 const useKeyExport = () => {
   const exportRequests: unknown[] = [];
@@ -106,7 +110,8 @@ const recordSavedFiles = () => {
   return savedFiles;
 };
 
-const getCloseButton = () => screen.getByRole('button', { name: text.onboarding.close });
+const getCloseButton = () =>
+  screen.getByRole('button', { name: (name) => name.startsWith(text.onboarding.close) });
 
 const findTitle = () => screen.findByRole('heading', { name: text.onboarding.title, level: 1 });
 
@@ -119,6 +124,8 @@ describe('Master key onboarding page', () => {
     expect(await screen.findByText(keyPreview)).toBeTruthy();
     expect(screen.getByText(text.description)).toBeTruthy();
     expect(screen.queryByText(installedKey.trim())).toBeNull();
+    waitOutConfirmationDelay();
+    expect(getCloseButton().textContent).toBe(text.onboarding.close);
     expect(getCloseButton().hasAttribute('disabled')).toBe(true);
     expect(exportRequests).toEqual([{}]);
     expect(screen.queryByRole('button', { name: /later/i })).toBeNull();
@@ -139,6 +146,10 @@ describe('Master key onboarding page', () => {
 
     expect(await screen.findByRole('button', { name: text.copied })).toBeTruthy();
     expect(copiedTexts).toEqual([installedKey]);
+    expect(getCloseButton().hasAttribute('disabled')).toBe(true);
+
+    waitOutConfirmationDelay();
+
     expect(getCloseButton().hasAttribute('disabled')).toBe(false);
 
     await user.click(getCloseButton());
@@ -159,6 +170,27 @@ describe('Master key onboarding page', () => {
     expect(savedFiles.map((savedFile) => savedFile.fileName)).toEqual(['databasus-master-key.txt']);
     expect(await savedFiles[0].blob.text()).toBe(installedKey);
     expect(exportRequests).toHaveLength(1);
+
+    waitOutConfirmationDelay();
+
+    expect(getCloseButton().hasAttribute('disabled')).toBe(false);
+  });
+
+  it('counts down the seconds before the confirmation can be pressed', async () => {
+    vi.spyOn(BrowserClipboard, 'copyToClipboard').mockResolvedValue();
+    useKeyExport();
+    const { user } = renderPage();
+    await screen.findByText(keyPreview);
+
+    await user.click(screen.getByRole('button', { name: text.copy }));
+    act(() => vi.advanceTimersByTime(5_000));
+
+    expect(getCloseButton().textContent).toBe(text.onboarding.closeIn.replace('{{seconds}}', '10'));
+    expect(getCloseButton().hasAttribute('disabled')).toBe(true);
+
+    act(() => vi.advanceTimersByTime(10_000));
+
+    expect(getCloseButton().textContent).toBe(text.onboarding.close);
     expect(getCloseButton().hasAttribute('disabled')).toBe(false);
   });
 
@@ -171,7 +203,22 @@ describe('Master key onboarding page', () => {
     await user.click(screen.getByRole('button', { name: text.copy }));
 
     expect(await screen.findByText(text.copyFailed)).toBeTruthy();
+    waitOutConfirmationDelay();
     expect(getCloseButton().hasAttribute('disabled')).toBe(true);
+  });
+
+  it('counts the wait from the moment the step appears, not from the copy', async () => {
+    vi.spyOn(BrowserClipboard, 'copyToClipboard').mockResolvedValue();
+    useKeyExport();
+    const { user } = renderPage();
+    await screen.findByText(keyPreview);
+    act(() => vi.advanceTimersByTime(10_000));
+
+    await user.click(screen.getByRole('button', { name: text.copy }));
+    act(() => vi.advanceTimersByTime(5_000));
+
+    expect(getCloseButton().textContent).toBe(text.onboarding.close);
+    expect(getCloseButton().hasAttribute('disabled')).toBe(false);
   });
 
   it('shows the refusal and stays in place when the acknowledgment fails', async () => {
@@ -185,6 +232,7 @@ describe('Master key onboarding page', () => {
     await screen.findByText(keyPreview);
 
     await user.click(screen.getByRole('button', { name: text.copy }));
+    waitOutConfirmationDelay();
     await user.click(getCloseButton());
 
     expect(await screen.findByText(DICTIONARIES.en.errors.permissionDenied)).toBeTruthy();
@@ -196,7 +244,7 @@ describe('Master key onboarding page', () => {
       mockApi.post('/master-key-confirmations', 201, { expiresAt: '2999-01-01T00:00:00Z' }),
     );
     const exportRequests = useKeyExport();
-    const { user } = renderPage(buildStatus({ isMasterKeyExportCodeRequired: true }));
+    const { user } = renderPage(buildStatus({ isConfirmationCodeRequired: true }));
     await findTitle();
 
     expect(screen.getByText(text.codeRequired)).toBeTruthy();
@@ -219,15 +267,14 @@ describe('Master key onboarding page', () => {
         buildProblem('identity_proof_unavailable', 409),
       ),
     );
-    const { user } = renderPage(buildStatus({ isMasterKeyExportCodeRequired: true }));
+    const { user } = renderPage(buildStatus({ isConfirmationCodeRequired: true }));
     await findTitle();
 
     await user.click(screen.getByRole('button', { name: text.proof.sendCode }));
 
     expect(await screen.findByText(DICTIONARIES.en.errors.identityProofUnavailable)).toBeTruthy();
     expect(screen.getByText(text.codeFailed)).toBeTruthy();
-    expect(screen.getByText('/databasus-data/secret.key')).toBeTruthy();
-    expect(screen.getByText(/docker cp databasus:\/databasus-data\/secret\.key/)).toBeTruthy();
+    expect(screen.getByText('databasus-data/secret.key')).toBeTruthy();
     expect(getCloseButton().hasAttribute('disabled')).toBe(true);
   });
 
@@ -236,7 +283,7 @@ describe('Master key onboarding page', () => {
       mockApi.post('/master-key-confirmations', 201, { expiresAt: '2999-01-01T00:00:00Z' }),
       mockApi.post('/master-key-exports', 400, buildProblem('identity_proof_invalid', 400)),
     );
-    const { user } = renderPage(buildStatus({ isMasterKeyExportCodeRequired: true }));
+    const { user } = renderPage(buildStatus({ isConfirmationCodeRequired: true }));
     await findTitle();
 
     await user.click(screen.getByRole('button', { name: text.proof.sendCode }));

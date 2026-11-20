@@ -22,7 +22,6 @@ import (
 	"databasus-backend/internal/lib/diskusage"
 	"databasus-backend/internal/lib/lifecycle"
 	"databasus-backend/internal/lib/mailer"
-	"databasus-backend/internal/lib/recoverypause"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/instancebackups/internal/catalog"
 	"databasus-backend/internal/modules/instancebackups/internal/configs"
@@ -41,10 +40,6 @@ import (
 // RecoveredStateNormalizer ends, in a database a recovery staged, what one module had in progress
 // on the lost instance, and returns how many unfinished file writes and deletions it discarded.
 type RecoveredStateNormalizer = recovery.StateNormalizer
-
-// RecoveryPreparationJobName is the job that prepares uploaded recoveries; it touches only the
-// internal database server and the data volume.
-const RecoveryPreparationJobName = recovery.PreparationJobName
 
 // LifecycleLock is held shared by every server and console process for its lifetime and exclusive
 // by recovery publication. Close releases it.
@@ -108,17 +103,6 @@ func OpenConsoleLifecycle(deps StartupDeps) (*LifecycleLock, error) {
 	return startup.OpenForConsole()
 }
 
-// IsRecoveryPaused reads the persisted recovery pause of the opened internal database, so the
-// application starts its pause gate closed after a recovery.
-func IsRecoveryPaused(ctx context.Context, db *gorm.DB) (bool, error) {
-	config, err := configs.NewRecoveryStateService(configs.NewRepositories(db)).GetPause(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	return config != nil, nil
-}
-
 func newStartup(deps StartupDeps) (*recovery.Startup, error) {
 	server, err := internaldb.ParseConnection(deps.DatabaseDsn)
 	if err != nil {
@@ -159,14 +143,10 @@ type Deps struct {
 	Clock      clock.Source
 	AuditLog   *audit.Log
 	MasterKey  *crypto.MasterKey
-	// MasterKeyPath is where the key file lives in the container, shown for saving it from the host.
-	MasterKeyPath string
-	Mailer        mailer.Sender
+	Mailer     mailer.Sender
 	// Lifecycle locates the recovery journal and the internal database, and prepares uploaded
-	// recoveries exactly as a startup recovery; RecoveryPause is the gate this module clears when
-	// root admin activates a recovered instance.
-	Lifecycle     StartupDeps
-	RecoveryPause *recoverypause.Gate
+	// recoveries exactly as a startup recovery.
+	Lifecycle StartupDeps
 	// RebuildRequest asks the server process to publish an accepted recovery in place.
 	RebuildRequest *lifecycle.RebuildRequest
 	// MaxRecoveryArchiveBytes bounds a Databasus backup file uploaded for recovery.
@@ -197,7 +177,6 @@ func New(deps Deps) (Module, error) {
 		Databases:                deps.Databases,
 		OnSettingsCommitted:      func(configs.SettingsChange) { catalogService.WakeProduction() },
 		OnLastDestinationRemoved: func(ctx context.Context) error { return healthService.OpenStoppedIncident(ctx) },
-		RecoveryPause:            deps.RecoveryPause,
 	})
 
 	tokenService := tokens.NewService(tokens.Deps{Repositories: tokens.NewRepositories(deps.DB), Clock: deps.Clock})
@@ -220,8 +199,6 @@ func New(deps Deps) (Module, error) {
 		Transactor:     deps.Transactor,
 		AuditLog:       deps.AuditLog,
 		Users:          deps.Users,
-		Configs:        configService,
-		Pause:          deps.RecoveryPause,
 		RunningRelease: deps.Lifecycle.Release,
 		RebuildRequest: deps.RebuildRequest,
 	})
@@ -237,16 +214,15 @@ func New(deps Deps) (Module, error) {
 	}
 
 	healthService = health.NewService(health.Deps{
-		Repositories:  health.NewRepositories(deps.DB),
-		Transactor:    deps.Transactor,
-		Clock:         deps.Clock,
-		Logger:        deps.Lifecycle.Logger,
-		Mailer:        deps.Mailer,
-		MasterKeyPath: deps.MasterKeyPath,
-		Users:         deps.Users,
-		Configs:       configService,
-		KeyExport:     keyExportService,
-		Recoveries:    recoveryService,
+		Repositories: health.NewRepositories(deps.DB),
+		Transactor:   deps.Transactor,
+		Clock:        deps.Clock,
+		Logger:       deps.Lifecycle.Logger,
+		Mailer:       deps.Mailer,
+		Users:        deps.Users,
+		Configs:      configService,
+		KeyExport:    keyExportService,
+		Recoveries:   recoveryService,
 	})
 
 	return module.New(module.Deps{
@@ -327,7 +303,6 @@ func newCatalogService(
 			InspectDisk:  deps.Lifecycle.InspectDisk,
 		}),
 		Tokens:  tokenService,
-		Pause:   deps.RecoveryPause,
 		Release: deps.Lifecycle.Release,
 	}), nil
 }

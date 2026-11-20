@@ -19,43 +19,40 @@ import (
 const overdueGrace = 15 * time.Minute
 
 type Deps struct {
-	Repositories  Repositories
-	Transactor    *database.Transactor
-	Clock         clock.Source
-	Logger        *slog.Logger
-	Mailer        mailer.Sender
-	MasterKeyPath string
-	Users         users.Module
-	Configs       *configs.Service
-	KeyExport     *keyexport.Service
-	Recoveries    *recovery.Service
+	Repositories Repositories
+	Transactor   *database.Transactor
+	Clock        clock.Source
+	Logger       *slog.Logger
+	Mailer       mailer.Sender
+	Users        users.Module
+	Configs      *configs.Service
+	KeyExport    *keyexport.Service
+	Recoveries   *recovery.Service
 }
 
 type Service struct {
-	incidents     *incidentRepository
-	transactor    *database.Transactor
-	clock         clock.Source
-	logger        *slog.Logger
-	mailer        mailer.Sender
-	masterKeyPath string
-	users         users.Module
-	configs       *configs.Service
-	keyExport     *keyexport.Service
-	recoveries    *recovery.Service
+	incidents  *incidentRepository
+	transactor *database.Transactor
+	clock      clock.Source
+	logger     *slog.Logger
+	mailer     mailer.Sender
+	users      users.Module
+	configs    *configs.Service
+	keyExport  *keyexport.Service
+	recoveries *recovery.Service
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		incidents:     deps.Repositories.incidents,
-		transactor:    deps.Transactor,
-		clock:         deps.Clock,
-		logger:        deps.Logger,
-		mailer:        deps.Mailer,
-		masterKeyPath: deps.MasterKeyPath,
-		users:         deps.Users,
-		configs:       deps.Configs,
-		keyExport:     deps.KeyExport,
-		recoveries:    deps.Recoveries,
+		incidents:  deps.Repositories.incidents,
+		transactor: deps.Transactor,
+		clock:      deps.Clock,
+		logger:     deps.Logger,
+		mailer:     deps.Mailer,
+		users:      deps.Users,
+		configs:    deps.Configs,
+		keyExport:  deps.KeyExport,
+		recoveries: deps.Recoveries,
 	}
 }
 

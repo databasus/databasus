@@ -1,0 +1,75 @@
+## MODIFIED Requirements
+
+### Requirement: Onboarding blocks until root admin confirms saving the current key
+
+On any authenticated visit, root admin SHALL see the key onboarding step instead of the application while the current key has no acknowledgment. This SHALL apply regardless of workspace or database setup and to existing installations. The step SHALL take the whole screen, like the sign-in page, and the rest of the interface SHALL NOT be shown until the acknowledgment is recorded. It SHALL offer no close, skip, defer or "remind later" action. No other master-key reminder, such as a floating notice, SHALL be shown.
+
+The step SHALL explain that Databasus encrypts backups with the key and that the key is needed to decrypt the backups, including the backup of Databasus itself, if the server is lost.
+
+The step SHALL obtain the key through the export: at once when the instance does not require two-factor sign-in, and after root admin supplies the emailed code when it does. It SHALL then offer two ways to save the key: copying it to the clipboard, next to a preview that shows only part of the key, and downloading it as a text file. The copy SHALL work when the page is served over plain HTTP. The "I've saved it in a safe place" action SHALL stay disabled until root admin copies or downloads the key in this step and 15 seconds have passed since the step appeared; while the time runs, the action SHALL show the seconds left. That action SHALL record the acknowledgment for the current key and open the application. Obtaining, copying or downloading the key alone SHALL NOT record an acknowledgment.
+
+The acknowledgment SHALL be recorded only for root admin, SHALL persist across browsers and sessions and SHALL belong to the current key, so a key replaced by recovery requires a new confirmation.
+
+When the instance requires two-factor sign-in and the confirmation code cannot be sent, the step SHALL show the sending error. It SHALL also explain that the key can be copied from the server by hand from the file `databasus-data/secret.key` in the folder where Databasus is installed. It SHALL NOT show an absolute path or a copy command, because the host path of that folder depends on the installation. The step SHALL stay in place.
+
+The instance settings SHALL offer a Download master key action in the Databasus backups section that opens a master-key dialog. The dialog SHALL explain why the key must be kept outside this server and give instructions for copying the key from the server that name the file `databasus-data/secret.key` in the folder where Databasus is installed, without an absolute path or a copy command. It SHALL NOT show whether the current key is saved, because onboarding already blocks the application while it is not. These instructions SHALL be reachable inside the dialog through at most one keyboard-operable disclosure. Pressing Download master key is the request for the key: the dialog SHALL obtain the key on opening, under the same confirmation rules as the onboarding step, and offer the same partial preview, copy and download in the same layout. Nothing else in the section SHALL obtain the key. Closing the dialog SHALL discard the obtained key from the page.
+
+#### Scenario: First visit of a new installation
+
+- **WHEN** root admin signs in to an installation whose key has no acknowledgment
+- **THEN** the onboarding step takes the whole screen instead of the interface and offers no way to skip or defer it
+- **AND** no floating master-key notice appears
+
+#### Scenario: Root admin copies the key
+
+- **WHEN** the step shows the partial preview and root admin copies the key
+- **THEN** the clipboard holds exactly the existing key and the "I've saved it in a safe place" action becomes enabled once 15 seconds have passed since the step appeared
+
+#### Scenario: Root admin downloads the key
+
+- **WHEN** root admin downloads the key from the onboarding step
+- **THEN** the file `databasus-master-key.txt` holds exactly the existing key and the "I've saved it in a safe place" action becomes enabled once 15 seconds have passed since the step appeared
+
+#### Scenario: The key was neither copied nor downloaded
+
+- **WHEN** the step shows the key options and root admin has neither copied nor downloaded the key
+- **THEN** the "I've saved it in a safe place" action is disabled and the key stays unacknowledged
+
+#### Scenario: Root admin copies the key right away
+
+- **WHEN** root admin copies the key 5 seconds after the step appeared
+- **THEN** the "I've saved it in a safe place" action stays disabled and shows the seconds left until 15 seconds have passed
+
+#### Scenario: Root admin confirms saving
+
+- **WHEN** root admin presses "I've saved it in a safe place" after copying or downloading the key
+- **THEN** the application opens, and later visits in any browser do not show the step for that key
+
+#### Scenario: Another administrator records an acknowledgment
+
+- **WHEN** another administrator directly requests the acknowledgment
+- **THEN** the request is refused with 403 and the key stays unacknowledged
+
+#### Scenario: The key is replaced by recovery
+
+- **WHEN** a recovery installs another key on an instance whose previous key was acknowledged
+- **THEN** root admin is shown the onboarding step again
+
+#### Scenario: The code cannot be sent
+
+- **WHEN** the instance requires two-factor sign-in and sending the confirmation code fails
+- **THEN** the step shows the sending error and the instructions for copying the key from the server with the file `databasus-data/secret.key` in the folder where Databasus is installed
+- **AND** the step stays in place
+
+#### Scenario: Root admin opens the master-key panel
+
+- **WHEN** root admin opens the master-key dialog from the Databasus backups section
+- **THEN** the dialog offers the instructions for copying the key from the server with the file `databasus-data/secret.key` in the folder where Databasus is installed
+- **AND** it shows no saved-state line, absolute path or `docker cp` command
+- **AND** no key export is requested before root admin presses Download master key
+- **AND** after that the key is obtained with a code exactly when the instance requires two-factor sign-in, and then can be copied or downloaded
+
+#### Scenario: Root admin closes the master-key dialog after obtaining the key
+
+- **WHEN** root admin obtains the key in the dialog and closes it
+- **THEN** the key leaves the page, and reopening the dialog obtains it again

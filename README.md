@@ -289,12 +289,15 @@ docker exec -it databasus ./main --create-user --email="ops@example.com" --passw
 
 `--role` is `admin` or `member`, the password needs at least 8 characters, and `--name` optionally sets the display name. On an instance that holds no account yet, the first account must use `--role=admin` and administers the instance. Running the command again for the same account changes nothing, so a deployment can run it on every rollout; rotate the password with `--new-password`.
 
-### 💾 Backuping Databasus itself
+### 💾 Backing up Databasus itself
 
-Databasus is built to stay recoverable even if its own server is lost or corrupted. It can back itself up and guides you to keep the key safe:
+Databasus is built to stay recoverable even if its own server is lost or corrupted. It can back itself up and helps you keep the key safe:
 
-- **Turn on Databasus backups** in **Databasus settings → Databasus backups**. Databasus then saves an encrypted copy of its internal database (accounts, settings, credentials and the backup catalog) every hour to the storages you select. Prefer a remote storage over a local disk on the same server. Until you turn them on, Databasus shows a reminder once the first database or storage is added.
-- **Save the master key separately.** Databasus asks you to download it on your first visit, and it is also `./databasus-data/secret.key`. Without it, neither Databasus backups nor your database backups can be decrypted.
+**Turn on Databasus backups** in **Databasus settings → Databasus backups**. Databasus then saves an encrypted copy of its internal database every hour to the storages you select. Until you turn them on, you will see a floating reminder once the first database or storage is added.
+
+**Save the master key separately.** Databasus asks you to download it on your first visit, and it is also stored in `./databasus-data/secret.key`. Without it, neither Databasus backups nor your database backups can be decrypted.
+
+Prefer a remote storage over a local disk on the same server.
 
 See [how to back up and recover Databasus](https://databasus.com/faq/#backup-databasus).
 

@@ -1,27 +1,19 @@
 import { Alert, Button, Loader } from '@mantine/core';
-import { CircleAlert, Download } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { CircleAlert } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  INSTANCE_BACKUP_COPY_STATUS_LABEL_KEYS,
-  INSTANCE_BACKUP_STATUS_LABEL_KEYS,
-  INSTANCE_BACKUP_TRIGGER_LABEL_KEYS,
-  type InstanceBackup,
-  type InstanceBackupCopy,
-  instanceBackupApi,
-} from '@/entities/instance-backups';
+import { instanceBackupApi } from '@/entities/instance-backups';
+import { useInstanceBackupList } from '@/pages/instance-settings/model/useInstanceBackupList';
+import { InstanceBackupRow } from '@/pages/instance-settings/ui/instance-backups/InstanceBackupRow';
 import { useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
-import { usePolledPagedList } from '@/shared/hooks';
-import { translateApiError, useLocale } from '@/shared/i18n';
-import { formatBytes, followFileLink } from '@/shared/lib';
+import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
-import { formatInstant } from '@/shared/time';
 import { LoadFailure } from '@/shared/ui';
 
-const HISTORY_PAGE_SIZE = 10;
-const HISTORY_REFRESH_INTERVAL_MS = 15_000;
+const RECENT_BACKUP_COUNT = 5;
+const PAGE_SIZE = 10;
 
 interface Props {
   hasDestinations: boolean;
@@ -30,33 +22,17 @@ interface Props {
 
 export function InstanceBackupHistory({ hasDestinations, onStarted }: Props) {
   const { t, i18n } = useTranslation();
-  const { formatNumber } = useLocale();
   const notify = useFeedback();
   const isCurrent = useSessionGuard();
-  const [loadError, setLoadError] = useState<unknown>();
+  const history = useInstanceBackupList({ pageSize: PAGE_SIZE });
   const [startError, setStartError] = useState<unknown>();
-  const [downloadingCopyId, setDownloadingCopyId] = useState<string>();
-
-  const fetchPage = useCallback(async (after: string | undefined) => {
-    setLoadError(undefined);
-    return instanceBackupApi.listBackups({ limit: HISTORY_PAGE_SIZE, after });
-  }, []);
-  const getItemKey = useCallback((backup: InstanceBackup) => backup.id, []);
-  const history = usePolledPagedList<InstanceBackup, string>({
-    fetchPage,
-    getItemKey,
-    onError: setLoadError,
-    resetKey: '',
-    refreshIntervalMs: HISTORY_REFRESH_INTERVAL_MS,
-  });
+  const [isShowingAll, setIsShowingAll] = useState(false);
+  const hasOlderBackups = history.hasMore || history.items.length > RECENT_BACKUP_COUNT;
+  const shownBackups = isShowingAll ? history.items : history.items.slice(0, RECENT_BACKUP_COUNT);
 
   const startMutation = useSessionMutation({
     mutationFn: (parameters: Parameters<typeof instanceBackupApi.startBackup>) =>
       instanceBackupApi.startBackup(...parameters),
-  });
-  const downloadMutation = useSessionMutation({
-    mutationFn: ({ backupId, copyId }: { backupId: string; copyId: string }) =>
-      instanceBackupApi.createDownloadToken(backupId, copyId),
   });
   const isStarting = startMutation.isPending;
 
@@ -79,29 +55,10 @@ export function InstanceBackupHistory({ hasDestinations, onStarted }: Props) {
     }
   };
 
-  const download = async (backup: InstanceBackup, copy: InstanceBackupCopy) => {
-    if (downloadingCopyId) return;
-
-    setDownloadingCopyId(copy.id);
-
-    try {
-      const token = await downloadMutation.mutateAsync({ backupId: backup.id, copyId: copy.id });
-      if (isCurrent())
-        followFileLink(instanceBackupApi.getDownloadUrl(token.token), token.fileName);
-    } catch (error: unknown) {
-      if (isCurrent()) notify({ kind: 'error', title: translateApiError(error, i18n.t) });
-    } finally {
-      if (isCurrent()) {
-        setDownloadingCopyId(undefined);
-        downloadMutation.reset();
-      }
-    }
-  };
-
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold">{t('instanceBackups.history.title')}</h3>
+        <h3 className="text-base font-medium">{t('instanceBackups.history.title')}</h3>
         <Button
           className="!h-auto min-h-8 max-w-full !whitespace-normal"
           size="xs"
@@ -119,7 +76,6 @@ export function InstanceBackupHistory({ hasDestinations, onStarted }: Props) {
           {t('instanceBackups.history.startNeedsDestination')}
         </p>
       )}
-      <p className="mt-1 text-xs text-muted">{t('instanceBackups.history.downloadOnly')}</p>
 
       {startError !== undefined && (
         <Alert
@@ -132,79 +88,33 @@ export function InstanceBackupHistory({ hasDestinations, onStarted }: Props) {
 
       {history.isLoading ? (
         <Loader className="mt-3" role="status" />
-      ) : loadError !== undefined && history.items.length === 0 ? (
-        <LoadFailure className="mt-3" error={loadError} onRetry={() => void history.reload()} />
-      ) : history.items.length === 0 ? (
-        <p className="mt-3 text-muted">{t('instanceBackups.history.empty')}</p>
+      ) : history.loadError !== undefined && shownBackups.length === 0 ? (
+        <LoadFailure
+          className="mt-3"
+          error={history.loadError}
+          onRetry={() => void history.reload()}
+        />
+      ) : shownBackups.length === 0 ? (
+        <p className="mt-2 text-muted">{t('instanceBackups.history.empty')}</p>
       ) : (
-        <ul className="mt-3 space-y-3">
-          {history.items.map((backup) => (
-            <li key={backup.id} className="rounded border border-border px-3 py-2">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                <span className="font-medium">
-                  {t(INSTANCE_BACKUP_STATUS_LABEL_KEYS[backup.status])}
-                </span>
-                <span className="text-xs text-muted">
-                  {t(INSTANCE_BACKUP_TRIGGER_LABEL_KEYS[backup.trigger])}
-                </span>
-              </div>
-              <div className="mt-1 text-xs text-muted">
-                {t('instanceBackups.history.snapshot', {
-                  time: formatInstant(backup.snapshotAt ?? backup.startedAt),
-                  version: backup.sourceRelease,
-                })}
-              </div>
-              {typeof backup.sizeBytes === 'number' && (
-                <div className="text-xs text-muted">
-                  {t('instanceBackups.history.size', {
-                    size: formatBytes(backup.sizeBytes, formatNumber),
-                  })}
-                </div>
-              )}
-              {backup.failureReason && (
-                <div className="mt-1 text-xs break-words text-danger">{backup.failureReason}</div>
-              )}
-              <ul className="mt-2 space-y-1">
-                {backup.copies.map((copy) => (
-                  <li key={copy.id} className="flex flex-wrap items-center gap-x-2 text-xs">
-                    <span className="min-w-0 wrap-anywhere">
-                      {t('instanceBackups.history.copy', {
-                        storage: copy.storageName,
-                        workspace: copy.workspaceName,
-                        status: t(INSTANCE_BACKUP_COPY_STATUS_LABEL_KEYS[copy.status]),
-                      })}
-                    </span>
-                    {copy.isDownloadable && (
-                      <Button
-                        size="compact-xs"
-                        variant="subtle"
-                        leftSection={<Download aria-hidden size={12} />}
-                        loading={downloadingCopyId === copy.id}
-                        disabled={downloadingCopyId !== undefined}
-                        aria-label={t('instanceBackups.history.downloadFrom', {
-                          storage: copy.storageName,
-                        })}
-                        onClick={() => void download(backup, copy)}
-                      >
-                        {t('instanceBackups.history.download')}
-                      </Button>
-                    )}
-                    {copy.lastError && (
-                      <span className="w-full break-words text-danger">{copy.lastError}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </li>
+        <ul className="mt-2 divide-y divide-border rounded border border-border">
+          {shownBackups.map((backup) => (
+            <InstanceBackupRow key={backup.id} backup={backup} />
           ))}
         </ul>
       )}
 
-      {history.hasMore && (
+      {!isShowingAll && hasOlderBackups && (
+        <Button className="mt-2" size="xs" variant="subtle" onClick={() => setIsShowingAll(true)}>
+          {t('instanceBackups.history.showAll')}
+        </Button>
+      )}
+
+      {isShowingAll && history.hasMore && (
         <Button
-          className="mt-3"
+          className="mt-2"
           size="xs"
-          variant="default"
+          variant="subtle"
           loading={history.isLoadingMore}
           onClick={() => void history.loadNextPage()}
         >

@@ -150,22 +150,9 @@ export const VerificationAgentsComponent = () => {
 
   return (
     <section className="my-8 max-w-[800px]">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-bold">{t('verification.agents.title')}</h2>
+      <h2 className="text-xl font-bold">{t('verification.agents.title')}</h2>
 
-        <Button
-          variant="filled"
-          size="xs"
-          leftSection={<Plus size="1em" className="inline-block shrink-0 align-middle" />}
-          className="!h-auto min-h-8 max-w-full !whitespace-normal"
-          disabled={isCreateDisabled}
-          onClick={() => setIsCreateDialogOpen(true)}
-        >
-          {t('common.actions.create')}
-        </Button>
-      </div>
-
-      <p className="mb-4 max-w-2xl text-sm text-muted">
+      <p className="mt-1 max-w-2xl text-sm text-muted">
         <Trans
           i18nKey="verification.agents.description"
           components={{
@@ -179,6 +166,17 @@ export const VerificationAgentsComponent = () => {
           }}
         />
       </p>
+
+      <Button
+        variant="filled"
+        size="xs"
+        leftSection={<Plus size="1em" className="inline-block shrink-0 align-middle" />}
+        className="mt-3 mb-4 !h-auto min-h-8 max-w-full !whitespace-normal"
+        disabled={isCreateDisabled}
+        onClick={() => setIsCreateDialogOpen(true)}
+      >
+        {t('common.actions.create')}
+      </Button>
 
       {firstLoadError !== undefined ? (
         <LoadFailure error={firstLoadError} onRetry={() => void reload()} />

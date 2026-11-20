@@ -96,17 +96,6 @@ func (s accountSession) getInstanceBackupStatus(t *testing.T) apiclient.Instance
 	return *response.JSON200
 }
 
-func (s accountSession) activateRecovery(t *testing.T, recoveryID uuid.UUID) apiclient.InstanceRecovery {
-	t.Helper()
-
-	response, err := s.Client.ActivateInstanceRecoveryWithResponse(t.Context(), recoveryID,
-		apiclient.InstanceRecoveryActivation{IsOldInstanceStopped: true})
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
-
-	return *response.JSON200
-}
-
 func (s accountSession) listWorkspaceNames(t *testing.T) []string {
 	t.Helper()
 
