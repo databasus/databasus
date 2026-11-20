@@ -6,6 +6,41 @@
   "env": {
     "AGENT_REVIEW_CLIENT": "claude"
   },
+  "permissions": {
+    "allow": [
+      "Bash(rg *)",
+      "Bash(grep *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(sort *)",
+      "Bash(cut *)",
+      "Bash(tr *)",
+      "Bash(diff *)",
+      "Bash(comm *)",
+      "Bash(jq *)",
+      "Bash(ls *)",
+      "Bash(stat *)",
+      "Bash(file *)",
+      "Bash(du *)",
+      "Bash(pwd)",
+      "Bash(realpath *)",
+      "Bash(dirname *)",
+      "Bash(basename *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git blame *)"
+    ],
+    "ask": [
+      "Bash(sort *-o*)",
+      "Bash(git diff *--output*)",
+      "Bash(git log *--output*)",
+      "Bash(git show *--output*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
