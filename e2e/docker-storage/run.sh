@@ -795,11 +795,15 @@ run_upgrade() {
 
     docker image inspect "${release_image}" >/dev/null 2>&1 || docker pull "${release_image}" >/dev/null
     docker volume create --label "${harness_label}" "${volume_name}" >/dev/null
+    # These releases load the configuration and check every client tool before any command runs, the
+    # healthcheck included. On a two-vCPU arm64 runner that took 12 seconds, so the image's 5-second
+    # health timeout killed every check and the container never became healthy.
     docker run --detach \
         --name "${old_container_name}" \
         --label "${harness_label}" \
         --health-interval 1s \
         --health-start-period 1s \
+        --health-timeout 60s \
         --volume "${volume_name}:/databasus-data" \
         "${release_image}" >/dev/null
     wait_for_health "${old_container_name}"
