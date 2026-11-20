@@ -399,7 +399,7 @@ pattern=$(mise run --quiet backend:test-group-tests other-1-of-3)
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -race -p=8 -parallel=2 -count=1 -timeout 40m -run "$pattern" $packages
 ```
 
-Use `other-2-of-3` and `other-3-of-3` for the remaining selections. The same commands repeat a shard of another sharded group by its name, such as `patroni-2-of-5`. For a `cnpg` shard, omit `-parallel=2` to use Go's default parallelism, as its CI runner does. The provider root runs separately, without overlapping test work:
+Use `other-2-of-3` and `other-3-of-3` for the remaining selections. The same commands repeat a shard of another sharded group by its name, such as `patroni-2-of-5`. For a `cnpg` shard, use `-parallel=4`, as its CI runner does. The provider root runs separately, without overlapping test work:
 
 ```sh
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -race -p=1 -parallel=1 -count=1 -timeout 40m ./internal/modules/storages/internal/providers
