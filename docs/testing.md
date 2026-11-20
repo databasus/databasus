@@ -101,7 +101,7 @@ Disk space needs a wide margin rather than an exact figure. Durable fixtures wri
 |---|---|
 | Target for one package, or a few packages run together | about 5 minutes |
 | Limit | 10 minutes |
-| Runner timeout per package | 15 minutes, so an overrun fails instead of hiding |
+| Runner timeout per package | 15 minutes, so an overrun fails instead of hiding; 30 minutes for the slow packages in `mise run test-full`, where they share the Docker daemon with every other suite |
 | `mise run test-full`, with test images present and a warm build cache | about 10 minutes; limit 20 minutes |
 
 A test that exists to observe real time may take longer. It runs beside the others, so it does not stretch the critical path.

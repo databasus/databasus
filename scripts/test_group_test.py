@@ -15,6 +15,9 @@ from pattern_match import get_required_match
 
 ROOT = Path(__file__).resolve().parent.parent
 TIMEOUT = 30
+# A run started in the background, such as a suite of the full test run, ignores SIGINT, and bash
+# cannot trap a signal ignored when it starts, so the interrupted command gets the default back.
+DEFAULT_INTERRUPT_COMMAND = ("env", "--default-signal=INT")
 
 
 class PackageCoverageTest(unittest.TestCase):
@@ -145,7 +148,7 @@ class UpgradeTaskImageTest(unittest.TestCase):
         }
         environment.pop("DATABASUS_TEST_RUN_ID", None)
         task = subprocess.Popen(
-            ["bash", str(ROOT / "mise-tasks/backend/test-upgrade")],
+            [*DEFAULT_INTERRUPT_COMMAND, "bash", str(ROOT / "mise-tasks/backend/test-upgrade")],
             cwd=workspace,
             env=environment,
             stdout=subprocess.PIPE,

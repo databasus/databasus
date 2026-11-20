@@ -202,9 +202,20 @@ pnpm --dir "$root/frontend" install --frozen-lockfile
 # fails and leaks clusters, and it takes longer. -parallel=16 is no faster and failed a recovery
 # scenario. Eight packages at once keep the longest package on the critical path; a higher package
 # limit adds memory without shortening the group. The others mostly compute.
+#
+# The full run adds the end-to-end packages, and the limit queues the CNPG scenarios: that package
+# took 918 seconds alone under it, against 391 with Go's default, and beside the other suites the
+# Patroni and agent packages take 13 to 15 minutes. The group gets 30 minutes in that run. Running
+# CNPG with the default limit beside the group instead makes Docker cleanups of both packages outlast
+# their deadlines.
+slow_package_timeout=15m
+if [[ "$is_full_run" == true ]]; then
+    slow_package_timeout=30m
+fi
 if ((${#slow_packages[@]} > 0)); then
     start_suite backend-slow env TESTCONTAINERS_RYUK_DISABLED=true \
-        go test ${CI:+-race} -p=8 -parallel=8 -count=1 -timeout 15m "${slow_packages[@]}"
+        go test ${CI:+-race} -p=8 -parallel=8 -count=1 -timeout "$slow_package_timeout" \
+        "${slow_packages[@]}"
 fi
 
 if ((${#other_packages[@]} > 0)); then
