@@ -256,7 +256,9 @@ jobs:
   test-frontend-browser-ui:
     name: test-frontend-browser-ui (${{ matrix.arch }}, ${{ matrix.shard }}/3)
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
+    # An arm64 shard takes 7 to 14 minutes; a slow runner instance once needed four times as long
+    # for the runner's own checks before the first test.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
