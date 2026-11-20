@@ -798,7 +798,7 @@ jobs:
           TESTCONTAINERS_RYUK_DISABLED: 'true'
           TEST_GROUP: ${{ matrix.group }}
           # Groups with several container-heavy binaries bound each binary's concurrency.
-          # The dedicated CNPG branch uses its runner's default instead.
+          # The dedicated CNPG branch sets its own limit.
           TEST_PARALLELISM: '2'
         run: |
           cd backend
@@ -824,9 +824,12 @@ jobs:
             exit
           fi
           if [[ "$TEST_GROUP" == cnpg-* ]]; then
-            # CNPG shards use the runner's default parallelism on their measured 8-vCPU budget.
+            # Four scenarios at once keep an 8-vCPU runner to about four k3s containers. With one
+            # scenario per vCPU, a shard whose fixture tests start their own k3s beside the pool ran
+            # eight: on arm64 CPU pressure reached 72%, k3s startups passed their limit and a pooled
+            # k3s stopped under its scenarios.
             # shellcheck disable=SC2086 # one import path per word
-            go test -race -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
+            go test -race -p=8 -parallel=4 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
             exit
           fi
           # Each leg runs one group on its own runner and allows extra time for CI contention.

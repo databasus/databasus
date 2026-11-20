@@ -151,14 +151,19 @@ class BackendCiExecutionTest(unittest.TestCase):
                 else:
                     self.assertNotIn("-run", calls[0])
 
-    def test_cnpg_uses_runner_parallelism_and_keeps_race_detection_and_selection(self) -> None:
+    def test_cnpg_runs_four_scenarios_at_once_and_keeps_race_detection_and_selection(
+        self,
+    ) -> None:
         status, calls, diagnostic = self.run_backend_step(
             BackendCiStepSpec(group="cnpg-1-of-5", packages=OTHER_PACKAGES)
         )
 
         self.assertEqual(status, 0, diagnostic)
         self.assertEqual(len(calls), 1)
-        self.assertFalse(any(argument.startswith("-parallel") for argument in calls[0]))
+        self.assertEqual(
+            [argument for argument in calls[0] if argument.startswith("-parallel")],
+            ["-parallel=4"],
+        )
         self.assertIn("-race", calls[0])
         self.assertIn("-count=1", calls[0])
         self.assertIn("-run", calls[0])
