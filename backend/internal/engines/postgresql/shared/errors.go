@@ -20,6 +20,9 @@ const (
 	ConnErrCustomTablespaces        ConnectionErrorCode = "CUSTOM_TABLESPACES"
 	ConnErrSystemIdentifierMismatch ConnectionErrorCode = "SYSTEM_IDENTIFIER_MISMATCH"
 	ConnErrNoWalSwitchPrivilege     ConnectionErrorCode = "NO_WAL_SWITCH_PRIVILEGE"
+	// ConnErrPhysicalReplicationUnsupported marks a source whose service accepts no physical
+	// replication connections at all, so no setting the user controls can fix it.
+	ConnErrPhysicalReplicationUnsupported ConnectionErrorCode = "PHYSICAL_REPLICATION_UNSUPPORTED"
 )
 
 // ConnectionTestError carries a machine-readable Code for a classified connection failure. The

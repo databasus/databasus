@@ -747,6 +747,11 @@ export const pt: typeof en = {
         summary:
           'Este cluster tem tablespaces fora de pg_default / pg_global, e os backups físicos não conseguem transmiti-los. Remova os tablespaces personalizados ou mude este banco de dados para backups lógicos.',
       },
+      physicalReplicationUnsupported: {
+        title: 'O Neon só suporta backups lógicos',
+        summary:
+          'O Neon não aceita conexões de replicação física, então este banco de dados não pode ter backup físico. Adicione-o novamente com o tipo de backup Lógico.',
+      },
       systemIdentifierMismatch: {
         title: 'Este é outro cluster',
         summary:

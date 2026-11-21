@@ -5648,6 +5648,7 @@ components:
         - CUSTOM_TABLESPACES
         - SYSTEM_IDENTIFIER_MISMATCH
         - NO_WAL_SWITCH_PRIVILEGE
+        - PHYSICAL_REPLICATION_UNSUPPORTED
     LimitedUserCheck:
       type: object
       description: Whether the connecting user may do more than a backup needs

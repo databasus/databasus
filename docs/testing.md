@@ -23,7 +23,7 @@ Paths under `internal/` are inside `backend/`. The table distinguishes the test 
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | Module API tests          | the behavior of each module through its HTTP operations, and that every response matches the contract               | `internal/modules/<name>/*_test.go`, package `<name>_test` | the application, the internal database, HTTP; external systems are fakes                                 |
 | Engine tests              | connecting, privileges, dumping and restoring against every supported server version                                | `internal/engines/<engine>/*_test.go`                      | the database servers in containers                                                                       |
-| Backup and restore tests  | a full backup → restore cycle per engine and version, logical and physical, including SSH tunnels, TLS and failover | `internal/modules/backups/e2e/`                            | the application, source and target servers, storages in containers, the recovery script                  |
+| Backup and restore tests  | a full backup → restore cycle per engine and version, logical and physical, including SSH tunnels, TLS and failover | `internal/modules/backups/e2e/`                            | the application, source and target servers, storages in containers, the recovery script; a Neon project for the [Neon backup test](#neon-backup-test) |
 | Databasus recovery-cycle tests | a Databasus backup recovered on a fresh server, then user-database restores from it | `internal/modules/instancebackups/e2e/` | the candidate image with its internal database, remote storage, source and target servers in containers |
 | Agent tests               | the verification agent's verification pipeline, and the agent against a real backend                                | `internal/agent/**`, `internal/agent/e2e/`                 | the backend from the test harness, Docker or Podman                                                      |
 | Migration tests           | a migration keeps and converts existing rows, on upgrade and on rollback                                            | `backend/migrations/*_test.go`                             | the internal database, empty or fully migrated as the test asks                                          |
@@ -214,6 +214,12 @@ docker volume ls --filter label=databasus.k3s-fixture
 
 These commands also list fixtures active in other worktrees. Before removing anything, identify the killed run's fixture IDs and filter by `label=databasus.k3s-fixture=<fixture ID>`. Do not remove another run's resources.
 
+## Neon backup test
+
+The only test that reaches an external service: it backs up and restores a database of a real Neon project through the API, because a managed PostgreSQL service behaves in ways a container does not reproduce. The same cycle also runs against a container, so the test's own logic is checked without Neon.
+
+It reads the connection string of a dedicated, throwaway Neon project from `TEST_NEON_DATABASE_URL`. Without it the test skips, and with `TEST_IS_NEON_REQUIRED=true` it fails instead, as in the `logical` CI group.
+
 ## Databasus recovery-cycle tests
 
 These tests prove that a Databasus backup brings back a working instance on a server that never saw the original one: the target receives only the archive and the master key, recovers at startup or through UI import, and then restores user databases from the recovered catalog. They run the candidate application image in containers, building it from the checkout when no image is supplied, and remove only their own containers and volumes. [Commands](#commands) lists the run, which needs the Fedora preparation.
@@ -302,6 +308,7 @@ CI repeats local verification on clean runners. The [release workflow](../.githu
 - Unsupported server images follow the [shared exclusion policy](../backend/internal/lib/testcontainers/unavailable_images.json). Those versions still run where images exist, and container-free refusal checks remain on ARM. Other image failures are fatal.
 - Image-based suites consume candidates built for the tested commit and architecture. Host, engine and candidate architecture are checked before scenarios.
 - Podman and network-filesystem tests need suitable hosts. Local fixture checks do not prove mounted-filesystem behavior.
+- The `logical` group needs the repository secret `TEST_NEON_DATABASE_URL` for the [Neon backup test](#neon-backup-test).
 - Backend CI uses race detection. Add `-race` to a direct local command when reproducing a reported race; routine local runs omit it for speed.
 - Python quality and dependency checks gate both release and development publication. Offline dependency checks do not establish release age or replace locked installation.
 

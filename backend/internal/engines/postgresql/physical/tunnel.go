@@ -15,12 +15,17 @@ type Tunnel struct {
 	forwarder *sshtunnel.Forwarder
 }
 
-// OpenTunnel refuses the embedded internal cluster first. Without an SSH tunnel it returns the
-// source itself, so callers never branch. Through a tunnel Host stays the real one, because
-// sslmode=verify-full matches the certificate against it and libpq looks up .pgpass by host and
-// port, while the connection goes to the local end of the tunnel.
+// OpenTunnel refuses the embedded internal cluster and a Neon source first, before it dials the
+// bastion or the source. Without an SSH tunnel it returns the source itself, so callers never
+// branch. Through a tunnel Host stays the real one, because sslmode=verify-full matches the
+// certificate against it and libpq looks up .pgpass by host and port, while the connection goes to
+// the local end of the tunnel.
 func (s *Source) OpenTunnel(ctx context.Context, logger *slog.Logger) (*Tunnel, error) {
 	if err := s.ValidateNotEmbeddedTarget(); err != nil {
+		return nil, err
+	}
+
+	if err := s.validateNotNeonSource(); err != nil {
 		return nil, err
 	}
 

@@ -755,6 +755,11 @@ export const es: typeof en = {
         summary:
           'Este clúster tiene tablespaces fuera de pg_default / pg_global, y las copias físicas no pueden transmitirlos. Elimine los tablespaces personalizados o cambie esta base de datos a copias lógicas.',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon solo admite copias lógicas',
+        summary:
+          'Neon no acepta conexiones de replicación física, así que esta base de datos no admite copias físicas. Agréguela de nuevo con el tipo de copia «Lógica».',
+      },
       systemIdentifierMismatch: {
         title: 'Es un clúster distinto',
         summary:

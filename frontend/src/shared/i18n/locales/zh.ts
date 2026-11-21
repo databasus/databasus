@@ -690,6 +690,11 @@ export const zh: typeof en = {
         summary:
           '该集群有 pg_default / pg_global 之外的表空间，物理备份无法传输它们。请删除自定义表空间，或把这个数据库改为逻辑备份。',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon 只支持逻辑备份',
+        summary:
+          'Neon 不接受物理复制连接，因此无法对这个数据库做物理备份。请重新添加它，并选择“逻辑备份”类型。',
+      },
       systemIdentifierMismatch: {
         title: '这是另一个集群',
         summary:

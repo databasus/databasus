@@ -727,6 +727,11 @@ export const en = {
         summary:
           'This cluster has tablespaces outside pg_default / pg_global, which physical backups cannot stream. Drop the custom tablespaces, or switch this database to logical backups.',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon supports only logical backups',
+        summary:
+          'Neon accepts no physical replication connections, so this database cannot be backed up physically. Add it again with the Logical backup type.',
+      },
       systemIdentifierMismatch: {
         title: 'This is a different cluster',
         summary:

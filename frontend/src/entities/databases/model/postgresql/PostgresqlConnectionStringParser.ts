@@ -2,6 +2,14 @@ import { PostgresSslMode } from '@/entities/databases/model/postgresql/PostgresS
 import type { LocalizedText } from '@/shared/i18n';
 
 const IPV4_PATTERN = /^\d{1,3}(\.\d{1,3}){3}$/;
+// eslint-disable-next-line i18next/no-literal-string -- a host name part, not copy
+const NEON_DOMAIN_SUFFIX = '.neon.tech';
+// eslint-disable-next-line i18next/no-literal-string -- a host name part, not copy
+const NEON_POOLER_LABEL_SUFFIX = '-pooler';
+// eslint-disable-next-line i18next/no-literal-string -- a host name part, not copy
+const SUPABASE_POOLER_DOMAIN_SUFFIX = '.pooler.supabase.com';
+const SUPABASE_TRANSACTION_POOLER_PORT = 6543;
+const SUPABASE_SESSION_POOLER_PORT = 5432;
 
 export type ParseResult = {
   host: string;
@@ -26,9 +34,9 @@ export class PostgresqlConnectionStringParser {
    * 2. Postgres URI: postgres://user:pass@host:port/db
    * 3. Supabase Direct: postgresql://postgres:pass@db.xxx.supabase.co:5432/postgres
    * 4. Supabase Pooler Session: postgres://postgres.ref:pass@aws-0-region.pooler.supabase.com:5432/postgres
-   * 5. Supabase Pooler Transaction: same as above with port 6543
+   * 5. Supabase Pooler Transaction: same as above with port 6543, filled as the session pooler on port 5432
    * 6. JDBC: jdbc:postgresql://host:port/db?user=x&password=y
-   * 7. Neon: postgresql://user:pass@ep-xxx.neon.tech/db
+   * 7. Neon: postgresql://user:pass@ep-xxx.neon.tech/db; a pooler host ep-xxx-pooler.neon.tech is filled as ep-xxx.neon.tech
    * 8. Railway: postgresql://postgres:pass@xxx.railway.app:port/railway
    * 9. Render: postgresql://user:pass@xxx.render.com/db
    * 10. DigitalOcean: postgresql://user:pass@xxx.ondigitalocean.com:port/db?sslmode=require
@@ -38,8 +46,19 @@ export class PostgresqlConnectionStringParser {
    * 14. CockroachDB: postgresql://user:pass@xxx.cockroachlabs.cloud:port/db?sslmode=verify-full
    * 15. With SSL params: postgresql://user:pass@host:port/db?sslmode=require
    * 16. libpq key-value: host=x port=5432 dbname=db user=u password=p
+   *
+   * A transaction-mode pooler may hand the client to another server process between
+   * transactions, while pg_dump and pg_restore rely on settings made once per session, so
+   * every format returns the address of a direct or session-mode connection instead of a
+   * known transaction-mode pooler.
    */
   static parse(connectionString: string): ParseResult | ParseError {
+    const parsed = this.parseAnyFormat(connectionString);
+
+    return 'error' in parsed ? parsed : this.avoidTransactionModePooler(parsed);
+  }
+
+  private static parseAnyFormat(connectionString: string): ParseResult | ParseError {
     const trimmed = connectionString.trim();
 
     if (!trimmed) {
@@ -64,6 +83,29 @@ export class PostgresqlConnectionStringParser {
     return {
       error: { key: 'databases.connectionString.errors.unrecognizedFormat' },
     };
+  }
+
+  private static avoidTransactionModePooler(parsed: ParseResult): ParseResult {
+    const host = parsed.host.toLowerCase();
+
+    if (host.endsWith(NEON_DOMAIN_SUFFIX)) {
+      const [firstLabel, ...otherLabels] = parsed.host.split('.');
+
+      if (firstLabel.toLowerCase().endsWith(NEON_POOLER_LABEL_SUFFIX)) {
+        const directLabel = firstLabel.slice(0, -NEON_POOLER_LABEL_SUFFIX.length);
+
+        return { ...parsed, host: [directLabel, ...otherLabels].join('.') };
+      }
+    }
+
+    if (
+      host.endsWith(SUPABASE_POOLER_DOMAIN_SUFFIX) &&
+      parsed.port === SUPABASE_TRANSACTION_POOLER_PORT
+    ) {
+      return { ...parsed, port: SUPABASE_SESSION_POOLER_PORT };
+    }
+
+    return parsed;
   }
 
   private static isLibpqFormat(str: string): boolean {

@@ -799,6 +799,8 @@ jobs:
           # Ryuk stays disabled to match scripts/test.sh, so CI and local runs share one code path.
           TESTCONTAINERS_RYUK_DISABLED: 'true'
           TEST_GROUP: ${{ matrix.group }}
+          TEST_NEON_DATABASE_URL: ${{ matrix.group == 'logical' && secrets.TEST_NEON_DATABASE_URL || '' }}
+          TEST_IS_NEON_REQUIRED: ${{ matrix.group == 'logical' && 'true' || '' }}
           # Groups with several container-heavy binaries bound each binary's concurrency.
           # The dedicated CNPG branch sets its own limit.
           TEST_PARALLELISM: '2'

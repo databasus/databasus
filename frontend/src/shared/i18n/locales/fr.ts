@@ -757,6 +757,11 @@ export const fr: typeof en = {
         summary:
           'Ce cluster contient des tablespaces autres que pg_default / pg_global, que les sauvegardes physiques ne peuvent pas diffuser. Supprimez les tablespaces personnalisés ou passez cette base de données en sauvegardes logiques.',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon ne prend en charge que les sauvegardes logiques',
+        summary:
+          'Neon n’accepte aucune connexion de réplication physique : cette base de données ne peut donc pas être sauvegardée physiquement. Ajoutez-la de nouveau avec le type de sauvegarde « Logique ».',
+      },
       systemIdentifierMismatch: {
         title: "Il s'agit d'un autre cluster",
         summary:

@@ -694,6 +694,11 @@ export const id: typeof en = {
         summary:
           'Cluster ini memiliki tablespace di luar pg_default / pg_global yang tidak bisa di-stream oleh backup fisik. Hapus tablespace khusus atau ubah database ini ke backup logis.',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon hanya mendukung backup logis',
+        summary:
+          'Neon tidak menerima koneksi replikasi fisik, jadi database ini tidak bisa di-backup secara fisik. Tambahkan lagi dengan jenis backup Logis.',
+      },
       systemIdentifierMismatch: {
         title: 'Ini adalah cluster yang berbeda',
         summary:

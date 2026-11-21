@@ -3066,7 +3066,7 @@ export interface components {
          * @description The class of a failed connection where the type tells it, absent for any other failure
          * @enum {string}
          */
-        DatabaseConnectionFailure: "CONNECTION_FAILED" | "PG_HBA_NO_ENTRY" | "BAD_CREDENTIALS" | "NO_REPLICATION_PRIVILEGE" | "WAL_LEVEL_INVALID" | "NO_WAL_SENDERS" | "NO_REPLICATION_SLOTS" | "WAL_SUMMARY_DISABLED" | "CUSTOM_TABLESPACES" | "SYSTEM_IDENTIFIER_MISMATCH" | "NO_WAL_SWITCH_PRIVILEGE";
+        DatabaseConnectionFailure: "CONNECTION_FAILED" | "PG_HBA_NO_ENTRY" | "BAD_CREDENTIALS" | "NO_REPLICATION_PRIVILEGE" | "WAL_LEVEL_INVALID" | "NO_WAL_SENDERS" | "NO_REPLICATION_SLOTS" | "WAL_SUMMARY_DISABLED" | "CUSTOM_TABLESPACES" | "SYSTEM_IDENTIFIER_MISMATCH" | "NO_WAL_SWITCH_PRIVILEGE" | "PHYSICAL_REPLICATION_UNSUPPORTED";
         /** @description Whether the connecting user may do more than a backup needs */
         LimitedUserCheck: {
             /** @description Whether a limited user is advisable */

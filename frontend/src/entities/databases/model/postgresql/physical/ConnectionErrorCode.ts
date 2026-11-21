@@ -15,4 +15,5 @@ export const ConnectionErrorCode = {
   NoWalSwitchPrivilege: 'NO_WAL_SWITCH_PRIVILEGE',
   CustomTablespaces: 'CUSTOM_TABLESPACES',
   SystemIdentifierMismatch: 'SYSTEM_IDENTIFIER_MISMATCH',
+  PhysicalReplicationUnsupported: 'PHYSICAL_REPLICATION_UNSUPPORTED',
 } as const satisfies Record<string, ConnectionErrorCode>;
