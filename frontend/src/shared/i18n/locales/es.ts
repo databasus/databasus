@@ -60,6 +60,7 @@ export const es: typeof en = {
     websiteLink: 'Sitio web de Databasus',
     confirmation: {
       title: 'Confirmación',
+      actionCountdown: '{{action}} ({{seconds}})',
     },
   },
   app: {
@@ -836,6 +837,8 @@ export const es: typeof en = {
         attemptRetentionDays:
           'Cuántos días se guarda el historial de comprobaciones de disponibilidad',
       },
+      neonConfirmationDescription:
+        'Esta base de datos funciona en Neon. Neon suspende su cómputo cuando nadie está conectado y no lo cobra mientras está suspendido. Una comprobación por minuto mantiene la base de datos activa, así que el cómputo se cobra todo el día y tu factura de Neon puede aumentar.',
     },
   },
   workspaces: {

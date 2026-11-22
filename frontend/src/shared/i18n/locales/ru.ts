@@ -60,6 +60,7 @@ export const ru: typeof en = {
     websiteLink: 'Сайт Databasus',
     confirmation: {
       title: 'Подтверждение',
+      actionCountdown: '{{action}} ({{seconds}})',
     },
   },
   app: {
@@ -811,6 +812,8 @@ export const ru: typeof en = {
           'Сколько неудачных попыток нужно, чтобы база данных считалась недоступной',
         attemptRetentionDays: 'Сколько дней хранить историю проверок доступности',
       },
+      neonConfirmationDescription:
+        'Эта база работает в Neon. Neon усыпляет compute, когда к базе никто не подключён, и не берёт за него деньги, пока он спит. Проверка раз в минуту не даёт базе уснуть: compute будет оплачиваться круглые сутки, и счёт за Neon может вырасти.',
     },
   },
   workspaces: {

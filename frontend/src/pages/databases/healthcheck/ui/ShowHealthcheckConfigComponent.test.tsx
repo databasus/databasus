@@ -25,6 +25,7 @@ const config: ApiComponents['schemas']['HealthcheckConfig'] = {
   intervalMinutes: 17,
   failedAttemptsBeforeUnavailable: 3,
   attemptRetentionDays: 7,
+  shouldConfirmEnabling: false,
 };
 const secondDatabaseConfig = { ...config, databaseId: SECOND_DATABASE_ID, intervalMinutes: 29 };
 const ANSWER_OUTCOMES = [

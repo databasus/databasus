@@ -8,7 +8,10 @@ import { useSessionMutation, useSessionQuery } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { useLatestRef } from '@/shared/hooks';
 import { translateApiError } from '@/shared/i18n';
-import { LoadFailure } from '@/shared/ui';
+import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
+
+// Long enough to read why enabling raises a Neon bill before the action unlocks.
+const ENABLING_CONFIRMATION_DELAY_SECONDS = 10;
 
 interface Props {
   databaseId: string;
@@ -37,6 +40,7 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
   const [healthcheckConfig, setHealthcheckConfig] = useState<HealthcheckConfig | undefined>(
     undefined,
   );
+  const [isEnablingConfirmationOpen, setIsEnablingConfirmationOpen] = useState(false);
   const query = useSessionQuery({
     queryKey: ['healthcheck-config', databaseId],
     queryFn: (signal) => healthcheckConfigApi.getHealthcheckConfig(databaseId, { signal }),
@@ -64,8 +68,16 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
     }
   };
 
+  const setHealthcheckEnabled = (isHealthcheckEnabled: boolean) => {
+    if (!healthcheckConfig) return;
+
+    setHealthcheckConfig({ ...healthcheckConfig, isHealthcheckEnabled });
+    setIsUnsaved(true);
+  };
+
   useEffect(() => {
     setHealthcheckConfig(undefined);
+    setIsEnablingConfirmationOpen(false);
     setIsUnsaved(false);
     setSaveError(undefined);
     resetRequest();
@@ -102,11 +114,14 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
           id={enableFieldId}
           checked={healthcheckConfig.isHealthcheckEnabled}
           onChange={(event) => {
-            setHealthcheckConfig({
-              ...healthcheckConfig,
-              isHealthcheckEnabled: event.currentTarget.checked,
-            });
-            setIsUnsaved(true);
+            const isEnabling = event.currentTarget.checked;
+
+            if (isEnabling && healthcheckConfig.shouldConfirmEnabling) {
+              setIsEnablingConfirmationOpen(true);
+              return;
+            }
+
+            setHealthcheckEnabled(isEnabling);
           }}
           size="xs"
         />
@@ -243,6 +258,20 @@ export const EditHealthcheckConfigComponent = ({ databaseId, onClose }: Props) =
             </Tooltip>
           </div>
         </>
+      )}
+
+      {isEnablingConfirmationOpen && (
+        <ConfirmationComponent
+          description={t('healthcheck.config.neonConfirmationDescription')}
+          actionText={t('healthcheck.config.enable')}
+          isDestructive={false}
+          actionDelaySeconds={ENABLING_CONFIRMATION_DELAY_SECONDS}
+          onConfirm={() => {
+            setIsEnablingConfirmationOpen(false);
+            setHealthcheckEnabled(true);
+          }}
+          onDecline={() => setIsEnablingConfirmationOpen(false)}
+        />
       )}
 
       {saveError !== undefined && (

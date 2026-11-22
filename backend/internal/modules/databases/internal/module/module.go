@@ -116,6 +116,10 @@ func (m *Module) GetMongodbConnectionSettings(
 	return getConnectionSettings[providers.MongodbConnectionSettings](ctx, m.databases, databaseID)
 }
 
+func (m *Module) IsNeonHost(ctx context.Context, databaseID uuid.UUID) (bool, error) {
+	return m.databases.IsNeonHost(ctx, databaseID)
+}
+
 func (m *Module) ProbeLiveness(ctx context.Context, databaseID uuid.UUID) error {
 	return m.connections.ProbeLiveness(ctx, databaseID)
 }

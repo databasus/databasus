@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core';
-import { type JSX, type ReactNode } from 'react';
+import { type JSX, type ReactNode, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Dialog } from '@/shared/ui/Dialog';
@@ -15,6 +15,8 @@ interface Props {
   actionText: string;
   cancelText?: string;
   hideCancelButton?: boolean;
+  // Keeps the action locked while the person reads why it matters, instead of clicking through.
+  actionDelaySeconds?: number;
 }
 
 export function ConfirmationComponent({
@@ -25,8 +27,23 @@ export function ConfirmationComponent({
   actionText,
   cancelText,
   hideCancelButton = false,
+  actionDelaySeconds = 0,
 }: Props): JSX.Element {
   const { t } = useTranslation();
+  const [actionSecondsLeft, setActionSecondsLeft] = useState(actionDelaySeconds);
+
+  const isActionLocked = actionSecondsLeft > 0;
+
+  useEffect(() => {
+    if (!isActionLocked) return;
+
+    const interval = setInterval(
+      () => setActionSecondsLeft((secondsLeft) => Math.max(secondsLeft - 1, 0)),
+      1000,
+    );
+
+    return () => clearInterval(interval);
+  }, [isActionLocked]);
 
   return (
     <Dialog
@@ -52,8 +69,14 @@ export function ConfirmationComponent({
           onClick={() => onConfirm()}
           color={isDestructive ? 'danger' : 'accent'}
           variant="filled"
+          disabled={isActionLocked}
         >
-          {actionText}
+          {isActionLocked
+            ? t('common.confirmation.actionCountdown', {
+                action: actionText,
+                seconds: actionSecondsLeft,
+              })
+            : actionText}
         </Button>
       </div>
     </Dialog>

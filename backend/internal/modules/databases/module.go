@@ -117,6 +117,10 @@ type Module interface {
 	GetMariadbConnectionSettings(ctx context.Context, databaseID uuid.UUID) (MariadbConnectionSettings, error)
 	GetMongodbConnectionSettings(ctx context.Context, databaseID uuid.UUID) (MongodbConnectionSettings, error)
 
+	// IsNeonHost tells whether the configured host of the database, not its tunnel address, belongs to
+	// Neon. It reads the stored settings and neither decrypts nor connects.
+	IsNeonHost(ctx context.Context, databaseID uuid.UUID) (bool, error)
+
 	// ProbeLiveness is the trusted path of scheduled health checks; it has no actor.
 	ProbeLiveness(ctx context.Context, databaseID uuid.UUID) error
 

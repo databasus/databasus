@@ -2719,6 +2719,12 @@ type HealthcheckConfig struct {
 
 	// IsNotificationEnabled Whether status changes send notifications
 	IsNotificationEnabled bool `json:"isNotificationEnabled"`
+
+	// ShouldConfirmEnabling Whether a person switching the checks on should confirm it first. True while the configured
+	// database host, not the SSH tunnel's address, belongs to Neon: its compute sleeps while idle
+	// and is billed only while awake, and the checks keep it awake. Computed from the current host on
+	// every answer; it never restricts a save.
+	ShouldConfirmEnabling bool `json:"shouldConfirmEnabling"`
 }
 
 // HealthcheckConfigInput All editable settings for scheduled availability checks

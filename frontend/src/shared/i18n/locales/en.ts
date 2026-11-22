@@ -60,6 +60,7 @@ export const en = {
     websiteLink: 'Databasus website',
     confirmation: {
       title: 'Confirmation',
+      actionCountdown: '{{action}} ({{seconds}})',
     },
   },
   app: {
@@ -805,6 +806,8 @@ export const en = {
         attemptsBeforeDown: 'Number of failed attempts before marking database as down',
         attemptRetentionDays: 'How many days to store health check attempt history',
       },
+      neonConfirmationDescription:
+        'This database runs on Neon. Neon puts its compute to sleep when nobody is connected and does not bill compute while it sleeps. A check every minute keeps the database awake, so its compute is billed around the clock and your Neon bill can grow.',
     },
   },
   workspaces: {

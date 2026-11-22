@@ -49,7 +49,7 @@ export const id: typeof en = {
     },
     listSeparator: ', ',
     websiteLink: 'Situs web Databasus',
-    confirmation: { title: 'Konfirmasi' },
+    confirmation: { title: 'Konfirmasi', actionCountdown: '{{action}} ({{seconds}})' },
   },
   app: {
     documentTitle: 'Databasus - backup database (PostgreSQL, MySQL, MongoDB)',
@@ -770,6 +770,8 @@ export const id: typeof en = {
         attemptsBeforeDown: 'Jumlah pemeriksaan gagal sebelum database ditandai tidak tersedia',
         attemptRetentionDays: 'Jumlah hari penyimpanan riwayat pemeriksaan ketersediaan',
       },
+      neonConfirmationDescription:
+        'Database ini berjalan di Neon. Neon menidurkan komputasinya saat tidak ada yang terhubung dan tidak menagih komputasi selama tidur. Pemeriksaan setiap menit membuat database tetap aktif, sehingga komputasi ditagih sepanjang hari dan tagihan Neon Anda bisa bertambah.',
     },
   },
   workspaces: {

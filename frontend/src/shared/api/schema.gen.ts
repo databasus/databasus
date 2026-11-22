@@ -2020,6 +2020,13 @@ export interface components {
             failedAttemptsBeforeUnavailable: number;
             /** @description How many days of attempts to keep */
             attemptRetentionDays: number;
+            /**
+             * @description Whether a person switching the checks on should confirm it first. True while the configured
+             *     database host, not the SSH tunnel's address, belongs to Neon: its compute sleeps while idle
+             *     and is billed only while awake, and the checks keep it awake. Computed from the current host on
+             *     every answer; it never restricts a save.
+             */
+            shouldConfirmEnabling: boolean;
         };
         /** @description One recorded availability check */
         HealthcheckAttempt: {

@@ -60,6 +60,7 @@ export const fr: typeof en = {
     websiteLink: 'Site web de Databasus',
     confirmation: {
       title: 'Confirmation',
+      actionCountdown: '{{action}} ({{seconds}})',
     },
   },
   app: {
@@ -839,6 +840,8 @@ export const fr: typeof en = {
         attemptRetentionDays:
           "Nombre de jours pendant lesquels l'historique des vérifications de disponibilité est conservé",
       },
+      neonConfirmationDescription:
+        "Cette base de données tourne sur Neon. Neon met son calcul en veille quand personne n'est connecté et ne le facture pas pendant la veille. Une vérification par minute empêche la base de se mettre en veille : le calcul est alors facturé en continu et votre facture Neon peut augmenter.",
     },
   },
   workspaces: {

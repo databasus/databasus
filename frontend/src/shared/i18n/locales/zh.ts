@@ -60,6 +60,7 @@ export const zh: typeof en = {
     websiteLink: 'Databasus 网站',
     confirmation: {
       title: '确认',
+      actionCountdown: '{{action}}（{{seconds}}）',
     },
   },
   app: {
@@ -766,6 +767,8 @@ export const zh: typeof en = {
         attemptsBeforeDown: '失败多少次后将数据库标记为不可用',
         attemptRetentionDays: '可用性检查记录保留多少天',
       },
+      neonConfirmationDescription:
+        '此数据库运行在 Neon 上。没有连接时，Neon 会让计算资源休眠，休眠期间不收取计算费用。每分钟一次的检查会让数据库一直保持唤醒，计算资源将全天计费，你的 Neon 账单可能因此增加。',
     },
   },
   workspaces: {

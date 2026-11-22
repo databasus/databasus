@@ -178,6 +178,15 @@ func (p *Provider) GetTelemetryFacts(settings providers.Settings) (providers.Tel
 	}, nil
 }
 
+func (p *Provider) IsNeonHost(settings providers.Settings) (bool, error) {
+	physicalSettings, err := providers.CastSettings[Settings](settings)
+	if err != nil {
+		return false, err
+	}
+
+	return pgshared.IsNeonHost(physicalSettings.Host), nil
+}
+
 func (p *Provider) GetConnectionSettings(
 	databaseID uuid.UUID,
 	settings providers.Settings,

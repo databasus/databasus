@@ -4035,7 +4035,7 @@ components:
     HealthcheckConfig:
       description: The saved availability check settings of a database
       type: object
-      required: [databaseId, isHealthcheckEnabled, isNotificationEnabled, intervalMinutes, failedAttemptsBeforeUnavailable, attemptRetentionDays]
+      required: [databaseId, isHealthcheckEnabled, isNotificationEnabled, intervalMinutes, failedAttemptsBeforeUnavailable, attemptRetentionDays, shouldConfirmEnabling]
       properties:
         databaseId:
           type: string
@@ -4059,6 +4059,13 @@ components:
           type: integer
           description: How many days of attempts to keep
           minimum: 1
+        shouldConfirmEnabling:
+          type: boolean
+          description: |
+            Whether a person switching the checks on should confirm it first. True while the configured
+            database host, not the SSH tunnel's address, belongs to Neon: its compute sleeps while idle
+            and is billed only while awake, and the checks keep it awake. Computed from the current host on
+            every answer; it never restricts a save.
     HealthcheckAttempt:
       description: One recorded availability check
       type: object

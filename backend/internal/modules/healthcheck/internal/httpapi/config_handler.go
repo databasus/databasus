@@ -15,12 +15,12 @@ func (h *Handler) GetHealthcheckConfig(
 		return nil, errNoActor
 	}
 
-	config, err := h.configs.GetConfig(ctx, actor, request.DatabaseId)
+	configView, err := h.configs.GetConfig(ctx, actor, request.DatabaseId)
 	if err != nil {
 		return nil, err
 	}
 
-	return GetHealthcheckConfig200JSONResponse(fromConfig(config)), nil
+	return GetHealthcheckConfig200JSONResponse(fromConfigView(configView)), nil
 }
 
 func (h *Handler) UpdateHealthcheckConfig(
@@ -32,10 +32,10 @@ func (h *Handler) UpdateHealthcheckConfig(
 		return nil, errNoActor
 	}
 
-	config, err := h.configs.SaveConfig(ctx, actor, toConfig(request.DatabaseId, *request.Body))
+	configView, err := h.configs.SaveConfig(ctx, actor, toConfig(request.DatabaseId, *request.Body))
 	if err != nil {
 		return nil, err
 	}
 
-	return UpdateHealthcheckConfig200JSONResponse(fromConfig(config)), nil
+	return UpdateHealthcheckConfig200JSONResponse(fromConfigView(configView)), nil
 }

@@ -105,3 +105,18 @@ func (s *Service) GetConnectionSettings(
 
 	return provider.GetConnectionSettings(foundDatabase.ID, foundDatabase.Settings)
 }
+
+// IsNeonHost reads the stored host without decrypting a secret or connecting.
+func (s *Service) IsNeonHost(ctx context.Context, databaseID uuid.UUID) (bool, error) {
+	foundDatabase, err := s.GetWithSettings(ctx, databaseID)
+	if err != nil {
+		return false, err
+	}
+
+	provider, err := s.registry.GetProvider(foundDatabase.Type)
+	if err != nil {
+		return false, err
+	}
+
+	return provider.IsNeonHost(foundDatabase.Settings)
+}

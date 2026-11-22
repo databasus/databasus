@@ -6,7 +6,9 @@ import (
 	"databasus-backend/internal/modules/healthcheck/internal/configs"
 )
 
-func fromConfig(config configs.Config) HealthcheckConfig {
+func fromConfigView(view configs.ConfigView) HealthcheckConfig {
+	config := view.Config
+
 	return HealthcheckConfig{
 		DatabaseId:                      config.DatabaseID,
 		IsHealthcheckEnabled:            config.IsHealthcheckEnabled,
@@ -14,6 +16,7 @@ func fromConfig(config configs.Config) HealthcheckConfig {
 		IntervalMinutes:                 config.IntervalMinutes,
 		FailedAttemptsBeforeUnavailable: config.FailedAttemptsBeforeUnavailable,
 		AttemptRetentionDays:            config.AttemptRetentionDays,
+		ShouldConfirmEnabling:           view.ShouldConfirmEnabling,
 	}
 }
 

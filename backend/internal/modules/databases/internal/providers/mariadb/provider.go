@@ -152,6 +152,12 @@ func (p *Provider) GetTelemetryFacts(settings providers.Settings) (providers.Tel
 	}, nil
 }
 
+func (p *Provider) IsNeonHost(settings providers.Settings) (bool, error) {
+	_, err := providers.CastSettings[Settings](settings)
+
+	return false, err
+}
+
 func (p *Provider) GetConnectionSettings(
 	databaseID uuid.UUID,
 	settings providers.Settings,
