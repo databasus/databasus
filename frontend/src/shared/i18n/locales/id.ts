@@ -407,6 +407,12 @@ export const id: typeof en = {
       connectionStringParsed: 'Connection string berhasil dibaca',
       connectionStringParsedWithoutPassword:
         'Connection string berhasil dibaca. Masukkan kata sandi secara manual.',
+      connectionStringPaste: {
+        title: 'Tempel connection string dari {{provider}}',
+        pasteFromClipboard: 'Tempel dari clipboard',
+        orEnterManually: 'atau isi detailnya secara manual',
+        neonHint: 'Di konsol Neon, klik Connect lalu salin string-nya.',
+      },
       connectionTestFailed: 'Database tidak dapat dijangkau: {{error}}',
       connectionTestPassed: {
         title: 'Uji koneksi berhasil',

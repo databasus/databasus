@@ -446,6 +446,12 @@ export const ru: typeof en = {
       connectionStringParsed: 'Поля заполнены из строки подключения',
       connectionStringParsedWithoutPassword:
         'Поля заполнены из строки подключения. Введите пароль вручную.',
+      connectionStringPaste: {
+        title: 'Вставьте строку подключения из {{provider}}',
+        pasteFromClipboard: 'Вставить из буфера обмена',
+        orEnterManually: 'или введите данные вручную',
+        neonHint: 'В консоли Neon нажмите Connect и скопируйте строку.',
+      },
       connectionTestFailed: 'Не удалось подключиться к базе данных: {{error}}',
       connectionTestPassed: {
         title: 'Подключение проверено',

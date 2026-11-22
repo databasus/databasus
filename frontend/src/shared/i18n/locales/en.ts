@@ -445,6 +445,12 @@ export const en = {
       connectionStringParsed: 'Connection string parsed successfully',
       connectionStringParsedWithoutPassword:
         'Connection string parsed successfully. Please enter the password manually.',
+      connectionStringPaste: {
+        title: 'Paste the connection string from {{provider}}',
+        pasteFromClipboard: 'Paste from clipboard',
+        orEnterManually: 'or enter the details manually',
+        neonHint: 'In the Neon console, click Connect and copy the snippet.',
+      },
       connectionTestFailed: 'The database could not be reached: {{error}}',
       connectionTestPassed: {
         title: 'Connection test passed',

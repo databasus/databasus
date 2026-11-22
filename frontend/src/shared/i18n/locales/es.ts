@@ -459,6 +459,12 @@ export const es: typeof en = {
       connectionStringParsed: 'Campos rellenados a partir de la cadena de conexión',
       connectionStringParsedWithoutPassword:
         'Campos rellenados a partir de la cadena de conexión. Introduzca la contraseña manualmente.',
+      connectionStringPaste: {
+        title: 'Pegue la cadena de conexión de {{provider}}',
+        pasteFromClipboard: 'Pegar desde el portapapeles',
+        orEnterManually: 'o introduzca los datos manualmente',
+        neonHint: 'En la consola de Neon, pulse Connect y copie la cadena.',
+      },
       connectionTestFailed: 'No se pudo acceder a la base de datos: {{error}}',
       connectionTestPassed: {
         title: 'Conexión comprobada',

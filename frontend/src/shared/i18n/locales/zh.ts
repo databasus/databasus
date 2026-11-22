@@ -423,6 +423,12 @@ export const zh: typeof en = {
       clipboardReadFailed: '无法读取剪贴板。请检查浏览器权限。',
       connectionStringParsed: '已解析连接字符串',
       connectionStringParsedWithoutPassword: '已解析连接字符串，请手动输入密码。',
+      connectionStringPaste: {
+        title: '粘贴 {{provider}} 的连接字符串',
+        pasteFromClipboard: '从剪贴板粘贴',
+        orEnterManually: '或手动填写连接信息',
+        neonHint: '在 Neon 控制台中点击 Connect 并复制连接字符串。',
+      },
       connectionTestFailed: '无法连接到数据库：{{error}}',
       connectionTestPassed: {
         title: '连接测试通过',

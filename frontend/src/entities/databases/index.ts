@@ -31,6 +31,11 @@ export { sortUnavailableDatabasesFirst } from '@/entities/databases/model/sortUn
 export { PostgresSslMode } from '@/entities/databases/model/postgresql/PostgresSslMode';
 export { POSTGRES_SSL_MODE_LABEL_KEYS } from '@/entities/databases/model/postgresql/PostgresSslModeLabelKeys';
 export { quotePostgresqlIdentifier } from '@/entities/databases/model/postgresql/quotePostgresqlIdentifier';
+export {
+  type ManagedPostgresqlProvider,
+  MANAGED_POSTGRESQL_PROVIDERS,
+} from '@/entities/databases/model/postgresql/ManagedPostgresqlProvider';
+export { getManagedPostgresqlProviderFromHost } from '@/entities/databases/model/postgresql/getManagedPostgresqlProviderFromHost';
 export { POSTGRESQL_SHORT_NAME } from '@/entities/databases/model/postgresql/postgresqlShortName';
 export { PhysicalDatabaseBackupType } from '@/entities/databases/model/postgresql/physical/PhysicalDatabaseBackupType';
 export { PHYSICAL_DATABASE_BACKUP_TYPE_LABEL_KEYS } from '@/entities/databases/model/postgresql/physical/PhysicalDatabaseBackupTypeLabelKeys';
@@ -48,7 +53,10 @@ export { hasStoredSshTunnelSecretsForAuthType } from '@/entities/databases/model
 export { disableSrvWhenTunneled } from '@/entities/databases/model/mongodb/disableSrvWhenTunneled';
 export { MongodbConnectionStringParser } from '@/entities/databases/model/mongodb/MongodbConnectionStringParser';
 export { MySqlCompatibleConnectionStringParser } from '@/entities/databases/model/mysql/MySqlCompatibleConnectionStringParser';
-export { PostgresqlConnectionStringParser } from '@/entities/databases/model/postgresql/PostgresqlConnectionStringParser';
+export {
+  PostgresqlConnectionStringParser,
+  type ParseResult as PostgresqlConnectionStringParseResult,
+} from '@/entities/databases/model/postgresql/PostgresqlConnectionStringParser';
 export { HEALTH_STATUS_LABEL_KEYS } from '@/entities/databases/model/HealthStatusLabelKeys';
 export { DATABASE_TYPE_LABEL_KEYS } from '@/entities/databases/model/DatabaseTypeLabelKeys';
 export { SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS } from '@/entities/databases/model/sshtunnel/SshTunnelAuthTypeLabelKeys';

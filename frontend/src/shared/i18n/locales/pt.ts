@@ -453,6 +453,12 @@ export const pt: typeof en = {
       connectionStringParsed: 'Campos preenchidos a partir da string de conexão',
       connectionStringParsedWithoutPassword:
         'Campos preenchidos a partir da string de conexão. Digite a senha manualmente.',
+      connectionStringPaste: {
+        title: 'Cole a string de conexão do {{provider}}',
+        pasteFromClipboard: 'Colar da área de transferência',
+        orEnterManually: 'ou informe os dados manualmente',
+        neonHint: 'No console do Neon, clique em Connect e copie a string.',
+      },
       connectionTestFailed: 'Não foi possível acessar o banco de dados: {{error}}',
       connectionTestPassed: {
         title: 'Conexão testada',

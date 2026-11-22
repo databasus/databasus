@@ -457,6 +457,12 @@ export const fr: typeof en = {
       connectionStringParsed: 'Champs remplis à partir de la chaîne de connexion',
       connectionStringParsedWithoutPassword:
         'Champs remplis à partir de la chaîne de connexion. Saisissez le mot de passe manuellement.',
+      connectionStringPaste: {
+        title: 'Collez la chaîne de connexion de {{provider}}',
+        pasteFromClipboard: 'Coller depuis le presse-papiers',
+        orEnterManually: 'ou saisissez les informations manuellement',
+        neonHint: 'Dans la console Neon, cliquez sur Connect et copiez la chaîne.',
+      },
       connectionTestFailed: 'Impossible de joindre la base de données : {{error}}',
       connectionTestPassed: {
         title: 'Test de connexion réussi',

@@ -7,6 +7,7 @@ import {
   type DatabaseEditDraft,
   databaseApi,
   toDatabaseSettingsTarget,
+  getManagedPostgresqlProviderFromHost,
 } from '@/entities/databases';
 import { DatabaseConnectionForm } from '@/features/database-connection';
 import { CreateLimitedUserComponent } from '@/pages/databases/settings/ui/CreateLimitedUserComponent';
@@ -122,6 +123,7 @@ export const EditDatabaseConnectionSection = ({ database, onDatabaseSaved, onClo
     <DatabaseConnectionForm
       draft={draft}
       onDraftChange={setDraft}
+      managedPostgresqlProvider={getManagedPostgresqlProviderFromHost(draft.savedSettings.host)}
       onSubmit={saveDraft}
       submitLabel={t('common.actions.save')}
       secondaryActions={<Button onClick={onClose}>{t('common.actions.cancel')}</Button>}
