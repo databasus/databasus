@@ -60,6 +60,7 @@ export const ru: typeof en = {
     websiteLink: 'Сайт Databasus',
     confirmation: {
       title: 'Подтверждение',
+      actionCountdown: '{{action}} ({{seconds}})',
     },
   },
   app: {
@@ -445,6 +446,12 @@ export const ru: typeof en = {
       connectionStringParsed: 'Поля заполнены из строки подключения',
       connectionStringParsedWithoutPassword:
         'Поля заполнены из строки подключения. Введите пароль вручную.',
+      connectionStringPaste: {
+        title: 'Вставьте строку подключения из {{provider}}',
+        pasteFromClipboard: 'Вставить из буфера обмена',
+        orEnterManually: 'или введите данные вручную',
+        neonHint: 'В консоли Neon нажмите Connect и скопируйте строку.',
+      },
       connectionTestFailed: 'Не удалось подключиться к базе данных: {{error}}',
       connectionTestPassed: {
         title: 'Подключение проверено',
@@ -733,6 +740,11 @@ export const ru: typeof en = {
         summary:
           'В этом кластере есть табличные пространства помимо pg_default / pg_global, а физические бекапы не умеют их передавать. Удалите пользовательские табличные пространства или переведите эту базу данных на логические бекапы.',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon поддерживает только логические бекапы',
+        summary:
+          'Neon не принимает подключения физической репликации, поэтому физический бекап этой базы данных невозможен. Добавьте её заново с типом бекапа «Логический».',
+      },
       systemIdentifierMismatch: {
         title: 'Это другой кластер',
         summary:
@@ -806,6 +818,8 @@ export const ru: typeof en = {
           'Сколько неудачных попыток нужно, чтобы база данных считалась недоступной',
         attemptRetentionDays: 'Сколько дней хранить историю проверок доступности',
       },
+      neonConfirmationDescription:
+        'Эта база работает в Neon. Neon усыпляет compute, когда к базе никто не подключён, и не берёт за него деньги, пока он спит. Проверка раз в минуту не даёт базе уснуть: compute будет оплачиваться круглые сутки, и счёт за Neon может вырасти.',
     },
   },
   workspaces: {
@@ -2365,6 +2379,19 @@ export const ru: typeof en = {
       },
       s3: {
         cloudflareR2Guide: 'Как подключить Cloudflare R2?',
+        neonPaste: {
+          title: 'Вставьте учетные данные из {{service}}',
+          hint: 'В Neon Console нажмите Connect, выберите Storage и скопируйте блок .env. Сначала создайте credential, иначе ключей в блоке не будет.',
+          pasteFromClipboard: 'Вставить из буфера обмена',
+          orEnterManually: 'или введите данные вручную',
+          clipboardEmpty: 'Буфер обмена пуст',
+          clipboardReadFailed: 'Не удалось прочитать буфер обмена. Проверьте разрешения браузера.',
+          parsed: 'Поля заполнены из учетных данных Neon',
+          parsedWithoutKeys:
+            'Поля заполнены, но ключей в блоке нет. Создайте credential в Neon Console и вставьте блок снова.',
+          notNeonCredentials: 'Это не блок учетных данных Neon Object Storage',
+          guide: 'Как подключить Neon Object Storage?',
+        },
         endpointTooltip:
           'URL своего S3-совместимого эндпоинта (необязательно, для AWS S3 оставьте пустым)',
         prefixTooltip:

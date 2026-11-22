@@ -60,6 +60,7 @@ export const fr: typeof en = {
     websiteLink: 'Site web de Databasus',
     confirmation: {
       title: 'Confirmation',
+      actionCountdown: '{{action}} ({{seconds}})',
     },
   },
   app: {
@@ -456,6 +457,12 @@ export const fr: typeof en = {
       connectionStringParsed: 'Champs remplis à partir de la chaîne de connexion',
       connectionStringParsedWithoutPassword:
         'Champs remplis à partir de la chaîne de connexion. Saisissez le mot de passe manuellement.',
+      connectionStringPaste: {
+        title: 'Collez la chaîne de connexion de {{provider}}',
+        pasteFromClipboard: 'Coller depuis le presse-papiers',
+        orEnterManually: 'ou saisissez les informations manuellement',
+        neonHint: 'Dans la console Neon, cliquez sur Connect et copiez la chaîne.',
+      },
       connectionTestFailed: 'Impossible de joindre la base de données : {{error}}',
       connectionTestPassed: {
         title: 'Test de connexion réussi',
@@ -757,6 +764,11 @@ export const fr: typeof en = {
         summary:
           'Ce cluster contient des tablespaces autres que pg_default / pg_global, que les sauvegardes physiques ne peuvent pas diffuser. Supprimez les tablespaces personnalisés ou passez cette base de données en sauvegardes logiques.',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon ne prend en charge que les sauvegardes logiques',
+        summary:
+          'Neon n’accepte aucune connexion de réplication physique : cette base de données ne peut donc pas être sauvegardée physiquement. Ajoutez-la de nouveau avec le type de sauvegarde « Logique ».',
+      },
       systemIdentifierMismatch: {
         title: "Il s'agit d'un autre cluster",
         summary:
@@ -834,6 +846,8 @@ export const fr: typeof en = {
         attemptRetentionDays:
           "Nombre de jours pendant lesquels l'historique des vérifications de disponibilité est conservé",
       },
+      neonConfirmationDescription:
+        "Cette base de données tourne sur Neon. Neon met son calcul en veille quand personne n'est connecté et ne le facture pas pendant la veille. Une vérification par minute empêche la base de se mettre en veille : le calcul est alors facturé en continu et votre facture Neon peut augmenter.",
     },
   },
   workspaces: {
@@ -2432,6 +2446,20 @@ export const fr: typeof en = {
       },
       s3: {
         cloudflareR2Guide: 'Comment utiliser Cloudflare R2 ?',
+        neonPaste: {
+          title: 'Collez les identifiants de {{service}}',
+          hint: "Dans Neon Console, cliquez sur Connect, choisissez Storage et copiez le bloc .env. Générez d'abord un identifiant pour que le bloc contienne les clés.",
+          pasteFromClipboard: 'Coller depuis le presse-papiers',
+          orEnterManually: 'ou saisissez les informations manuellement',
+          clipboardEmpty: 'Le presse-papiers est vide',
+          clipboardReadFailed:
+            'Impossible de lire le presse-papiers. Vérifiez les autorisations du navigateur.',
+          parsed: 'Champs remplis avec les identifiants Neon',
+          parsedWithoutKeys:
+            'Champs remplis, mais le bloc ne contient pas de clés. Générez un identifiant dans Neon Console et collez de nouveau le bloc.',
+          notNeonCredentials: "Ce texte n'est pas un bloc d'identifiants Neon Object Storage",
+          guide: 'Comment utiliser Neon Object Storage ?',
+        },
         endpointTooltip:
           "URL d'un endpoint compatible S3 personnalisé (facultatif, laissez vide pour AWS S3)",
         prefixTooltip:

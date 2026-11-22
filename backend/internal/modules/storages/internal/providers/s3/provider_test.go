@@ -32,7 +32,7 @@ import (
 )
 
 // testInnerPartSize is the S3 minimum non-final part size (5 MiB). Combined with a tiny per-object
-// part count it forces object rollover on a few tens of MiB instead of the production ~15.6 GiB.
+// part count it forces object rollover on a few tens of MiB instead of the production 4800 MiB.
 const testInnerPartSize = 5 * 1024 * 1024
 
 const testBucketName = "test-bucket"
@@ -401,6 +401,36 @@ func TestSaveFile(t *testing.T) {
 
 		require.NoError(t, testedBucket.provider.DeleteFile(t.Context(), testedBucket.access(fileName)))
 		assert.Empty(t, listObjectKeys(t, rawClient, testedBucket.settings.Bucket, "team-a/"))
+	})
+
+	t.Run("keeps every object within 5 GiB with the production layout", func(t *testing.T) {
+		const smallestCommonObjectCap = 5 * 1024 * 1024 * 1024
+
+		productionLayout := New(Deps{Repositories: Repositories{}, FieldEncryptor: nil}).partLayout
+
+		largestObjectSize := productionLayout.innerPartSize * productionLayout.maxPartsPerObject
+		assert.LessOrEqual(t, largestObjectSize, smallestCommonObjectCap)
+	})
+
+	t.Run("reads and deletes a file whose objects are larger than the current layout writes", func(t *testing.T) {
+		rawClient, testedBucket := setupChunkedBucket(t)
+		testedBucket.provider.partLayout = partLayout{innerPartSize: testInnerPartSize, maxPartsPerObject: 3}
+
+		persistedBytes := generateBytes(23 * 1024 * 1024)
+		fileName := uuid.NewString()
+
+		require.NoError(
+			t,
+			testedBucket.provider.SaveFile(t.Context(), testedBucket.access(fileName), bytes.NewReader(persistedBytes)),
+		)
+
+		testedBucket.provider.partLayout = partLayout{innerPartSize: testInnerPartSize, maxPartsPerObject: 2}
+
+		reassembledBytes := readWholeFile(t, testedBucket, fileName)
+		assert.Equal(t, persistedBytes, reassembledBytes)
+
+		require.NoError(t, testedBucket.provider.DeleteFile(t.Context(), testedBucket.access(fileName)))
+		assert.Empty(t, listObjectKeys(t, rawClient, testedBucket.settings.Bucket, fileName))
 	})
 
 	t.Run("writes one empty object without a manifest when the stream is empty", func(t *testing.T) {

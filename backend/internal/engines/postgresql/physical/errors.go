@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
+
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 )
 
 var (
@@ -142,3 +144,10 @@ func (e *SourceIdentityError) Error() string {
 var ErrSourceIdentityMissing = errors.New(
 	"stored system identifier is missing; verify the original cluster before enabling WAL streaming",
 )
+
+func newNeonReplicationUnsupportedError() error {
+	return &pgshared.ConnectionTestError{
+		Code:    pgshared.ConnErrPhysicalReplicationUnsupported,
+		Message: "Neon supports only logical backups: it accepts no physical replication connections",
+	}
+}

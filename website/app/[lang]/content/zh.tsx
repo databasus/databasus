@@ -846,6 +846,17 @@ export default function Index() {
                 PostgreSQL 是 Databasus 的核心支持数据库，支持从 12 到 18
                 的所有版本
               </p>
+
+              <p className="text-gray-400 text-sm md:text-base text-center mb-4">
+                也支持托管 PostgreSQL，包括
+                <a href={getLocalizedHref("zh", "faq/neon")} className="text-blue-500 hover:text-blue-600">
+                  Neon
+                </a>{" "}
+                和{" "}
+                <a href={getLocalizedHref("zh", "faq/supabase")} className="text-blue-500 hover:text-blue-600">
+                  Supabase
+                </a>
+              </p>
             </div>
 
             {/* MySQL */}

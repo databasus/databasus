@@ -96,6 +96,33 @@ describe('EditPostgresqlLogicalConnectionComponent', () => {
     );
   });
 
+  it('shows the Supabase guide and includes the public schema when the host belongs to Supabase', () => {
+    renderEditableForm(buildCreateDraft(buildSettings()));
+
+    fireEvent.change(getHostInput(), {
+      target: { value: 'aws-0-eu-central-1.pooler.supabase.com' },
+    });
+
+    expect(screen.getByRole('link', { name: 'read this document' })).toBeTruthy();
+
+    fireEvent.click(screen.getByText('Advanced settings'));
+
+    expect(screen.getByText('public')).toBeTruthy();
+  });
+
+  it('treats a host outside Supabase as ordinary PostgreSQL even with a Supabase-like username', () => {
+    renderEditableForm(buildCreateDraft(buildSettings({ username: 'postgres.supabase' })));
+
+    fireEvent.change(getHostInput(), { target: { value: 'db.example.com' } });
+
+    expect(screen.queryByRole('link', { name: 'read this document' })).toBeNull();
+
+    fireEvent.click(screen.getByText('Advanced settings'));
+
+    expect(screen.getByText('Include schemas')).toBeTruthy();
+    expect(screen.queryByText('public')).toBeNull();
+  });
+
   it('turns SSL off for a new database on localhost without a chosen mode', () => {
     renderEditableForm(buildCreateDraft(buildSettings()));
 

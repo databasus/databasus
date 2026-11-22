@@ -14,6 +14,15 @@ export { S3_STORAGE_CLASS_LABEL_KEYS } from '@/entities/storages/model/S3Storage
 export { AzureBlobAuthMethod } from '@/entities/storages/model/AzureBlobAuthMethod';
 export { AZURE_BLOB_AUTH_METHOD_LABEL_KEYS } from '@/entities/storages/model/AzureBlobAuthMethodLabelKeys';
 export { getStorageLogoFromType } from '@/entities/storages/model/getStorageLogoFromType';
+export {
+  type S3CompatibleService,
+  S3_COMPATIBLE_SERVICES,
+} from '@/entities/storages/model/S3CompatibleService';
+export { getS3CompatibleServiceFromEndpoint } from '@/entities/storages/model/getS3CompatibleServiceFromEndpoint';
+export {
+  type NeonObjectStorageCredentials,
+  parseNeonObjectStorageCredentials,
+} from '@/entities/storages/model/parseNeonObjectStorageCredentials';
 export { STORAGE_TYPE_LABEL_KEYS } from '@/entities/storages/model/StorageTypeLabelKeys';
 
 export { SftpAuthMethod } from '@/entities/storages/model/SftpAuthMethod';

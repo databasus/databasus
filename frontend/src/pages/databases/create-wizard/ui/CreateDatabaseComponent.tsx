@@ -8,6 +8,7 @@ import {
   type Database,
   type DatabaseCreateDraft,
   DatabaseType,
+  type ManagedPostgresqlProvider,
   type PhysicalDatabaseBackupType,
   changeDatabaseCreateDraftType,
   createDefaultDatabaseSettings,
@@ -90,6 +91,9 @@ export const CreateDatabaseComponent = ({
     PhysicalDatabaseBackupType | undefined
   >();
   const [draft, setDraft] = useState(() => createInitialDraft(workspaceId));
+  const [managedPostgresqlProvider, setManagedPostgresqlProvider] = useState<
+    ManagedPostgresqlProvider | undefined
+  >();
 
   const [step, setStep] = useState<
     | 'base-info'
@@ -217,10 +221,14 @@ export const CreateDatabaseComponent = ({
         <EditDatabaseBaseInfoComponent
           name={draft.name}
           type={draft.settings.type}
+          managedProvider={managedPostgresqlProvider}
           continueButtonText={t('common.actions.continue')}
-          onContinue={(name, type) => {
+          onContinue={(name, type, managedProvider) => {
             setDraft({ ...acceptDatabaseType(type), name });
-            setStep(isPostgresType(type) ? 'postgres-backup-type' : 'db-settings');
+            setManagedPostgresqlProvider(managedProvider);
+            setStep(
+              isPostgresType(type) && !managedProvider ? 'postgres-backup-type' : 'db-settings',
+            );
           }}
         />
       </div>
@@ -246,12 +254,17 @@ export const CreateDatabaseComponent = ({
       <DatabaseConnectionForm
         draft={draft}
         onDraftChange={setDraft}
+        managedPostgresqlProvider={managedPostgresqlProvider}
         submitLabel={t('common.actions.continue')}
         secondaryActions={
           <Button
             className="mr-auto !h-auto min-h-8 max-w-full !whitespace-normal"
             variant="outline"
-            onClick={() => setStep(isPostgres ? 'postgres-backup-type' : 'base-info')}
+            onClick={() =>
+              setStep(
+                isPostgres && !managedPostgresqlProvider ? 'postgres-backup-type' : 'base-info',
+              )
+            }
           >
             {t('common.actions.back')}
           </Button>

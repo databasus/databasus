@@ -39,6 +39,9 @@ type Provider interface {
 	Connect(ctx context.Context, settings Settings) (ConnectedDatabase, error)
 	// GetTelemetryFacts reads what the anonymous usage statistics report about a database.
 	GetTelemetryFacts(settings Settings) (TelemetryFacts, error)
+	// IsNeonHost tells whether the configured database host, not the tunnel address, belongs to Neon,
+	// whose compute sleeps while idle and is billed only while awake.
+	IsNeonHost(settings Settings) (bool, error)
 	// GetConnectionSettings decrypts the settings for the code that connects on its own.
 	GetConnectionSettings(databaseID uuid.UUID, settings Settings) (ConnectionSettings, error)
 	GetRepository() SettingsRepository

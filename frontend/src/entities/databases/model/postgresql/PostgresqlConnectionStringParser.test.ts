@@ -108,16 +108,40 @@ describe('PostgresqlConnectionStringParser', () => {
       expect(result.database).toBe('postgres');
     });
 
-    it('should parse Supabase pooler transaction mode connection string (port 6543)', () => {
+    it('should fill Supabase transaction pooler connection string as session pooler on port 5432', () => {
       const result = expectSuccess(
         PostgresqlConnectionStringParser.parse(
-          'postgres://postgres.projectref:myPassword@aws-0-eu-west-1.pooler.supabase.com:6543/postgres',
+          'postgres://postgres.abcdef:secret@aws-0-eu-central-1.pooler.supabase.com:6543/postgres',
         ),
       );
 
-      expect(result.host).toBe('aws-0-eu-west-1.pooler.supabase.com');
+      expect(result.host).toBe('aws-0-eu-central-1.pooler.supabase.com');
+      expect(result.port).toBe(5432);
+      expect(result.username).toBe('postgres.abcdef');
+      expect(result.password).toBe('secret');
+      expect(result.database).toBe('postgres');
+    });
+
+    it('should fill Supabase transaction pooler JDBC string as session pooler on port 5432', () => {
+      const result = expectSuccess(
+        PostgresqlConnectionStringParser.parse(
+          'jdbc:postgresql://aws-0-eu-central-1.pooler.supabase.com:6543/postgres?user=postgres.abcdef&password=secret',
+        ),
+      );
+
+      expect(result.host).toBe('aws-0-eu-central-1.pooler.supabase.com');
+      expect(result.port).toBe(5432);
+    });
+
+    it('should keep port 6543 for a host outside Supabase', () => {
+      const result = expectSuccess(
+        PostgresqlConnectionStringParser.parse(
+          'postgresql://user:secret@pooler.example.com:6543/db',
+        ),
+      );
+
+      expect(result.host).toBe('pooler.example.com');
       expect(result.port).toBe(6543);
-      expect(result.username).toBe('postgres.projectref');
     });
   });
 
@@ -187,6 +211,77 @@ describe('PostgresqlConnectionStringParser', () => {
       expect(result.host).toBe('ep-cool-name-123456.us-east-2.aws.neon.tech');
       expect(result.username).toBe('neonuser');
       expect(result.database).toBe('neondb');
+    });
+
+    it('should fill Neon pooler connection string with direct host', () => {
+      const result = expectSuccess(
+        PostgresqlConnectionStringParser.parse(
+          'postgresql://owner:secret@ep-young-dew-123456-pooler.c-8.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+        ),
+      );
+
+      expect(result).toEqual({
+        host: 'ep-young-dew-123456.c-8.us-east-2.aws.neon.tech',
+        port: 5432,
+        username: 'owner',
+        password: 'secret',
+        database: 'neondb',
+        sslMode: PostgresSslMode.Require,
+      });
+    });
+
+    it('should fill Neon pooler key-value string with direct host', () => {
+      const result = expectSuccess(
+        PostgresqlConnectionStringParser.parse(
+          'host=ep-young-dew-123456-pooler.c-8.us-east-2.aws.neon.tech port=5432 dbname=neondb user=owner password=secret sslmode=require',
+        ),
+      );
+
+      expect(result).toEqual({
+        host: 'ep-young-dew-123456.c-8.us-east-2.aws.neon.tech',
+        port: 5432,
+        username: 'owner',
+        password: 'secret',
+        database: 'neondb',
+        sslMode: PostgresSslMode.Require,
+      });
+    });
+
+    it('should fill Neon pooler JDBC string with direct host', () => {
+      const result = expectSuccess(
+        PostgresqlConnectionStringParser.parse(
+          'jdbc:postgresql://ep-young-dew-123456-pooler.c-8.us-east-2.aws.neon.tech:5432/neondb?user=owner&password=secret&sslmode=require',
+        ),
+      );
+
+      expect(result.host).toBe('ep-young-dew-123456.c-8.us-east-2.aws.neon.tech');
+      expect(result.port).toBe(5432);
+      expect(result.username).toBe('owner');
+    });
+
+    it('should keep direct Neon host unchanged', () => {
+      const result = expectSuccess(
+        PostgresqlConnectionStringParser.parse(
+          'postgresql://owner:secret@ep-young-dew-123456.c-8.us-east-2.aws.neon.tech/neondb?sslmode=require',
+        ),
+      );
+
+      expect(result.host).toBe('ep-young-dew-123456.c-8.us-east-2.aws.neon.tech');
+    });
+
+    it('should keep pooler-named host outside Neon unchanged', () => {
+      const poolerNamedHosts = [
+        'db-pooler.example.com',
+        'ep-young-dew-123456-pooler.neon.tech.example.com',
+      ];
+
+      for (const poolerNamedHost of poolerNamedHosts) {
+        const result = expectSuccess(
+          PostgresqlConnectionStringParser.parse(`postgresql://user:secret@${poolerNamedHost}/db`),
+        );
+
+        expect(result.host).toBe(poolerNamedHost);
+      }
     });
   });
 

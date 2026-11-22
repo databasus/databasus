@@ -9,6 +9,7 @@ import {
   type DatabaseEditDraft,
   type DatabaseSettings,
   DatabaseType,
+  type ManagedPostgresqlProvider,
   type RestoreTargetDraft,
   toDatabaseSettingsTarget,
 } from '@/entities/databases';
@@ -31,6 +32,7 @@ interface CommonProps<Draft extends DatabaseConnectionDraft> {
   submitLabel: string;
   secondaryActions?: ReactNode;
   onConnectionErrorChange?: (hasConnectionError: boolean) => void;
+  managedPostgresqlProvider?: ManagedPostgresqlProvider;
 }
 
 interface RestoreOptionsProps {
@@ -124,6 +126,7 @@ export const DatabaseConnectionForm = (props: Props) => {
             {...editorProps}
             settings={settings}
             hasUserChosenSslMode={draft.hasUserChosenSslMode}
+            managedProvider={props.managedPostgresqlProvider}
             savedClientCertificate={getSavedClientCertificate(savedSettings)}
             restoreOptions={'restoreOptions' in props ? props.restoreOptions : undefined}
             onRestoreOptionsChange={

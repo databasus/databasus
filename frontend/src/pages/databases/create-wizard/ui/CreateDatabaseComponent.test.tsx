@@ -329,6 +329,121 @@ describe('CreateDatabaseComponent', () => {
     });
   });
 
+  describe.each([
+    {
+      provider: 'Neon',
+      hostExample: 'ep-young-dew-123456.us-east-2.aws.neon.tech',
+      usernameExample: 'neondb_owner',
+      databaseExample: 'neondb',
+    },
+    {
+      provider: 'Supabase',
+      hostExample: 'aws-0-eu-central-1.pooler.supabase.com',
+      usernameExample: 'postgres.abcdefghijklmnop',
+      databaseExample: 'postgres',
+    },
+  ])('for $provider', ({ provider, hostExample, usernameExample, databaseExample }) => {
+    it('tests a logical PostgreSQL connection without asking for the backup type', async () => {
+      const sentTests = recordSettingsTests();
+      mockServer.use(
+        mockApi.post('/limited-user-checks', 200, { isAdvisable: false, privileges: [] }),
+      );
+      renderWizard();
+
+      enterBaseInfo(provider);
+      fireEvent.change(await screen.findByPlaceholderText(hostExample), {
+        target: { value: 'db.example.com' },
+      });
+      fireEvent.change(screen.getByPlaceholderText(usernameExample), {
+        target: { value: 'backup' },
+      });
+      fireEvent.change(screen.getByPlaceholderText(`Enter ${provider} password`), {
+        target: { value: 'secret' },
+      });
+      fireEvent.change(screen.getByPlaceholderText(databaseExample), {
+        target: { value: 'shop' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+
+      await waitFor(() => expect(sentTests).toHaveLength(1));
+      expect(screen.queryByText('Physical')).toBeNull();
+      expect(sentTests[0].settings).toMatchObject({
+        type: 'POSTGRES_LOGICAL',
+        host: 'db.example.com',
+        username: 'backup',
+        password: 'secret',
+        database: 'shop',
+      });
+    });
+
+    it('returns to the engine step with the provider still chosen', async () => {
+      renderWizard();
+
+      enterBaseInfo(provider);
+      await screen.findByPlaceholderText(hostExample);
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+      expect(
+        (await screen.findByRole('button', { name: provider })).getAttribute('aria-pressed'),
+      ).toBe('true');
+      expect(screen.getByRole('button', { name: 'PostgreSQL' }).getAttribute('aria-pressed')).toBe(
+        'false',
+      );
+    });
+  });
+
+  describe('the Neon connection string', () => {
+    it('tests the direct host after a pooler connection string is pasted', async () => {
+      const sentTests = recordSettingsTests();
+      mockServer.use(
+        mockApi.post('/limited-user-checks', 200, { isAdvisable: false, privileges: [] }),
+      );
+      renderWizard();
+      stubClipboard(
+        async () =>
+          'postgresql://neondb_owner:neon-secret@ep-rough-mountain-123456-pooler.c-9.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+      );
+
+      enterBaseInfo('Neon');
+      fireEvent.click(await screen.findByRole('button', { name: 'Paste from clipboard' }));
+      await screen.findByDisplayValue('ep-rough-mountain-123456.c-9.us-east-2.aws.neon.tech');
+      fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+
+      await waitFor(() => expect(sentTests).toHaveLength(1));
+      expect(sentTests[0].settings).toMatchObject({
+        type: 'POSTGRES_LOGICAL',
+        host: 'ep-rough-mountain-123456.c-9.us-east-2.aws.neon.tech',
+        username: 'neondb_owner',
+        password: 'neon-secret',
+        database: 'neondb',
+        sslMode: 'require',
+      });
+    });
+
+    it('reports a clipboard text that is not a connection string and fills nothing', async () => {
+      renderWizard();
+      stubClipboard(async () => 'not a string');
+
+      enterBaseInfo('Neon');
+      fireEvent.click(await screen.findByRole('button', { name: 'Paste from clipboard' }));
+
+      expect(await screen.findByText('Unrecognized connection string format')).toBeTruthy();
+      expect(
+        screen.getByPlaceholderText<HTMLInputElement>('ep-young-dew-123456.us-east-2.aws.neon.tech')
+          .value,
+      ).toBe('');
+    });
+
+    it('is not offered for Supabase', async () => {
+      renderWizard();
+
+      enterBaseInfo('Supabase');
+
+      expect(await screen.findByRole('button', { name: 'Parse from clipboard' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Paste from clipboard' })).toBeNull();
+    });
+  });
+
   it('keeps the entered backup configuration after going back from the notifier step', async () => {
     declareWizardRequests();
     renderWizard();

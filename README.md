@@ -83,7 +83,7 @@ Databasus performs a real restore to confirm backups are usable, not just intact
 ### 🗄️ **Multiple storage destinations** <a href="https://databasus.com/storages">(view supported)</a>
 
 - **Local storage**: Keep backups on your VPS/server
-- **Cloud storage**: S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP and more
+- **Cloud storage**: S3, Azure Blob Storage, NAS, FTP, SFTP, Cloudflare R2, Neon Object Storage and more
 - **Secure**: All data stays under your control
 
 ### 📱 **Notifications** <a href="https://databasus.com/notifiers">(view supported)</a>
@@ -120,6 +120,7 @@ Databasus performs a real restore to confirm backups are usable, not just intact
 - **MySQL**: 5.7, 8.0, 8.4, 9 and 26 (logical only)
 - **MariaDB**: 5.5, 10, 11, 12 and 13 (logical only)
 - **MongoDB**: 4.2+, 5, 6, 7, 8 and 9 (logical only)
+- **Managed PostgreSQL**: [Neon](https://databasus.com/faq/neon) and [Supabase](https://databasus.com/faq/supabase)
 
 ### 🐳 **Self-hosted & secure**
 

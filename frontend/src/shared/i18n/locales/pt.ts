@@ -60,6 +60,7 @@ export const pt: typeof en = {
     websiteLink: 'Site do Databasus',
     confirmation: {
       title: 'Confirmação',
+      actionCountdown: '{{action}} ({{seconds}})',
     },
   },
   app: {
@@ -452,6 +453,12 @@ export const pt: typeof en = {
       connectionStringParsed: 'Campos preenchidos a partir da string de conexão',
       connectionStringParsedWithoutPassword:
         'Campos preenchidos a partir da string de conexão. Digite a senha manualmente.',
+      connectionStringPaste: {
+        title: 'Cole a string de conexão do {{provider}}',
+        pasteFromClipboard: 'Colar da área de transferência',
+        orEnterManually: 'ou informe os dados manualmente',
+        neonHint: 'No console do Neon, clique em Connect e copie a string.',
+      },
       connectionTestFailed: 'Não foi possível acessar o banco de dados: {{error}}',
       connectionTestPassed: {
         title: 'Conexão testada',
@@ -747,6 +754,11 @@ export const pt: typeof en = {
         summary:
           'Este cluster tem tablespaces fora de pg_default / pg_global, e os backups físicos não conseguem transmiti-los. Remova os tablespaces personalizados ou mude este banco de dados para backups lógicos.',
       },
+      physicalReplicationUnsupported: {
+        title: 'O Neon só suporta backups lógicos',
+        summary:
+          'O Neon não aceita conexões de replicação física, então este banco de dados não pode ter backup físico. Adicione-o novamente com o tipo de backup Lógico.',
+      },
       systemIdentifierMismatch: {
         title: 'Este é outro cluster',
         summary:
@@ -822,6 +834,8 @@ export const pt: typeof en = {
         attemptRetentionDays:
           'Por quantos dias guardar o histórico de verificações de disponibilidade',
       },
+      neonConfirmationDescription:
+        'Este banco de dados roda no Neon. O Neon suspende a computação quando ninguém está conectado e não a cobra enquanto ela está suspensa. Uma verificação por minuto mantém o banco de dados ativo, então a computação é cobrada o dia inteiro e sua fatura do Neon pode aumentar.',
     },
   },
   workspaces: {
@@ -2398,6 +2412,20 @@ export const pt: typeof en = {
       },
       s3: {
         cloudflareR2Guide: 'Como usar com o Cloudflare R2?',
+        neonPaste: {
+          title: 'Cole as credenciais do {{service}}',
+          hint: 'No Neon Console, clique em Connect, escolha Storage e copie o bloco .env. Gere uma credencial antes, para que o bloco traga as chaves.',
+          pasteFromClipboard: 'Colar da área de transferência',
+          orEnterManually: 'ou informe os dados manualmente',
+          clipboardEmpty: 'A área de transferência está vazia',
+          clipboardReadFailed:
+            'Não foi possível ler a área de transferência. Verifique as permissões do navegador.',
+          parsed: 'Campos preenchidos com as credenciais do Neon',
+          parsedWithoutKeys:
+            'Campos preenchidos, mas o bloco não traz as chaves. Gere uma credencial no Neon Console e cole o bloco novamente.',
+          notNeonCredentials: 'O texto não é um bloco de credenciais do Neon Object Storage',
+          guide: 'Como usar com o Neon Object Storage?',
+        },
         endpointTooltip:
           'URL de um endpoint compatível com S3 (opcional; deixe em branco para o AWS S3)',
         prefixTooltip:

@@ -34,6 +34,14 @@ const savedMysqlSettings: DatabaseSettings = {
   database: 'shop',
 };
 
+const savedLogicalSettings: DatabaseSettings = {
+  ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+  password: undefined,
+  host: 'db.example.com',
+  username: 'backup',
+  database: 'shop',
+};
+
 const savedPhysicalSettings: DatabaseSettings = {
   ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_PHYSICAL),
   password: undefined,
@@ -86,6 +94,24 @@ describe('DatabaseConnectionForm', () => {
       screen.getByText('no pg_hba.conf entry for replication connection from host "10.0.0.5"'),
     ).toBeTruthy();
     expect(screen.queryByText(/IP whitelist/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Submit draft' })).toBeNull();
+  });
+
+  it('explains that Neon supports only logical backups when a physical test is refused for Neon', async () => {
+    mockServer.use(
+      mockApi.post('/database-tests', 200, {
+        isConnected: false,
+        reason: 'PHYSICAL_REPLICATION_UNSUPPORTED',
+        error: 'Neon supports only logical backups: it accepts no physical replication connections',
+      }),
+    );
+    renderEditableForm(buildEditDraft(savedPhysicalSettings));
+
+    clickTest();
+
+    expect(await screen.findByText('Neon supports only logical backups')).toBeTruthy();
+    expect(screen.getByText(/Add it again with the Logical backup type/)).toBeTruthy();
+    expect(screen.queryByText(/pg_hba\.conf/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Submit draft' })).toBeNull();
   });
 
@@ -196,6 +222,31 @@ describe('DatabaseConnectionForm', () => {
 
     await waitFor(() => expect(getHostInput().value).toBe('imported.example.com'));
     expect(document.activeElement).toBe(importControl);
+  });
+
+  it('fills the direct host with no message when a Neon pooler string is imported', async () => {
+    renderEditableForm(buildCreateDraft(savedLogicalSettings));
+    stubClipboard(
+      async () =>
+        'postgresql://owner:secret@ep-young-dew-123456-pooler.c-8.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Parse from clipboard' }));
+
+    await waitFor(() =>
+      expect(getHostInput().value).toBe('ep-young-dew-123456.c-8.us-east-2.aws.neon.tech'),
+    );
+    expect((screen.getByLabelText('Username') as HTMLInputElement).value).toBe('owner');
+    expect(screen.queryByText(/pooler/i)).toBeNull();
+  });
+
+  it('keeps a Neon pooler host typed into the host field', () => {
+    renderEditableForm(buildCreateDraft(savedLogicalSettings));
+    const typedPoolerHost = 'ep-young-dew-123456-pooler.c-8.us-east-2.aws.neon.tech';
+
+    fireEvent.change(getHostInput(), { target: { value: typedPoolerHost } });
+
+    expect(getHostInput().value).toBe(typedPoolerHost);
   });
 
   it('offers a manual paste when the clipboard API is unavailable and imports the pasted string', async () => {

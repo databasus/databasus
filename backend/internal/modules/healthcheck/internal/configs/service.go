@@ -42,18 +42,25 @@ func NewService(deps Deps) *Service {
 	}
 }
 
-func (s *Service) GetConfig(ctx context.Context, actor users.Actor, id uuid.UUID) (Config, error) {
+func (s *Service) GetConfig(ctx context.Context, actor users.Actor, id uuid.UUID) (ConfigView, error) {
 	if _, err := s.Authorize(
 		ctx,
 		Authorization{Actor: actor, DatabaseID: id, Action: workspaces.ActionView},
 	); err != nil {
-		return Config{}, err
+		return ConfigView{}, err
 	}
 
-	return s.GetCurrentConfig(ctx, id)
+	config, err := s.GetCurrentConfig(ctx, id)
+	if err != nil {
+		return ConfigView{}, err
+	}
+
+	return s.getView(ctx, config)
 }
 
-func (s *Service) SaveConfig(ctx context.Context, actor users.Actor, config Config) (Config, error) {
+func (s *Service) SaveConfig(ctx context.Context, actor users.Actor, config Config) (ConfigView, error) {
+	var savedView ConfigView
+
 	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		authorizedDatabase, err := s.Authorize(
 			ctx,
@@ -87,6 +94,11 @@ func (s *Service) SaveConfig(ctx context.Context, actor users.Actor, config Conf
 			return err
 		}
 
+		savedView, err = s.getView(ctx, config)
+		if err != nil {
+			return err
+		}
+
 		if !config.IsHealthcheckEnabled {
 			if err := s.databases.SetHealthStatus(ctx, config.DatabaseID, nil); err != nil {
 				return err
@@ -111,7 +123,11 @@ func (s *Service) SaveConfig(ctx context.Context, actor users.Actor, config Conf
 			},
 		)
 	})
-	return config, err
+	if err != nil {
+		return ConfigView{}, err
+	}
+
+	return savedView, nil
 }
 
 func (s *Service) ListDue(ctx context.Context, now time.Time) ([]Config, error) {
@@ -119,7 +135,12 @@ func (s *Service) ListDue(ctx context.Context, now time.Time) ([]Config, error) 
 }
 
 func (s *Service) OnDatabaseCreated(ctx context.Context, event databases.DatabaseCreated) error {
-	return s.repository.save(ctx, GetDefaultConfig(event.DatabaseID))
+	isNeonHost, err := s.databases.IsNeonHost(ctx, event.DatabaseID)
+	if err != nil {
+		return err
+	}
+
+	return s.repository.save(ctx, GetDefaultConfig(event.DatabaseID, isNeonHost))
 }
 
 func (s *Service) OnDatabaseCopied(ctx context.Context, event databases.DatabaseCopied) error {
@@ -146,4 +167,13 @@ func (s *Service) GetCurrentConfig(ctx context.Context, id uuid.UUID) (Config, e
 	}
 
 	return config, nil
+}
+
+func (s *Service) getView(ctx context.Context, config Config) (ConfigView, error) {
+	isNeonHost, err := s.databases.IsNeonHost(ctx, config.DatabaseID)
+	if err != nil {
+		return ConfigView{}, err
+	}
+
+	return ConfigView{Config: config, ShouldConfirmEnabling: isNeonHost}, nil
 }

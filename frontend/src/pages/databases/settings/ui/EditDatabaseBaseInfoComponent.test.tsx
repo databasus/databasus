@@ -31,7 +31,7 @@ describe('EditDatabaseBaseInfoComponent', () => {
 
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
-    expect(onContinue).toHaveBeenCalledWith('Shop', DatabaseType.MYSQL);
+    expect(onContinue).toHaveBeenCalledWith('Shop', DatabaseType.MYSQL, undefined);
   });
 
   it('connects the name label to its field', () => {

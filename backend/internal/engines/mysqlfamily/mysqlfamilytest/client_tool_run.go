@@ -54,7 +54,11 @@ func RunClientTool(t *testing.T, toolPath string, args []string) string {
 }
 
 // IsConnectionFailure reports whether the tool got as far as dialing the server, which it does only
-// after it accepted every argument.
+// after it accepted every argument. The released port of GetClosedPort can be taken by another
+// process of a parallel run before the tool dials it; the tool then reaches a socket that drops the
+// handshake and reports error 2013 instead of 2003, which proves the same.
 func IsConnectionFailure(toolOutput string) bool {
-	return strings.Contains(toolOutput, "Can't connect")
+	return strings.Contains(toolOutput, "Can't connect") ||
+		strings.Contains(toolOutput, "Lost connection to") &&
+			strings.Contains(toolOutput, "reading initial communication packet")
 }

@@ -864,6 +864,17 @@ export default function Index() {
                 PostgreSQL is the primary database supported by Databasus. All
                 versions from 12 to 18 are supported
               </p>
+
+              <p className="text-gray-400 text-sm md:text-base text-center mb-4">
+                Managed PostgreSQL works too, including{" "}
+                <a href={getLocalizedHref("en", "faq/neon")} className="text-blue-500 hover:text-blue-600">
+                  Neon
+                </a>{" "}
+                and{" "}
+                <a href={getLocalizedHref("en", "faq/supabase")} className="text-blue-500 hover:text-blue-600">
+                  Supabase
+                </a>
+              </p>
             </div>
 
             {/* MySQL */}

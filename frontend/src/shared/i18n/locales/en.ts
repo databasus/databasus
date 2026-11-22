@@ -60,6 +60,7 @@ export const en = {
     websiteLink: 'Databasus website',
     confirmation: {
       title: 'Confirmation',
+      actionCountdown: '{{action}} ({{seconds}})',
     },
   },
   app: {
@@ -444,6 +445,12 @@ export const en = {
       connectionStringParsed: 'Connection string parsed successfully',
       connectionStringParsedWithoutPassword:
         'Connection string parsed successfully. Please enter the password manually.',
+      connectionStringPaste: {
+        title: 'Paste the connection string from {{provider}}',
+        pasteFromClipboard: 'Paste from clipboard',
+        orEnterManually: 'or enter the details manually',
+        neonHint: 'In the Neon console, click Connect and copy the snippet.',
+      },
       connectionTestFailed: 'The database could not be reached: {{error}}',
       connectionTestPassed: {
         title: 'Connection test passed',
@@ -727,6 +734,11 @@ export const en = {
         summary:
           'This cluster has tablespaces outside pg_default / pg_global, which physical backups cannot stream. Drop the custom tablespaces, or switch this database to logical backups.',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon supports only logical backups',
+        summary:
+          'Neon accepts no physical replication connections, so this database cannot be backed up physically. Add it again with the Logical backup type.',
+      },
       systemIdentifierMismatch: {
         title: 'This is a different cluster',
         summary:
@@ -800,6 +812,8 @@ export const en = {
         attemptsBeforeDown: 'Number of failed attempts before marking database as down',
         attemptRetentionDays: 'How many days to store health check attempt history',
       },
+      neonConfirmationDescription:
+        'This database runs on Neon. Neon puts its compute to sleep when nobody is connected and does not bill compute while it sleeps. A check every minute keeps the database awake, so its compute is billed around the clock and your Neon bill can grow.',
     },
   },
   workspaces: {
@@ -2353,6 +2367,19 @@ export const en = {
       },
       s3: {
         cloudflareR2Guide: 'How to use with Cloudflare R2?',
+        neonPaste: {
+          title: 'Paste the credentials from {{service}}',
+          hint: 'In Neon Console, click Connect, choose Storage and copy the .env block. Generate a credential first, so the block holds the keys.',
+          pasteFromClipboard: 'Paste from clipboard',
+          orEnterManually: 'or enter the details manually',
+          clipboardEmpty: 'Clipboard is empty',
+          clipboardReadFailed: 'Failed to read clipboard. Please check browser permissions.',
+          parsed: 'Fields filled from the Neon credentials',
+          parsedWithoutKeys:
+            'Fields filled, but the block holds no keys. Generate a credential in Neon Console and paste the block again.',
+          notNeonCredentials: 'The text is not a Neon Object Storage credentials block',
+          guide: 'How to use with Neon Object Storage?',
+        },
         endpointTooltip: 'Custom S3-compatible endpoint URL (optional, leave empty for AWS S3)',
         prefixTooltip:
           "Optional prefix for all object keys (e.g., 'backups/' or 'my_team/'). May not work with some S3-compatible storages. Cannot be changed after creation (otherwise backups will be lost).",

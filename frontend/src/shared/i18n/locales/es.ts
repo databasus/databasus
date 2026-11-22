@@ -60,6 +60,7 @@ export const es: typeof en = {
     websiteLink: 'Sitio web de Databasus',
     confirmation: {
       title: 'Confirmación',
+      actionCountdown: '{{action}} ({{seconds}})',
     },
   },
   app: {
@@ -458,6 +459,12 @@ export const es: typeof en = {
       connectionStringParsed: 'Campos rellenados a partir de la cadena de conexión',
       connectionStringParsedWithoutPassword:
         'Campos rellenados a partir de la cadena de conexión. Introduzca la contraseña manualmente.',
+      connectionStringPaste: {
+        title: 'Pegue la cadena de conexión de {{provider}}',
+        pasteFromClipboard: 'Pegar desde el portapapeles',
+        orEnterManually: 'o introduzca los datos manualmente',
+        neonHint: 'En la consola de Neon, pulse Connect y copie la cadena.',
+      },
       connectionTestFailed: 'No se pudo acceder a la base de datos: {{error}}',
       connectionTestPassed: {
         title: 'Conexión comprobada',
@@ -755,6 +762,11 @@ export const es: typeof en = {
         summary:
           'Este clúster tiene tablespaces fuera de pg_default / pg_global, y las copias físicas no pueden transmitirlos. Elimine los tablespaces personalizados o cambie esta base de datos a copias lógicas.',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon solo admite copias lógicas',
+        summary:
+          'Neon no acepta conexiones de replicación física, así que esta base de datos no admite copias físicas. Agréguela de nuevo con el tipo de copia «Lógica».',
+      },
       systemIdentifierMismatch: {
         title: 'Es un clúster distinto',
         summary:
@@ -831,6 +843,8 @@ export const es: typeof en = {
         attemptRetentionDays:
           'Cuántos días se guarda el historial de comprobaciones de disponibilidad',
       },
+      neonConfirmationDescription:
+        'Esta base de datos funciona en Neon. Neon suspende su cómputo cuando nadie está conectado y no lo cobra mientras está suspendido. Una comprobación por minuto mantiene la base de datos activa, así que el cómputo se cobra todo el día y tu factura de Neon puede aumentar.',
     },
   },
   workspaces: {
@@ -2420,6 +2434,20 @@ export const es: typeof en = {
       },
       s3: {
         cloudflareR2Guide: '¿Cómo usarlo con Cloudflare R2?',
+        neonPaste: {
+          title: 'Pegue las credenciales de {{service}}',
+          hint: 'En Neon Console, pulse Connect, elija Storage y copie el bloque .env. Genere antes una credencial para que el bloque incluya las claves.',
+          pasteFromClipboard: 'Pegar desde el portapapeles',
+          orEnterManually: 'o introduzca los datos manualmente',
+          clipboardEmpty: 'El portapapeles está vacío',
+          clipboardReadFailed:
+            'No se pudo leer el portapapeles. Revise los permisos del navegador.',
+          parsed: 'Campos rellenados con las credenciales de Neon',
+          parsedWithoutKeys:
+            'Campos rellenados, pero el bloque no incluye las claves. Genere una credencial en Neon Console y vuelva a pegar el bloque.',
+          notNeonCredentials: 'El texto no es un bloque de credenciales de Neon Object Storage',
+          guide: '¿Cómo usarlo con Neon Object Storage?',
+        },
         endpointTooltip:
           'URL de un endpoint compatible con S3 (opcional; déjelo vacío para AWS S3)',
         prefixTooltip:

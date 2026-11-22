@@ -129,17 +129,18 @@ func (e BackupEncryption) Valid() bool {
 
 // Defines values for DatabaseConnectionFailure.
 const (
-	DatabaseConnectionFailureBADCREDENTIALS           DatabaseConnectionFailure = "BAD_CREDENTIALS"
-	DatabaseConnectionFailureCONNECTIONFAILED         DatabaseConnectionFailure = "CONNECTION_FAILED"
-	DatabaseConnectionFailureCUSTOMTABLESPACES        DatabaseConnectionFailure = "CUSTOM_TABLESPACES"
-	DatabaseConnectionFailureNOREPLICATIONPRIVILEGE   DatabaseConnectionFailure = "NO_REPLICATION_PRIVILEGE"
-	DatabaseConnectionFailureNOREPLICATIONSLOTS       DatabaseConnectionFailure = "NO_REPLICATION_SLOTS"
-	DatabaseConnectionFailureNOWALSENDERS             DatabaseConnectionFailure = "NO_WAL_SENDERS"
-	DatabaseConnectionFailureNOWALSWITCHPRIVILEGE     DatabaseConnectionFailure = "NO_WAL_SWITCH_PRIVILEGE"
-	DatabaseConnectionFailurePGHBANOENTRY             DatabaseConnectionFailure = "PG_HBA_NO_ENTRY"
-	DatabaseConnectionFailureSYSTEMIDENTIFIERMISMATCH DatabaseConnectionFailure = "SYSTEM_IDENTIFIER_MISMATCH"
-	DatabaseConnectionFailureWALLEVELINVALID          DatabaseConnectionFailure = "WAL_LEVEL_INVALID"
-	DatabaseConnectionFailureWALSUMMARYDISABLED       DatabaseConnectionFailure = "WAL_SUMMARY_DISABLED"
+	DatabaseConnectionFailureBADCREDENTIALS                 DatabaseConnectionFailure = "BAD_CREDENTIALS"
+	DatabaseConnectionFailureCONNECTIONFAILED               DatabaseConnectionFailure = "CONNECTION_FAILED"
+	DatabaseConnectionFailureCUSTOMTABLESPACES              DatabaseConnectionFailure = "CUSTOM_TABLESPACES"
+	DatabaseConnectionFailureNOREPLICATIONPRIVILEGE         DatabaseConnectionFailure = "NO_REPLICATION_PRIVILEGE"
+	DatabaseConnectionFailureNOREPLICATIONSLOTS             DatabaseConnectionFailure = "NO_REPLICATION_SLOTS"
+	DatabaseConnectionFailureNOWALSENDERS                   DatabaseConnectionFailure = "NO_WAL_SENDERS"
+	DatabaseConnectionFailureNOWALSWITCHPRIVILEGE           DatabaseConnectionFailure = "NO_WAL_SWITCH_PRIVILEGE"
+	DatabaseConnectionFailurePGHBANOENTRY                   DatabaseConnectionFailure = "PG_HBA_NO_ENTRY"
+	DatabaseConnectionFailurePHYSICALREPLICATIONUNSUPPORTED DatabaseConnectionFailure = "PHYSICAL_REPLICATION_UNSUPPORTED"
+	DatabaseConnectionFailureSYSTEMIDENTIFIERMISMATCH       DatabaseConnectionFailure = "SYSTEM_IDENTIFIER_MISMATCH"
+	DatabaseConnectionFailureWALLEVELINVALID                DatabaseConnectionFailure = "WAL_LEVEL_INVALID"
+	DatabaseConnectionFailureWALSUMMARYDISABLED             DatabaseConnectionFailure = "WAL_SUMMARY_DISABLED"
 )
 
 // Valid indicates whether the value is a known member of the DatabaseConnectionFailure enum.
@@ -160,6 +161,8 @@ func (e DatabaseConnectionFailure) Valid() bool {
 	case DatabaseConnectionFailureNOWALSWITCHPRIVILEGE:
 		return true
 	case DatabaseConnectionFailurePGHBANOENTRY:
+		return true
+	case DatabaseConnectionFailurePHYSICALREPLICATIONUNSUPPORTED:
 		return true
 	case DatabaseConnectionFailureSYSTEMIDENTIFIERMISMATCH:
 		return true
@@ -2716,6 +2719,12 @@ type HealthcheckConfig struct {
 
 	// IsNotificationEnabled Whether status changes send notifications
 	IsNotificationEnabled bool `json:"isNotificationEnabled"`
+
+	// ShouldConfirmEnabling Whether a person switching the checks on should confirm it first. True while the configured
+	// database host, not the SSH tunnel's address, belongs to Neon: its compute sleeps while idle
+	// and is billed only while awake, and the checks keep it awake. Computed from the current host on
+	// every answer; it never restricts a save.
+	ShouldConfirmEnabling bool `json:"shouldConfirmEnabling"`
 }
 
 // HealthcheckConfigInput All editable settings for scheduled availability checks

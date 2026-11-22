@@ -2,7 +2,11 @@ import { Button, Loader } from '@mantine/core';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { Database, RestoreTargetDraft } from '@/entities/databases';
+import {
+  type Database,
+  type RestoreTargetDraft,
+  getManagedPostgresqlProviderFromHost,
+} from '@/entities/databases';
 import {
   type PostgresqlRestoreOptions,
   type Restore,
@@ -119,6 +123,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
           onDraftChange={setTargetDraft}
           restoreOptions={restoreOptions}
           onRestoreOptionsChange={setRestoreOptions}
+          managedPostgresqlProvider={getManagedPostgresqlProviderFromHost(database.settings.host)}
           submitLabel={t('restores.targetDatabase.submit')}
           onSubmit={startRestore}
         />

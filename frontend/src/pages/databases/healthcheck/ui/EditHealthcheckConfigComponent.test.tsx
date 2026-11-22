@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
 import { healthcheckConfigApi } from '@/entities/healthcheck';
 import { EditHealthcheckConfigComponent } from '@/pages/databases/healthcheck/ui/EditHealthcheckConfigComponent';
@@ -23,6 +23,7 @@ const config: ApiComponents['schemas']['HealthcheckConfig'] = {
   intervalMinutes: 1,
   failedAttemptsBeforeUnavailable: 3,
   attemptRetentionDays: 7,
+  shouldConfirmEnabling: false,
 };
 const secondDatabaseConfig = { ...config, databaseId: SECOND_DATABASE_ID, intervalMinutes: 29 };
 const ANSWER_OUTCOMES = [
@@ -35,6 +36,7 @@ const ANSWER_OUTCOMES = [
     buildAnswer: () => HttpResponse.json(buildProblem('permission_denied', 403), { status: 403 }),
   },
 ];
+const neonConfig = { ...config, isHealthcheckEnabled: false, shouldConfirmEnabling: true };
 const configPath = (id: string) => `*${API_BASE_PATH}/healthcheck-configs/${id}`;
 const getIntervalField = async () =>
   (await screen.findAllByRole('spinbutton'))[0] as HTMLInputElement;
@@ -261,5 +263,147 @@ describe('EditHealthcheckConfigComponent', () => {
         expect(onClose).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('Neon confirmation', () => {
+    const useFakeIntervals = () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
+    };
+    const getEnableSwitch = () =>
+      screen.findByRole('switch', { name: 'Enable healthcheck' }) as Promise<HTMLInputElement>;
+    const getConfirmButton = (name: string) =>
+      within(screen.getByRole('dialog')).getByRole('button', { name }) as HTMLButtonElement;
+
+    it('keeps the switch off and the confirm button locked with a countdown for 10 seconds', async () => {
+      useFakeIntervals();
+      mockServer.use(mockApi.get('/healthcheck-configs/{databaseId}', 200, neonConfig));
+
+      const { user } = renderScreen(
+        <EditHealthcheckConfigComponent databaseId={databaseId} onClose={vi.fn()} />,
+      );
+      await user.click(await getEnableSwitch());
+
+      expect(screen.getByRole('dialog').textContent).toContain('Neon');
+      expect((await getEnableSwitch()).checked).toBe(false);
+      expect(getConfirmButton('Enable healthcheck (10)').disabled).toBe(true);
+
+      act(() => vi.advanceTimersByTime(9_000));
+
+      expect(getConfirmButton('Enable healthcheck (1)').disabled).toBe(true);
+    });
+
+    it('turns the checks on and saves them without the confirmation flag after the wait and a confirmation', async () => {
+      useFakeIntervals();
+      const savedBodies: unknown[] = [];
+      mockServer.use(
+        mockApi.get('/healthcheck-configs/{databaseId}', 200, neonConfig),
+        http.put(configPath(databaseId), async ({ request }) => {
+          savedBodies.push(await request.json());
+          return HttpResponse.json({ ...neonConfig, isHealthcheckEnabled: true });
+        }),
+      );
+
+      const { user } = renderScreen(
+        <EditHealthcheckConfigComponent databaseId={databaseId} onClose={vi.fn()} />,
+      );
+      await user.click(await getEnableSwitch());
+      act(() => vi.advanceTimersByTime(10_000));
+      await user.click(getConfirmButton('Enable healthcheck'));
+
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect((await getEnableSwitch()).checked).toBe(true);
+      expect((await getIntervalField()).value).toBe('1');
+
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(savedBodies).toHaveLength(1));
+      expect(savedBodies[0]).toEqual({
+        isHealthcheckEnabled: true,
+        isNotificationEnabled: true,
+        intervalMinutes: 1,
+        failedAttemptsBeforeUnavailable: 3,
+        attemptRetentionDays: 7,
+      });
+    });
+
+    it('keeps the switch off and offers no save when the dialog is cancelled', async () => {
+      mockServer.use(mockApi.get('/healthcheck-configs/{databaseId}', 200, neonConfig));
+
+      const { user } = renderScreen(
+        <EditHealthcheckConfigComponent databaseId={databaseId} onClose={vi.fn()} />,
+      );
+      await user.click(await getEnableSwitch());
+      await user.click(getConfirmButton('Cancel'));
+
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect((await getEnableSwitch()).checked).toBe(false);
+      expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    });
+
+    it.each([
+      { control: 'its close control', close: () => fireEvent.click(getConfirmButton('Close')) },
+      {
+        control: 'Escape',
+        close: () => fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' }),
+      },
+    ])(
+      'keeps the switch off and offers no save when the dialog is closed with $control',
+      async ({ close }) => {
+        mockServer.use(mockApi.get('/healthcheck-configs/{databaseId}', 200, neonConfig));
+
+        const { user } = renderScreen(
+          <EditHealthcheckConfigComponent databaseId={databaseId} onClose={vi.fn()} />,
+        );
+        await user.click(await getEnableSwitch());
+        close();
+
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        expect((await getEnableSwitch()).checked).toBe(false);
+        expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+      },
+    );
+
+    it('keeps an earlier unsaved change offered when the dialog is cancelled', async () => {
+      mockServer.use(
+        mockApi.get('/healthcheck-configs/{databaseId}', 200, {
+          ...neonConfig,
+          isHealthcheckEnabled: true,
+        }),
+      );
+
+      const { user } = renderScreen(
+        <EditHealthcheckConfigComponent databaseId={databaseId} onClose={vi.fn()} />,
+      );
+      await user.click(await getEnableSwitch());
+
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect((await getEnableSwitch()).checked).toBe(false);
+
+      await user.click(await getEnableSwitch());
+      await user.click(getConfirmButton('Cancel'));
+
+      expect((await getEnableSwitch()).checked).toBe(false);
+      expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+    });
+
+    it('turns the checks on at once without a dialog when the config needs no confirmation', async () => {
+      mockServer.use(
+        mockApi.get('/healthcheck-configs/{databaseId}', 200, {
+          ...config,
+          isHealthcheckEnabled: false,
+        }),
+      );
+
+      const { user } = renderScreen(
+        <EditHealthcheckConfigComponent databaseId={databaseId} onClose={vi.fn()} />,
+      );
+      await user.click(await getEnableSwitch());
+
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect((await getEnableSwitch()).checked).toBe(true);
+    });
   });
 });

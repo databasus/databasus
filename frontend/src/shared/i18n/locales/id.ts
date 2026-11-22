@@ -49,7 +49,7 @@ export const id: typeof en = {
     },
     listSeparator: ', ',
     websiteLink: 'Situs web Databasus',
-    confirmation: { title: 'Konfirmasi' },
+    confirmation: { title: 'Konfirmasi', actionCountdown: '{{action}} ({{seconds}})' },
   },
   app: {
     documentTitle: 'Databasus - backup database (PostgreSQL, MySQL, MongoDB)',
@@ -407,6 +407,12 @@ export const id: typeof en = {
       connectionStringParsed: 'Connection string berhasil dibaca',
       connectionStringParsedWithoutPassword:
         'Connection string berhasil dibaca. Masukkan kata sandi secara manual.',
+      connectionStringPaste: {
+        title: 'Tempel connection string dari {{provider}}',
+        pasteFromClipboard: 'Tempel dari clipboard',
+        orEnterManually: 'atau isi detailnya secara manual',
+        neonHint: 'Di konsol Neon, klik Connect lalu salin string-nya.',
+      },
       connectionTestFailed: 'Database tidak dapat dijangkau: {{error}}',
       connectionTestPassed: {
         title: 'Uji koneksi berhasil',
@@ -694,6 +700,11 @@ export const id: typeof en = {
         summary:
           'Cluster ini memiliki tablespace di luar pg_default / pg_global yang tidak bisa di-stream oleh backup fisik. Hapus tablespace khusus atau ubah database ini ke backup logis.',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon hanya mendukung backup logis',
+        summary:
+          'Neon tidak menerima koneksi replikasi fisik, jadi database ini tidak bisa di-backup secara fisik. Tambahkan lagi dengan jenis backup Logis.',
+      },
       systemIdentifierMismatch: {
         title: 'Ini adalah cluster yang berbeda',
         summary:
@@ -765,6 +776,8 @@ export const id: typeof en = {
         attemptsBeforeDown: 'Jumlah pemeriksaan gagal sebelum database ditandai tidak tersedia',
         attemptRetentionDays: 'Jumlah hari penyimpanan riwayat pemeriksaan ketersediaan',
       },
+      neonConfirmationDescription:
+        'Database ini berjalan di Neon. Neon menidurkan komputasinya saat tidak ada yang terhubung dan tidak menagih komputasi selama tidur. Pemeriksaan setiap menit membuat database tetap aktif, sehingga komputasi ditagih sepanjang hari dan tagihan Neon Anda bisa bertambah.',
     },
   },
   workspaces: {
@@ -2250,6 +2263,19 @@ export const id: typeof en = {
       },
       s3: {
         cloudflareR2Guide: 'Bagaimana cara menggunakan Cloudflare R2?',
+        neonPaste: {
+          title: 'Tempel kredensial dari {{service}}',
+          hint: 'Di Neon Console, klik Connect, pilih Storage, lalu salin blok .env. Buat kredensial terlebih dahulu agar blok berisi kuncinya.',
+          pasteFromClipboard: 'Tempel dari clipboard',
+          orEnterManually: 'atau isi detailnya secara manual',
+          clipboardEmpty: 'Clipboard kosong',
+          clipboardReadFailed: 'Gagal membaca clipboard. Periksa izin browser.',
+          parsed: 'Kolom diisi dari kredensial Neon',
+          parsedWithoutKeys:
+            'Kolom sudah diisi, tetapi blok tidak berisi kunci. Buat kredensial di Neon Console lalu tempel blok lagi.',
+          notNeonCredentials: 'Teks ini bukan blok kredensial Neon Object Storage',
+          guide: 'Bagaimana cara menggunakan Neon Object Storage?',
+        },
         endpointTooltip:
           'URL endpoint khusus yang kompatibel dengan S3 (opsional, kosongkan untuk AWS S3)',
         prefixTooltip:

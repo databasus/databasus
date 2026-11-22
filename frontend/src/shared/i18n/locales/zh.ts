@@ -60,6 +60,7 @@ export const zh: typeof en = {
     websiteLink: 'Databasus 网站',
     confirmation: {
       title: '确认',
+      actionCountdown: '{{action}}（{{seconds}}）',
     },
   },
   app: {
@@ -422,6 +423,12 @@ export const zh: typeof en = {
       clipboardReadFailed: '无法读取剪贴板。请检查浏览器权限。',
       connectionStringParsed: '已解析连接字符串',
       connectionStringParsedWithoutPassword: '已解析连接字符串，请手动输入密码。',
+      connectionStringPaste: {
+        title: '粘贴 {{provider}} 的连接字符串',
+        pasteFromClipboard: '从剪贴板粘贴',
+        orEnterManually: '或手动填写连接信息',
+        neonHint: '在 Neon 控制台中点击 Connect 并复制连接字符串。',
+      },
       connectionTestFailed: '无法连接到数据库：{{error}}',
       connectionTestPassed: {
         title: '连接测试通过',
@@ -690,6 +697,11 @@ export const zh: typeof en = {
         summary:
           '该集群有 pg_default / pg_global 之外的表空间，物理备份无法传输它们。请删除自定义表空间，或把这个数据库改为逻辑备份。',
       },
+      physicalReplicationUnsupported: {
+        title: 'Neon 只支持逻辑备份',
+        summary:
+          'Neon 不接受物理复制连接，因此无法对这个数据库做物理备份。请重新添加它，并选择“逻辑备份”类型。',
+      },
       systemIdentifierMismatch: {
         title: '这是另一个集群',
         summary:
@@ -761,6 +773,8 @@ export const zh: typeof en = {
         attemptsBeforeDown: '失败多少次后将数据库标记为不可用',
         attemptRetentionDays: '可用性检查记录保留多少天',
       },
+      neonConfirmationDescription:
+        '此数据库运行在 Neon 上。没有连接时，Neon 会让计算资源休眠，休眠期间不收取计算费用。每分钟一次的检查会让数据库一直保持唤醒，计算资源将全天计费，你的 Neon 账单可能因此增加。',
     },
   },
   workspaces: {
@@ -2240,6 +2254,19 @@ export const zh: typeof en = {
       },
       s3: {
         cloudflareR2Guide: '如何配合 Cloudflare R2 使用？',
+        neonPaste: {
+          title: '粘贴 {{service}} 的凭据',
+          hint: '在 Neon Console 中点击 Connect，选择 Storage 并复制 .env 块。请先生成凭据，块中才会包含密钥。',
+          pasteFromClipboard: '从剪贴板粘贴',
+          orEnterManually: '或手动填写信息',
+          clipboardEmpty: '剪贴板为空',
+          clipboardReadFailed: '无法读取剪贴板。请检查浏览器权限。',
+          parsed: '已根据 Neon 凭据填写字段',
+          parsedWithoutKeys:
+            '已填写字段，但块中没有密钥。请在 Neon Console 中生成凭据，然后重新粘贴。',
+          notNeonCredentials: '该文本不是 Neon Object Storage 的凭据块',
+          guide: '如何配合 Neon Object Storage 使用？',
+        },
         endpointTooltip: '自定义 S3 兼容端点的 URL（可选，使用 AWS S3 时留空）',
         prefixTooltip:
           "所有对象键的可选前缀（例如 'backups/' 或 'my_team/'）。部分 S3 兼容存储可能不支持。创建后无法修改（否则会丢失备份）。",

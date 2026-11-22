@@ -13,6 +13,7 @@ databasus-backend/internal/modules/storages/internal/providers
 databasus-backend/internal/modules/backups/e2e/postgresqlphysical/pg17
 databasus-backend/internal/modules/backups/e2e/postgresql
 databasus-backend/internal/modules/backups/e2e/mariadb
+databasus-backend/internal/modules/backups/e2e/postgresql/neon
 databasus-backend/internal/app/apptest
 databasus-backend/internal/engines/mysql
 databasus-backend/internal/engines/mongodb

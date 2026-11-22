@@ -2020,6 +2020,13 @@ export interface components {
             failedAttemptsBeforeUnavailable: number;
             /** @description How many days of attempts to keep */
             attemptRetentionDays: number;
+            /**
+             * @description Whether a person switching the checks on should confirm it first. True while the configured
+             *     database host, not the SSH tunnel's address, belongs to Neon: its compute sleeps while idle
+             *     and is billed only while awake, and the checks keep it awake. Computed from the current host on
+             *     every answer; it never restricts a save.
+             */
+            shouldConfirmEnabling: boolean;
         };
         /** @description One recorded availability check */
         HealthcheckAttempt: {
@@ -3066,7 +3073,7 @@ export interface components {
          * @description The class of a failed connection where the type tells it, absent for any other failure
          * @enum {string}
          */
-        DatabaseConnectionFailure: "CONNECTION_FAILED" | "PG_HBA_NO_ENTRY" | "BAD_CREDENTIALS" | "NO_REPLICATION_PRIVILEGE" | "WAL_LEVEL_INVALID" | "NO_WAL_SENDERS" | "NO_REPLICATION_SLOTS" | "WAL_SUMMARY_DISABLED" | "CUSTOM_TABLESPACES" | "SYSTEM_IDENTIFIER_MISMATCH" | "NO_WAL_SWITCH_PRIVILEGE";
+        DatabaseConnectionFailure: "CONNECTION_FAILED" | "PG_HBA_NO_ENTRY" | "BAD_CREDENTIALS" | "NO_REPLICATION_PRIVILEGE" | "WAL_LEVEL_INVALID" | "NO_WAL_SENDERS" | "NO_REPLICATION_SLOTS" | "WAL_SUMMARY_DISABLED" | "CUSTOM_TABLESPACES" | "SYSTEM_IDENTIFIER_MISMATCH" | "NO_WAL_SWITCH_PRIVILEGE" | "PHYSICAL_REPLICATION_UNSUPPORTED";
         /** @description Whether the connecting user may do more than a backup needs */
         LimitedUserCheck: {
             /** @description Whether a limited user is advisable */

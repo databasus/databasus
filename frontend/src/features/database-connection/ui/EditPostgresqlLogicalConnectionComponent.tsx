@@ -3,9 +3,13 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
+  MANAGED_POSTGRESQL_PROVIDERS,
+  type ManagedPostgresqlProvider,
   POSTGRESQL_SHORT_NAME,
   PostgresqlConnectionStringParser,
+  type PostgresqlConnectionStringParseResult,
   type PostgresqlLogicalSettings,
+  getManagedPostgresqlProviderFromHost,
 } from '@/entities/databases';
 import type { PostgresqlRestoreOptions } from '@/entities/restores';
 import type { ConnectionEditorProps } from '@/features/database-connection/lib/ConnectionEditorProps';
@@ -20,6 +24,7 @@ import { ConnectionFieldTooltip } from '@/features/database-connection/ui/Connec
 import { ConnectionHostHint } from '@/features/database-connection/ui/ConnectionHostHint';
 import { ConnectionStringImport } from '@/features/database-connection/ui/ConnectionStringImport';
 import { EditSshTunnelComponent } from '@/features/database-connection/ui/EditSshTunnelComponent';
+import { ManagedConnectionStringPaste } from '@/features/database-connection/ui/ManagedConnectionStringPaste';
 import { PostgresqlCertificateFields } from '@/features/database-connection/ui/PostgresqlCertificateFields';
 import { PostgresqlSslModeField } from '@/features/database-connection/ui/PostgresqlSslModeField';
 import type { TranslationKey } from '@/shared/i18n';
@@ -28,6 +33,7 @@ import { AdvancedSettingsToggleComponent } from '@/shared/ui';
 
 interface Props extends ConnectionEditorProps<PostgresqlLogicalSettings> {
   hasUserChosenSslMode: boolean;
+  managedProvider?: ManagedPostgresqlProvider;
   savedClientCertificate?: string;
   restoreOptions?: PostgresqlRestoreOptions;
   onRestoreOptionsChange?: (restoreOptions: PostgresqlRestoreOptions) => void;
@@ -62,8 +68,8 @@ const RESTORE_OPTION_FIELDS: {
   },
 ];
 
-const isSupabaseConnection = ({ host, username }: PostgresqlLogicalSettings): boolean =>
-  host.includes('supabase') || username.includes('supabase');
+const isSupabaseConnection = ({ host }: PostgresqlLogicalSettings): boolean =>
+  getManagedPostgresqlProviderFromHost(host) === 'supabase';
 
 const hasAdvancedValues = (
   settings: PostgresqlLogicalSettings,
@@ -100,6 +106,7 @@ export const EditPostgresqlLogicalConnectionComponent = ({
   savedSshTunnel,
   isAddressChanged,
   hasUserChosenSslMode,
+  managedProvider,
   savedClientCertificate,
   restoreOptions,
   onConnectionChange,
@@ -108,6 +115,7 @@ export const EditPostgresqlLogicalConnectionComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const controlId = useId();
+  const managedProviderDetails = managedProvider && MANAGED_POSTGRESQL_PROVIDERS[managedProvider];
   const isRestore = scenario === 'restore';
   const [isShowAdvanced, setShowAdvanced] = useState(() =>
     hasAdvancedValues(settings, isRestore, restoreOptions),
@@ -127,6 +135,25 @@ export const EditPostgresqlLogicalConnectionComponent = ({
     // eslint-disable-next-line i18next/no-literal-string -- PostgreSQL schema name
     return { ...updatedSettings, includeSchemas: ['public', ...currentSchemas] };
   };
+
+  const applyParsedConnection = (parsed: PostgresqlConnectionStringParseResult) =>
+    onConnectionChange(
+      addPublicSchemaForSupabase(
+        applyPostgresqlSslMode(
+          {
+            ...settings,
+            host: parsed.host,
+            port: parsed.port,
+            username: parsed.username,
+            password: parsed.password,
+            database: parsed.database,
+            cpuCount: 1,
+          },
+          parsed.sslMode,
+        ),
+      ),
+      true,
+    );
 
   const renderNameListField = ({ field, label, placeholder, tooltip }: NameListFieldSpec) => (
     <ConnectionFieldRow label={label} controlId={`${controlId}-${field}`}>
@@ -150,32 +177,19 @@ export const EditPostgresqlLogicalConnectionComponent = ({
 
   return (
     <>
-      <ConnectionStringImport
-        parse={(connectionString) => PostgresqlConnectionStringParser.parse(connectionString)}
-        onParsed={(parsed) =>
-          onConnectionChange(
-            addPublicSchemaForSupabase(
-              applyPostgresqlSslMode(
-                {
-                  ...settings,
-                  host: parsed.host,
-                  port: parsed.port,
-                  username: parsed.username,
-                  password: parsed.password,
-                  database: parsed.database,
-                  cpuCount: 1,
-                },
-                parsed.sslMode,
-              ),
-            ),
-            true,
-          )
-        }
-      />
+      {managedProvider && managedProviderDetails?.connectionStringPaste ? (
+        <ManagedConnectionStringPaste provider={managedProvider} onParsed={applyParsedConnection} />
+      ) : (
+        <ConnectionStringImport
+          parse={(connectionString) => PostgresqlConnectionStringParser.parse(connectionString)}
+          onParsed={applyParsedConnection}
+        />
+      )}
 
       <ConnectionCredentialFields
         controlId={controlId}
-        engineName={POSTGRESQL_SHORT_NAME}
+        engineName={managedProviderDetails?.name ?? POSTGRESQL_SHORT_NAME}
+        valueExamples={managedProviderDetails?.connectionExamples}
         values={settings}
         isAddressChanged={isAddressChanged}
         hostHints={

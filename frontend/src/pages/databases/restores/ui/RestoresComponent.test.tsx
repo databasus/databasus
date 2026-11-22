@@ -16,6 +16,7 @@ import { waitForCondition } from '@/shared/lib/test/conditionWait';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { stubClipboard } from '@/shared/lib/test/stubClipboard';
 
 dayjs.extend(utc);
 
@@ -54,6 +55,41 @@ describe('RestoresComponent', () => {
 
     expect(await screen.findByText('No restores yet')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Select database to restore to' })).toBeNull();
+  });
+});
+
+describe('RestoresComponent target for a Neon database', () => {
+  const NEON_POOLER_CONNECTION_STRING =
+    'postgresql://neondb_owner:neon-secret@ep-rough-mountain-123456-pooler.c-9.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+
+  const openTargetForm = async (host: string) => {
+    const database = buildDatabase(DatabaseType.POSTGRES_LOGICAL);
+    database.settings.host = host;
+    mockServer.use(mockApi.get('/restores', 200, { items: [] }));
+    renderScreen(<RestoresComponent database={database} backup={completedBackup} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Select database to restore to$/ }));
+  };
+
+  it('fills the target from a pasted Neon connection string with the direct host', async () => {
+    await openTargetForm('ep-young-dew-123456.us-east-2.aws.neon.tech');
+    stubClipboard(async () => NEON_POOLER_CONNECTION_STRING);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Paste from clipboard' }));
+
+    expect(
+      await screen.findByDisplayValue('ep-rough-mountain-123456.c-9.us-east-2.aws.neon.tech'),
+    ).toBeTruthy();
+    expect(screen.getByDisplayValue('neondb_owner')).toBeTruthy();
+    expect(screen.getByDisplayValue('neon-secret')).toBeTruthy();
+    expect(screen.getByDisplayValue('neondb')).toBeTruthy();
+  });
+
+  it('offers the generic import instead of the Neon one when the source is not on Neon', async () => {
+    await openTargetForm('db.example.com');
+
+    expect(await screen.findByRole('button', { name: 'Parse from clipboard' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Paste from clipboard' })).toBeNull();
   });
 });
 

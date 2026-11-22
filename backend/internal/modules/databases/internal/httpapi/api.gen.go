@@ -19,17 +19,18 @@ import (
 
 // Defines values for DatabaseConnectionFailure.
 const (
-	DatabaseConnectionFailureBADCREDENTIALS           DatabaseConnectionFailure = "BAD_CREDENTIALS"
-	DatabaseConnectionFailureCONNECTIONFAILED         DatabaseConnectionFailure = "CONNECTION_FAILED"
-	DatabaseConnectionFailureCUSTOMTABLESPACES        DatabaseConnectionFailure = "CUSTOM_TABLESPACES"
-	DatabaseConnectionFailureNOREPLICATIONPRIVILEGE   DatabaseConnectionFailure = "NO_REPLICATION_PRIVILEGE"
-	DatabaseConnectionFailureNOREPLICATIONSLOTS       DatabaseConnectionFailure = "NO_REPLICATION_SLOTS"
-	DatabaseConnectionFailureNOWALSENDERS             DatabaseConnectionFailure = "NO_WAL_SENDERS"
-	DatabaseConnectionFailureNOWALSWITCHPRIVILEGE     DatabaseConnectionFailure = "NO_WAL_SWITCH_PRIVILEGE"
-	DatabaseConnectionFailurePGHBANOENTRY             DatabaseConnectionFailure = "PG_HBA_NO_ENTRY"
-	DatabaseConnectionFailureSYSTEMIDENTIFIERMISMATCH DatabaseConnectionFailure = "SYSTEM_IDENTIFIER_MISMATCH"
-	DatabaseConnectionFailureWALLEVELINVALID          DatabaseConnectionFailure = "WAL_LEVEL_INVALID"
-	DatabaseConnectionFailureWALSUMMARYDISABLED       DatabaseConnectionFailure = "WAL_SUMMARY_DISABLED"
+	DatabaseConnectionFailureBADCREDENTIALS                 DatabaseConnectionFailure = "BAD_CREDENTIALS"
+	DatabaseConnectionFailureCONNECTIONFAILED               DatabaseConnectionFailure = "CONNECTION_FAILED"
+	DatabaseConnectionFailureCUSTOMTABLESPACES              DatabaseConnectionFailure = "CUSTOM_TABLESPACES"
+	DatabaseConnectionFailureNOREPLICATIONPRIVILEGE         DatabaseConnectionFailure = "NO_REPLICATION_PRIVILEGE"
+	DatabaseConnectionFailureNOREPLICATIONSLOTS             DatabaseConnectionFailure = "NO_REPLICATION_SLOTS"
+	DatabaseConnectionFailureNOWALSENDERS                   DatabaseConnectionFailure = "NO_WAL_SENDERS"
+	DatabaseConnectionFailureNOWALSWITCHPRIVILEGE           DatabaseConnectionFailure = "NO_WAL_SWITCH_PRIVILEGE"
+	DatabaseConnectionFailurePGHBANOENTRY                   DatabaseConnectionFailure = "PG_HBA_NO_ENTRY"
+	DatabaseConnectionFailurePHYSICALREPLICATIONUNSUPPORTED DatabaseConnectionFailure = "PHYSICAL_REPLICATION_UNSUPPORTED"
+	DatabaseConnectionFailureSYSTEMIDENTIFIERMISMATCH       DatabaseConnectionFailure = "SYSTEM_IDENTIFIER_MISMATCH"
+	DatabaseConnectionFailureWALLEVELINVALID                DatabaseConnectionFailure = "WAL_LEVEL_INVALID"
+	DatabaseConnectionFailureWALSUMMARYDISABLED             DatabaseConnectionFailure = "WAL_SUMMARY_DISABLED"
 )
 
 // Valid indicates whether the value is a known member of the DatabaseConnectionFailure enum.
@@ -50,6 +51,8 @@ func (e DatabaseConnectionFailure) Valid() bool {
 	case DatabaseConnectionFailureNOWALSWITCHPRIVILEGE:
 		return true
 	case DatabaseConnectionFailurePGHBANOENTRY:
+		return true
+	case DatabaseConnectionFailurePHYSICALREPLICATIONUNSUPPORTED:
 		return true
 	case DatabaseConnectionFailureSYSTEMIDENTIFIERMISMATCH:
 		return true

@@ -4,7 +4,7 @@ import { getApiClient, requireData } from '@/shared/api';
 
 export const healthcheckConfigApi = {
   async saveHealthcheckConfig(config: HealthcheckConfig) {
-    const { databaseId, ...input } = config;
+    const { databaseId, shouldConfirmEnabling: _shouldConfirmEnabling, ...input } = config;
     return requireData(
       await getApiClient().PUT('/healthcheck-configs/{databaseId}', {
         params: { path: { databaseId } },

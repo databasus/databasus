@@ -714,6 +714,16 @@ export default function Index() {
                 PostgreSQL adalah database utama yang didukung Databasus. Semua versi dari 12 hingga
                 18 didukung
               </p>
+              <p className="text-gray-400 text-sm md:text-base text-center mb-4">
+                PostgreSQL terkelola juga didukung, termasuk{" "}
+                <a href={getLocalizedHref("id", "faq/neon")} className="text-blue-500 hover:text-blue-600">
+                  Neon
+                </a>{" "}
+                dan{" "}
+                <a href={getLocalizedHref("id", "faq/supabase")} className="text-blue-500 hover:text-blue-600">
+                  Supabase
+                </a>
+              </p>
             </div>
             <div className="border-b lg:border-r lg:border-b-0 border-[#ffffff20] p-5 md:py-6 md:px-5 flex flex-col">
               <div className="flex items-center justify-center mb-4 md:mb-6">

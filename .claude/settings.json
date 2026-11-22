@@ -17,6 +17,7 @@
       "Bash(sort *)",
       "Bash(cut *)",
       "Bash(tr *)",
+      "Bash(sed *)",
       "Bash(diff *)",
       "Bash(comm *)",
       "Bash(jq *)",

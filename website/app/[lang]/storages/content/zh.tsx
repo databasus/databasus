@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OG_LOCALES, getLanguageAlternates, getLocalizedUrl } from "@/app/i18n";
+import { OG_LOCALES, getLanguageAlternates, getLocalizedHref, getLocalizedUrl } from "@/app/i18n";
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
 import DocsSidebarComponent from "@/app/components/DocsSidebarComponent";
 import DocTableOfContentComponent from "@/app/components/DocTableOfContentComponent";
@@ -104,6 +104,15 @@ export default function StoragesPage() {
                     Cloudflare R2
                   </a>{" "}
                   - Cloudflare 提供的 S3 兼容对象存储
+                </li>
+                <li>
+                  <a
+                    href={getLocalizedHref("zh", "storages/neon-object-storage")}
+                    className="font-semibold! text-blue-600 hover:text-blue-800"
+                  >
+                    Neon Object Storage
+                  </a>{" "}
+                  - 每个 Neon 项目内置的 S3 兼容对象存储
                 </li>
                 <li>
                   <strong>Azure Blob Storage</strong> - Microsoft Azure

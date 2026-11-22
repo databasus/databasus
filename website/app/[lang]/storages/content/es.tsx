@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import {
   OG_LOCALES,
   getLanguageAlternates,
+  getLocalizedHref,
   getLocalizedUrl,
 } from "@/app/i18n";
 import DocsNavbarComponent from "@/app/components/DocsNavbarComponent";
@@ -110,6 +111,15 @@ export default function StoragesPage() {
                     Cloudflare R2
                   </a>{" "}
                   - Almacenamiento de objetos de Cloudflare compatible con S3
+                </li>
+                <li>
+                  <a
+                    href={getLocalizedHref("es", "storages/neon-object-storage")}
+                    className="font-semibold! text-blue-600 hover:text-blue-800"
+                  >
+                    Neon Object Storage
+                  </a>{" "}
+                  - Almacenamiento de objetos compatible con S3 integrado en cada proyecto de Neon
                 </li>
                 <li>
                   <strong>Azure Blob Storage</strong> - Almacenamiento en la

@@ -22,29 +22,63 @@ func newHealthcheckTeam(t *testing.T) healthcheckTeam {
 	t.Helper()
 	team := enginetest.NewTeam(t)
 	endpoint := containers.StartPostgres(t, "postgres:18")
+	database := team.CreateDatabase(t, newLogicalSettings(endpoint, enginetest.NewDisabledSSHTunnelSettings()))
+	return healthcheckTeam{Team: team, Database: database}
+}
+
+// newHealthcheckTeamAtHost reaches a real server under a chosen name, such as a Neon host: the
+// bastion resolves the name as a network alias, so the stored host is that name while creation
+// still connects.
+func newHealthcheckTeamAtHost(t *testing.T, host string) healthcheckTeam {
+	t.Helper()
+	team := enginetest.NewTeam(t)
+	topology := startPostgresBehindBastionAs(t, host)
 	database := team.CreateDatabase(
 		t,
-		apiclient.PostgresqlLogicalSettings{
-			Type:               apiclient.PostgresqlLogicalSettingsTypePOSTGRESLOGICAL,
-			Host:               endpoint.Host,
-			Port:               endpoint.Port,
-			Username:           containers.PostgresUsername,
-			Password:           new(containers.PostgresPassword),
-			Database:           new(containers.PostgresDatabase),
-			SslMode:            apiclient.PostgresqlSslModeDisable,
-			SshTunnel:          enginetest.NewDisabledSSHTunnelSettings(),
-			CpuCount:           1,
-			SslClientCert:      nil,
-			SslClientKey:       nil,
-			SslRootCert:        nil,
-			IncludeSchemas:     nil,
-			ExcludeTables:      nil,
-			ExcludeTableData:   nil,
-			IsSkipUserMappings: false,
-			Version:            nil,
-		},
+		newLogicalSettings(topology.Database, enginetest.NewBastionSSHTunnelSettings(topology)),
 	)
+
 	return healthcheckTeam{Team: team, Database: database}
+}
+
+func startPostgresBehindBastionAs(t *testing.T, alias string) containers.BastionedDatabase {
+	t.Helper()
+	networkName := containers.StartNetwork(t)
+	bastion := containers.StartSSHBastionContainerOnNetwork(t, networkName)
+
+	return containers.BastionedDatabase{
+		Bastion:          bastion.Endpoint,
+		BastionContainer: bastion.Container,
+		Database: containers.StartPostgresOnNetwork(t, containers.OnNetworkSpec{
+			Image:     "postgres:18",
+			Placement: containers.NetworkPlacement{NetworkName: networkName, Alias: alias},
+		}),
+	}
+}
+
+func newLogicalSettings(
+	endpoint containers.Endpoint,
+	sshTunnel apiclient.SshTunnelSettings,
+) apiclient.PostgresqlLogicalSettings {
+	return apiclient.PostgresqlLogicalSettings{
+		Type:               apiclient.PostgresqlLogicalSettingsTypePOSTGRESLOGICAL,
+		Host:               endpoint.Host,
+		Port:               endpoint.Port,
+		Username:           containers.PostgresUsername,
+		Password:           new(containers.PostgresPassword),
+		Database:           new(containers.PostgresDatabase),
+		SslMode:            apiclient.PostgresqlSslModeDisable,
+		SshTunnel:          sshTunnel,
+		CpuCount:           1,
+		SslClientCert:      nil,
+		SslClientKey:       nil,
+		SslRootCert:        nil,
+		IncludeSchemas:     nil,
+		ExcludeTables:      nil,
+		ExcludeTableData:   nil,
+		IsSkipUserMappings: false,
+		Version:            nil,
+	}
 }
 
 func (team healthcheckTeam) getConfig(t *testing.T) apiclient.HealthcheckConfig {

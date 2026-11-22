@@ -141,6 +141,10 @@ export const physicalConnectionErrorContent: Record<
     titleKey: 'databases.physicalConnectionErrors.systemIdentifierMismatch.title',
     summaryKey: 'databases.physicalConnectionErrors.systemIdentifierMismatch.summary',
   },
+  [ConnectionErrorCode.PhysicalReplicationUnsupported]: {
+    titleKey: 'databases.physicalConnectionErrors.physicalReplicationUnsupported.title',
+    summaryKey: 'databases.physicalConnectionErrors.physicalReplicationUnsupported.summary',
+  },
   [ConnectionErrorCode.ConnectionFailed]: {
     titleKey: 'databases.physicalConnectionErrors.connectionFailed.title',
     summaryKey: 'databases.physicalConnectionErrors.connectionFailed.summary',

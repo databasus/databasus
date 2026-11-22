@@ -83,7 +83,7 @@ Databasus по-настоящему восстанавливает бекап, �
 ### 🗄️ **Разные хранилища** <a href="https://databasus.com/ru/storages/">(смотреть все)</a>
 
 - **Локальное хранилище**: держите бекапы на своем VPS или сервере
-- **Облачные хранилища**: S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP и другие
+- **Облачные хранилища**: S3, Azure Blob Storage, NAS, FTP, SFTP, Cloudflare R2, Neon Object Storage и другие
 - **Безопасно**: все данные остаются под вашим контролем
 
 ### 📱 **Уведомления** <a href="https://databasus.com/ru/notifiers/">(смотреть все)</a>
@@ -120,6 +120,7 @@ Databasus по-настоящему восстанавливает бекап, �
 - **MySQL**: 5.7, 8.0, 8.4, 9 и 26 (только логические)
 - **MariaDB**: 5.5, 10, 11, 12 и 13 (только логические)
 - **MongoDB**: 4.2+, 5, 6, 7, 8 и 9 (только логические)
+- **Облачный PostgreSQL**: [Neon](https://databasus.com/ru/faq/neon/) и [Supabase](https://databasus.com/ru/faq/supabase/)
 
 ### 🐳 **Self-hosted и безопасно**
 

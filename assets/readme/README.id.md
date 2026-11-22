@@ -84,7 +84,7 @@ Databasus melakukan restore sungguhan untuk memastikan backup bisa dipakai, buka
 ### 🗄️ **Berbagai tujuan penyimpanan** <a href="https://databasus.com/id/storages/">(lihat penyimpanan yang didukung)</a>
 
 - **Penyimpanan lokal**: simpan backup di VPS/server kamu
-- **Penyimpanan cloud**: S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, dan lainnya
+- **Penyimpanan cloud**: S3, Azure Blob Storage, NAS, FTP, SFTP, Cloudflare R2, Neon Object Storage, dan lainnya
 - **Aman**: semua data tetap dalam kendali kamu
 
 ### 📱 **Notifikasi** <a href="https://databasus.com/id/notifiers/">(lihat kanal yang didukung)</a>
@@ -121,6 +121,7 @@ Databasus melakukan restore sungguhan untuk memastikan backup bisa dipakai, buka
 - **MySQL**: 5.7, 8.0, 8.4, 9 dan 26 (hanya logis)
 - **MariaDB**: 5.5, 10, 11, 12 dan 13 (hanya logis)
 - **MongoDB**: 4.2+, 5, 6, 7, 8 dan 9 (hanya logis)
+- **PostgreSQL terkelola**: [Neon](https://databasus.com/id/faq/neon/) dan [Supabase](https://databasus.com/id/faq/supabase/)
 
 ### 🐳 **Self-hosted dan aman**
 

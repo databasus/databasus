@@ -21,6 +21,7 @@ interface Props {
   isPortShown?: boolean;
   isDatabaseNameShown?: boolean;
   portPlaceholder?: string;
+  valueExamples?: { host: string; username: string; database: string };
   hostHints?: ReactNode;
   onHostChange: (rawHost: string) => void;
   onValuesChange: (change: Partial<CredentialValues>) => void;
@@ -34,6 +35,7 @@ export const ConnectionCredentialFields = ({
   isPortShown = true,
   isDatabaseNameShown = true,
   portPlaceholder,
+  valueExamples,
   hostHints,
   onHostChange,
   onValuesChange,
@@ -50,7 +52,9 @@ export const ConnectionCredentialFields = ({
           onChange={(e) => onHostChange(e.target.value)}
           size="xs"
           className="w-full max-w-[200px]"
-          placeholder={t('databases.edit.placeholders.host', { engine: engineName })}
+          placeholder={
+            valueExamples?.host ?? t('databases.edit.placeholders.host', { engine: engineName })
+          }
         />
       </ConnectionFieldRow>
 
@@ -84,7 +88,10 @@ export const ConnectionCredentialFields = ({
           onChange={(e) => onValuesChange({ username: e.target.value.trim() })}
           size="xs"
           className="w-full max-w-[200px]"
-          placeholder={t('databases.edit.placeholders.username', { engine: engineName })}
+          placeholder={
+            valueExamples?.username ??
+            t('databases.edit.placeholders.username', { engine: engineName })
+          }
         />
       </ConnectionFieldRow>
 
@@ -121,7 +128,10 @@ export const ConnectionCredentialFields = ({
             onChange={(e) => onValuesChange({ database: e.target.value.trim() })}
             size="xs"
             className="w-full max-w-[200px]"
-            placeholder={t('databases.edit.placeholders.databaseName', { engine: engineName })}
+            placeholder={
+              valueExamples?.database ??
+              t('databases.edit.placeholders.databaseName', { engine: engineName })
+            }
           />
         </ConnectionFieldRow>
       )}

@@ -89,6 +89,7 @@ test.use({
           intervalMinutes: 1,
           failedAttemptsBeforeUnavailable: 3,
           attemptRetentionDays: 7,
+          shouldConfirmEnabling: false,
         },
       }),
       apiResponse({
