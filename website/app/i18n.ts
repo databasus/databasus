@@ -52,6 +52,7 @@ export const TRANSLATED_PATHS = [
   "faq",
   "faq/localhost",
   "faq/supabase",
+  "faq/neon",
   "storages",
   "storages/cloudflare-r2",
   "notifiers",

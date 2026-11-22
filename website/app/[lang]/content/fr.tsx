@@ -883,6 +883,17 @@ export default function Index() {
                 PostgreSQL est la base de données principale prise en charge par
                 Databasus. Toutes les versions de 12 à 18 sont prises en charge
               </p>
+
+              <p className="text-gray-400 text-sm md:text-base text-center mb-4">
+                Le PostgreSQL managé est aussi pris en charge, dont{" "}
+                <a href={getLocalizedHref("fr", "faq/neon")} className="text-blue-500 hover:text-blue-600">
+                  Neon
+                </a>{" "}
+                et{" "}
+                <a href={getLocalizedHref("fr", "faq/supabase")} className="text-blue-500 hover:text-blue-600">
+                  Supabase
+                </a>
+              </p>
             </div>
 
             {/* MySQL */}

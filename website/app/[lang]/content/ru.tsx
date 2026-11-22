@@ -868,6 +868,17 @@ export default function Index() {
                 PostgreSQL — основная база данных Databasus. Поддерживаются все
                 версии с 12 по 18
               </p>
+
+              <p className="text-gray-400 text-sm md:text-base text-center mb-4">
+                Облачный PostgreSQL тоже поддерживается, включая{" "}
+                <a href={getLocalizedHref("ru", "faq/neon")} className="text-blue-500 hover:text-blue-600">
+                  Neon
+                </a>{" "}
+                и{" "}
+                <a href={getLocalizedHref("ru", "faq/supabase")} className="text-blue-500 hover:text-blue-600">
+                  Supabase
+                </a>
+              </p>
             </div>
 
             {/* MySQL */}

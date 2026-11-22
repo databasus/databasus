@@ -120,6 +120,7 @@ Databasus performs a real restore to confirm backups are usable, not just intact
 - **MySQL**: 5.7, 8.0, 8.4, 9 and 26 (logical only)
 - **MariaDB**: 5.5, 10, 11, 12 and 13 (logical only)
 - **MongoDB**: 4.2+, 5, 6, 7, 8 and 9 (logical only)
+- **Managed PostgreSQL**: [Neon](https://databasus.com/faq/neon) and [Supabase](https://databasus.com/faq/supabase)
 
 ### 🐳 **Self-hosted & secure**
 

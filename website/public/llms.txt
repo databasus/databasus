@@ -98,6 +98,7 @@ See [AI usage and the development process](https://databasus.com/faq#ai-usage).
 - [MongoDB Backup](https://databasus.com/mongodb-backup): mongodump backups, including MongoDB Atlas, replica sets and self-hosted deployments.
 - [Backing up localhost databases](https://databasus.com/faq/localhost): Docker network setup for a database on the host machine.
 - [Backing up Supabase](https://databasus.com/faq/supabase): connecting through the Session Pooler or the IPv4 add-on.
+- [Backing up Neon](https://databasus.com/faq/neon): step-by-step setup with screenshots, a read-only user, health checks that let the compute sleep, and restoring into a Neon database or branch.
 
 ### Restore
 

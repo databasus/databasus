@@ -121,6 +121,7 @@ Databasus melakukan restore sungguhan untuk memastikan backup bisa dipakai, buka
 - **MySQL**: 5.7, 8.0, 8.4, 9 dan 26 (hanya logis)
 - **MariaDB**: 5.5, 10, 11, 12 dan 13 (hanya logis)
 - **MongoDB**: 4.2+, 5, 6, 7, 8 dan 9 (hanya logis)
+- **PostgreSQL terkelola**: [Neon](https://databasus.com/id/faq/neon/) dan [Supabase](https://databasus.com/id/faq/supabase/)
 
 ### 🐳 **Self-hosted dan aman**
 

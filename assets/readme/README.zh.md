@@ -120,6 +120,7 @@ Databasus 会真正执行一次恢复，确认备份可用，而不只是检查�
 - **MySQL**：5.7、8.0、8.4、9 和 26（仅逻辑）
 - **MariaDB**：5.5、10、11、12 和 13（仅逻辑）
 - **MongoDB**：4.2+、5、6、7、8 和 9（仅逻辑）
+- **托管 PostgreSQL**：[Neon](https://databasus.com/zh/faq/neon/) 和 [Supabase](https://databasus.com/zh/faq/supabase/)
 
 ### 🐳 **自托管且安全**
 

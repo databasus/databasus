@@ -52,6 +52,7 @@ const navItems: NavItem[] = [
     children: [
       { title: "How to backup localhost", href: "/faq/localhost" },
       { title: "How to backup Supabase", href: "/faq/supabase" },
+      { title: "How to backup Neon", href: "/faq/neon" },
     ],
   },
   {
@@ -88,6 +89,7 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "Pertanyaan umum",
     "How to backup localhost": "Cara backup localhost",
     "How to backup Supabase": "Cara backup Supabase",
+    "How to backup Neon": "Cara backup Neon",
     Contribute: "Berkontribusi",
     "How to add storage": "Cara menambahkan penyimpanan",
     "How to add notifier": "Cara menambahkan kanal notifikasi",
@@ -107,6 +109,7 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "FAQ",
     "How to backup localhost": "Как бекапить localhost",
     "How to backup Supabase": "Как бекапить Supabase",
+    "How to backup Neon": "Как бекапить Neon",
     Comparisons: "Сравнения",
     "pg_dump alternative": "Альтернатива pg_dump",
     "Manual recovery from backup without Databasus":
@@ -124,6 +127,7 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "Preguntas frecuentes",
     "How to backup localhost": "Cómo respaldar localhost",
     "How to backup Supabase": "Cómo respaldar Supabase",
+    "How to backup Neon": "Cómo respaldar Neon",
     Comparisons: "Comparaciones",
     "pg_dump alternative": "Alternativa a pg_dump",
     "Manual recovery from backup without Databasus":
@@ -141,6 +145,7 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "Perguntas frequentes",
     "How to backup localhost": "Como fazer backup do localhost",
     "How to backup Supabase": "Como fazer backup do Supabase",
+    "How to backup Neon": "Como fazer backup do Neon",
     Comparisons: "Comparações",
     "pg_dump alternative": "Alternativa ao pg_dump",
     "Manual recovery from backup without Databasus": "Recuperação manual do backup sem Databasus",
@@ -157,6 +162,7 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "常见问题",
     "How to backup localhost": "如何备份 localhost",
     "How to backup Supabase": "如何备份 Supabase",
+    "How to backup Neon": "如何备份 Neon",
     Comparisons: "对比",
     "pg_dump alternative": "pg_dump 替代方案",
     "Manual recovery from backup without Databasus": "不使用 Databasus 手动恢复备份",
@@ -173,6 +179,7 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     FAQ: "FAQ",
     "How to backup localhost": "Sauvegarder localhost",
     "How to backup Supabase": "Sauvegarder Supabase",
+    "How to backup Neon": "Sauvegarder Neon",
     Comparisons: "Comparaisons",
     "pg_dump alternative": "Alternative à pg_dump",
     "Manual recovery from backup without Databasus":
