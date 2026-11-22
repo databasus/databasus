@@ -2367,6 +2367,19 @@ export const en = {
       },
       s3: {
         cloudflareR2Guide: 'How to use with Cloudflare R2?',
+        neonPaste: {
+          title: 'Paste the credentials from {{service}}',
+          hint: 'In Neon Console, click Connect, choose Storage and copy the .env block. Generate a credential first, so the block holds the keys.',
+          pasteFromClipboard: 'Paste from clipboard',
+          orEnterManually: 'or enter the details manually',
+          clipboardEmpty: 'Clipboard is empty',
+          clipboardReadFailed: 'Failed to read clipboard. Please check browser permissions.',
+          parsed: 'Fields filled from the Neon credentials',
+          parsedWithoutKeys:
+            'Fields filled, but the block holds no keys. Generate a credential in Neon Console and paste the block again.',
+          notNeonCredentials: 'The text is not a Neon Object Storage credentials block',
+          guide: 'How to use with Neon Object Storage?',
+        },
         endpointTooltip: 'Custom S3-compatible endpoint URL (optional, leave empty for AWS S3)',
         prefixTooltip:
           "Optional prefix for all object keys (e.g., 'backups/' or 'my_team/'). May not work with some S3-compatible storages. Cannot be changed after creation (otherwise backups will be lost).",

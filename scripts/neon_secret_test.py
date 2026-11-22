@@ -1,11 +1,35 @@
 import re
 import unittest
+from dataclasses import dataclass
 from pathlib import Path
 
 from workflow_jobs import get_jobs, get_steps
 
 ROOT = Path(__file__).resolve().parents[1]
-SECRET_REFERENCE = "secrets.TEST_NEON_DATABASE_URL"
+
+
+@dataclass(frozen=True)
+class GroupSecrets:
+    group: str
+    secret_variables: tuple[str, ...]
+    required_variable: str
+
+
+# Each Neon test receives its secrets and its required flag only in the group that runs it.
+GROUP_SECRETS = (
+    GroupSecrets("logical", ("TEST_NEON_DATABASE_URL",), "TEST_IS_NEON_REQUIRED"),
+    GroupSecrets(
+        "storage-providers",
+        (
+            "TEST_NEON_S3_ENDPOINT",
+            "TEST_NEON_S3_REGION",
+            "TEST_NEON_S3_BUCKET",
+            "TEST_NEON_S3_ACCESS_KEY",
+            "TEST_NEON_S3_SECRET_KEY",
+        ),
+        "TEST_IS_NEON_S3_REQUIRED",
+    ),
+)
 GROUP_CONDITIONED_VALUE = re.compile(
     r"^\$\{\{ matrix\.group == '(?P<group>[a-z0-9-]+)' && (?P<value>[^|]+?) \|\| '' \}\}$"
 )
@@ -33,7 +57,7 @@ def evaluate_for_group(expression: str, group: str) -> str:
     return conditioned.group("value") if conditioned.group("group") == group else "''"
 
 
-class NeonSecretTest(unittest.TestCase):
+class NeonSecretsTest(unittest.TestCase):
     def setUp(self) -> None:
         self.workflow = (ROOT / ".github/workflows/ci-release.yml").read_text()
         self.job = get_jobs(self.workflow)["test-backend"]
@@ -42,29 +66,41 @@ class NeonSecretTest(unittest.TestCase):
             step for step in get_steps(self.job) if step.startswith("      - name: Run Go tests\n")
         )
 
-    def test_names_the_secret_only_in_the_go_test_step(self) -> None:
-        self.assertEqual(1, self.workflow.count(SECRET_REFERENCE))
-        self.assertIn(SECRET_REFERENCE, self.go_test_step)
-
+    def test_names_each_secret_only_in_the_go_test_step(self) -> None:
         job_header = self.job.split("    steps:\n", 1)[0]
-        self.assertNotIn("TEST_NEON_DATABASE_URL", job_header)
 
-    def test_gives_the_secret_and_the_requirement_only_to_the_logical_group(self) -> None:
+        for group_secrets in GROUP_SECRETS:
+            for variable in group_secrets.secret_variables:
+                with self.subTest(variable=variable):
+                    secret_reference = f"secrets.{variable}"
+
+                    self.assertEqual(1, self.workflow.count(secret_reference))
+                    self.assertIn(secret_reference, self.go_test_step)
+                    self.assertNotIn(variable, job_header)
+
+    def test_gives_each_secret_and_requirement_only_to_its_group(self) -> None:
         environment = get_step_environment(self.go_test_step)
 
-        self.assertIn("logical", self.groups)
+        for group_secrets in GROUP_SECRETS:
+            self.assertIn(group_secrets.group, self.groups)
 
-        for group in self.groups:
-            with self.subTest(group=group):
-                connection_url = evaluate_for_group(environment["TEST_NEON_DATABASE_URL"], group)
-                is_required = evaluate_for_group(environment["TEST_IS_NEON_REQUIRED"], group)
+            for group in self.groups:
+                is_owning_group = group == group_secrets.group
 
-                if group == "logical":
-                    self.assertEqual(SECRET_REFERENCE, connection_url)
-                    self.assertEqual("'true'", is_required)
-                else:
-                    self.assertEqual("''", connection_url)
-                    self.assertEqual("''", is_required)
+                for variable in group_secrets.secret_variables:
+                    with self.subTest(variable=variable, group=group):
+                        secret_value = evaluate_for_group(environment[variable], group)
+
+                        self.assertEqual(
+                            f"secrets.{variable}" if is_owning_group else "''", secret_value
+                        )
+
+                with self.subTest(variable=group_secrets.required_variable, group=group):
+                    is_required = evaluate_for_group(
+                        environment[group_secrets.required_variable], group
+                    )
+
+                    self.assertEqual("'true'" if is_owning_group else "''", is_required)
 
 
 if __name__ == "__main__":

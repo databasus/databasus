@@ -12,6 +12,7 @@ import (
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/lib/testreport"
 )
 
 const defaultPostgresqlPort = 5432
@@ -106,7 +107,7 @@ func (s managedServer) connect(ctx context.Context, databaseName string) (*pgx.C
 }
 
 // open connects to the database and closes the connection when the test ends.
-func (s managedServer) open(reporter testReporter, databaseName string) *pgx.Conn {
+func (s managedServer) open(reporter testreport.Reporter, databaseName string) *pgx.Conn {
 	reporter.Helper()
 
 	conn, err := s.connect(reporter.Context(), databaseName)
@@ -119,7 +120,7 @@ func (s managedServer) open(reporter testReporter, databaseName string) *pgx.Con
 	return conn
 }
 
-func (s managedServer) execute(reporter testReporter, conn *pgx.Conn, statements string) {
+func (s managedServer) execute(reporter testreport.Reporter, conn *pgx.Conn, statements string) {
 	reporter.Helper()
 
 	if _, err := conn.Exec(reporter.Context(), statements); err != nil {

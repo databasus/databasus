@@ -2434,6 +2434,20 @@ export const es: typeof en = {
       },
       s3: {
         cloudflareR2Guide: '¿Cómo usarlo con Cloudflare R2?',
+        neonPaste: {
+          title: 'Pegue las credenciales de {{service}}',
+          hint: 'En Neon Console, pulse Connect, elija Storage y copie el bloque .env. Genere antes una credencial para que el bloque incluya las claves.',
+          pasteFromClipboard: 'Pegar desde el portapapeles',
+          orEnterManually: 'o introduzca los datos manualmente',
+          clipboardEmpty: 'El portapapeles está vacío',
+          clipboardReadFailed:
+            'No se pudo leer el portapapeles. Revise los permisos del navegador.',
+          parsed: 'Campos rellenados con las credenciales de Neon',
+          parsedWithoutKeys:
+            'Campos rellenados, pero el bloque no incluye las claves. Genere una credencial en Neon Console y vuelva a pegar el bloque.',
+          notNeonCredentials: 'El texto no es un bloque de credenciales de Neon Object Storage',
+          guide: '¿Cómo usarlo con Neon Object Storage?',
+        },
         endpointTooltip:
           'URL de un endpoint compatible con S3 (opcional; déjelo vacío para AWS S3)',
         prefixTooltip:

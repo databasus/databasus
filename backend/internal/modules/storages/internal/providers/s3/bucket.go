@@ -48,12 +48,14 @@ const (
 	defaultInnerPartSize = 16 * 1024 * 1024
 
 	// defaultMaxPartsPerObject caps inner parts per object; once reached we roll to the next
-	// object. Effective object size = defaultMaxPartsPerObject * defaultInnerPartSize ~= 15.6 GiB.
-	// S3 multipart is bounded by part_size * part_count_limit and that limit is provider-set
-	// (AWS 10000, Scaleway and many S3-compatibles 1000). Because we stream dumps of unknown size,
-	// we write blind to the smallest common limit so one backup can span any provider without
-	// knowing its real cap; the object count, not memory, scales with the database size.
-	defaultMaxPartsPerObject = 1000
+	// object. Effective object size = defaultMaxPartsPerObject * defaultInnerPartSize = 4800 MiB,
+	// under the 5 GiB object cap that AWS sets for a single upload and that S3-compatible services
+	// copy for whole objects (Neon Object Storage documents 10 GiB, other sources give it 5 GiB).
+	// Because we stream dumps of unknown size, we write blind to that smallest common cap, so one
+	// backup fits any service without knowing its real limit; the object count, not memory, scales
+	// with the database size. Reading follows the manifest, so files written with larger objects
+	// still read back.
+	defaultMaxPartsPerObject = 300
 
 	manifestSuffix  = ".parts"
 	partSuffix      = ".part"

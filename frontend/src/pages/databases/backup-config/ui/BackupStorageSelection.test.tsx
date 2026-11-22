@@ -32,6 +32,7 @@ describe('Composed backup storage creation', () => {
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
       'Local storage',
       'S3',
+      'Neon Object Storage',
       'NAS',
       'Azure Blob Storage',
       'FTP',

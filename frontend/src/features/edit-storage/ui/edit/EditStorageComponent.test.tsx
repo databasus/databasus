@@ -14,6 +14,7 @@ import { mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
 import { watchNoticeTimer } from '@/shared/lib/test/noticeTimer';
 import { createPendingApiResponse } from '@/shared/lib/test/pendingApiResponse';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
+import { stubClipboard, stubClipboardUnavailable } from '@/shared/lib/test/stubClipboard';
 
 const mockServer = setUpMockApi();
 
@@ -1202,5 +1203,188 @@ describe('EditStorageComponent address change', () => {
 
     expect(screen.queryByText(addressChangedMessage)).toBeNull();
     expect(getTestButton().disabled).toBe(false);
+  });
+});
+
+describe('EditStorageComponent Neon Object Storage', () => {
+  const neonEndpoint = 'https://br-dark-river-123456.storage.c-9.us-east-2.aws.neon.tech';
+  const fakeAccessKey = `nak_live_${'0a1b2c3d'.repeat(4)}`;
+  const fakeSecretKey = `nsk_live_${'9f8e7d6c'.repeat(8)}`;
+  const consoleBlock = [
+    '# S3-compatible storage. Generate a credential to fill in the key ID + secret.',
+    `AWS_ENDPOINT_URL_S3="${neonEndpoint}"`,
+    `AWS_ACCESS_KEY_ID="${fakeAccessKey}"`,
+    `AWS_SECRET_ACCESS_KEY="${fakeSecretKey}"`,
+    'AWS_REGION="us-east-2"',
+  ].join('\n');
+  const blockWithHiddenKeys = [
+    `AWS_ENDPOINT_URL_S3="${neonEndpoint}"`,
+    'AWS_ACCESS_KEY_ID="••••••••"',
+    'AWS_SECRET_ACCESS_KEY="••••••••"',
+    'AWS_REGION="us-east-2"',
+  ].join('\n');
+  const neonPasteTexts = en.storages.edit.s3.neonPaste;
+
+  const getFieldValue = (label: string) => (getProviderField(label) as HTMLInputElement).value;
+
+  const savedS3StorageAt = (s3Endpoint: string): Storage => ({
+    ...savedS3Storage,
+    settings: { ...savedS3Storage.settings, s3Endpoint },
+  });
+
+  it('sends type S3 with the pasted credentials and the typed bucket when a Neon storage is created', async () => {
+    const sentStorages = mockCreation();
+    const { user } = await renderNewStorageForm('Neon Object Storage');
+    stubClipboard(async () => consoleBlock);
+
+    fireEvent.change(getProviderField('S3 Bucket'), { target: { value: 'databasus-bucket' } });
+    await user.click(screen.getByRole('button', { name: neonPasteTexts.pasteFromClipboard }));
+    await screen.findByDisplayValue(neonEndpoint);
+    await user.click(screen.getByRole('button', { name: 'Test connection' }));
+    await user.click(await screen.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(sentStorages).toHaveLength(1));
+    expect(sentStorages[0].settings).toEqual({
+      type: 'S3',
+      s3Bucket: 'databasus-bucket',
+      s3Region: 'us-east-2',
+      s3AccessKey: fakeAccessKey,
+      s3SecretKey: fakeSecretKey,
+      s3Endpoint: neonEndpoint,
+      isVirtualHostedStyle: false,
+      isSkipTlsVerify: false,
+    });
+  });
+
+  it('shows the Neon endpoint and region examples when Neon Object Storage is chosen', async () => {
+    await renderNewStorageForm('Neon Object Storage');
+
+    expect(getProviderField('Endpoint').getAttribute('placeholder')).toBe(
+      'https://br-<branch>.storage.<cell>.<region>.aws.neon.tech',
+    );
+    expect(getProviderField('Region').getAttribute('placeholder')).toBe('us-east-2');
+  });
+
+  it('keeps the typed bucket when Neon Object Storage is chosen after S3', async () => {
+    const { user } = await renderNewStorageForm('S3');
+
+    fireEvent.change(getProviderField('S3 Bucket'), { target: { value: 'typed-bucket' } });
+    await user.click(screen.getByRole('combobox', { name: 'Type' }));
+    await user.click(await screen.findByRole('option', { name: 'Neon Object Storage' }));
+
+    expect(
+      await screen.findByRole('button', { name: neonPasteTexts.pasteFromClipboard }),
+    ).toBeTruthy();
+    expect(getFieldValue('S3 Bucket')).toBe('typed-bucket');
+  });
+
+  it('links to the Russian guide page when the form is in Russian', async () => {
+    const { user } = renderScreen(
+      <EditStorageComponent
+        workspaceId="workspace-id"
+        isShowClose={false}
+        onClose={() => {}}
+        isShowName
+        onChanged={() => {}}
+      />,
+      { locale: 'ru' },
+    );
+
+    await user.click(screen.getByRole('combobox', { name: ru.common.fields.type }));
+    await user.click(await screen.findByRole('option', { name: 'Neon Object Storage' }));
+
+    expect(
+      screen.getByRole('link', { name: ru.storages.edit.s3.neonPaste.guide }).getAttribute('href'),
+    ).toBe('https://databasus.com/ru/storages/neon-object-storage/');
+    expect(screen.queryByRole('link', { name: ru.storages.edit.s3.cloudflareR2Guide })).toBeNull();
+  });
+
+  it('warns and leaves the key fields when the pasted block holds placeholder keys', async () => {
+    const { user } = await renderNewStorageForm('Neon Object Storage');
+    stubClipboard(async () => blockWithHiddenKeys);
+
+    fireEvent.change(getProviderField('Access key'), { target: { value: 'typed-access-key' } });
+    await user.click(screen.getByRole('button', { name: neonPasteTexts.pasteFromClipboard }));
+
+    expect(await screen.findByText(neonPasteTexts.parsedWithoutKeys)).toBeTruthy();
+    expect(getFieldValue('Endpoint')).toBe(neonEndpoint);
+    expect(getFieldValue('Region')).toBe('us-east-2');
+    expect(getFieldValue('Access key')).toBe('typed-access-key');
+    expect(getFieldValue('Secret key')).toBe('');
+  });
+
+  it('reports an error and changes nothing when the pasted text is unrelated', async () => {
+    const { user } = await renderNewStorageForm('Neon Object Storage');
+    stubClipboard(async () => 'not a credentials block');
+
+    fireEvent.change(getProviderField('S3 Bucket'), { target: { value: 'typed-bucket' } });
+    await user.click(screen.getByRole('button', { name: neonPasteTexts.pasteFromClipboard }));
+
+    expect(await screen.findByText(neonPasteTexts.notNeonCredentials)).toBeTruthy();
+    expect(getFieldValue('S3 Bucket')).toBe('typed-bucket');
+    for (const label of ['Region', 'Access key', 'Secret key', 'Endpoint'])
+      expect(getFieldValue(label)).toBe('');
+  });
+
+  it('fills the fields from the offered field when the clipboard API is unavailable', async () => {
+    const { user } = await renderNewStorageForm('Neon Object Storage');
+    stubClipboardUnavailable();
+
+    await user.click(screen.getByRole('button', { name: neonPasteTexts.pasteFromClipboard }));
+    fireEvent.change(await screen.findByRole('textbox', { name: en.app.clipboardPaste.title }), {
+      target: { value: consoleBlock },
+    });
+    await user.click(screen.getByRole('button', { name: en.app.clipboardPaste.submit }));
+
+    await waitFor(() => expect(getFieldValue('Endpoint')).toBe(neonEndpoint));
+    expect(getFieldValue('Region')).toBe('us-east-2');
+    expect(getFieldValue('Access key')).toBe(fakeAccessKey);
+    expect(getFieldValue('Secret key')).toBe(fakeSecretKey);
+  });
+
+  it('reports that the clipboard could not be read and changes nothing when reading is refused', async () => {
+    const { user } = await renderNewStorageForm('Neon Object Storage');
+    stubClipboard(async () => {
+      throw new DOMException('Read permission denied', 'NotAllowedError');
+    });
+
+    await user.click(screen.getByRole('button', { name: neonPasteTexts.pasteFromClipboard }));
+
+    expect(await screen.findByText(neonPasteTexts.clipboardReadFailed)).toBeTruthy();
+    for (const label of ['Region', 'Access key', 'Secret key', 'Endpoint'])
+      expect(getFieldValue(label)).toBe('');
+  });
+
+  it('sends no request, keeps the secret key masked and shows no key when a block is pasted', async () => {
+    const { user } = await renderNewStorageForm('Neon Object Storage');
+    stubClipboard(async () => consoleBlock);
+
+    await user.click(screen.getByRole('button', { name: neonPasteTexts.pasteFromClipboard }));
+    const confirmation = await screen.findByText(neonPasteTexts.parsed);
+
+    expect(mockServer.getRequests()).toHaveLength(0);
+    expect(getProviderField('Secret key').getAttribute('type')).toBe('password');
+    expect(getFieldValue('Secret key')).toBe(fakeSecretKey);
+    expect(confirmation.textContent).not.toContain(fakeAccessKey);
+    expect(document.body.textContent).not.toContain(fakeAccessKey);
+    expect(document.body.textContent).not.toContain(fakeSecretKey);
+  });
+
+  it('opens a saved storage at a Neon endpoint with the Neon paste and guide link', () => {
+    renderSavedStorageForm(savedS3StorageAt(neonEndpoint));
+
+    expect(screen.getByText('S3')).toBeTruthy();
+    expect(screen.getByRole('button', { name: neonPasteTexts.pasteFromClipboard })).toBeTruthy();
+    expect(screen.getByRole('link', { name: neonPasteTexts.guide }).getAttribute('href')).toBe(
+      'https://databasus.com/storages/neon-object-storage/',
+    );
+  });
+
+  it('opens a saved storage at a Cloudflare R2 endpoint without the Neon paste', () => {
+    renderSavedStorageForm(savedS3StorageAt('https://0123456789abcdef.r2.cloudflarestorage.com'));
+
+    expect(screen.queryByRole('button', { name: neonPasteTexts.pasteFromClipboard })).toBeNull();
+    expect(screen.queryByRole('link', { name: neonPasteTexts.guide })).toBeNull();
+    expect(screen.getByRole('link', { name: en.storages.edit.s3.cloudflareR2Guide })).toBeTruthy();
   });
 });

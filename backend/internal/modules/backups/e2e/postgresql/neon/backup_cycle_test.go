@@ -12,6 +12,7 @@ import (
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
 	containers "databasus-backend/internal/lib/testcontainers"
+	"databasus-backend/internal/lib/testreport"
 )
 
 func TestBackupAndRestoreOnNeon(t *testing.T) {
@@ -65,13 +66,13 @@ func TestBackupAndRestoreCycleOnContainer(t *testing.T) {
 			endpoint, _ := startContainerServer(t)
 			const refusedPassword = "refused-Pa55word"
 			connectionURL := newContainerConnectionURL(endpoint, refusedPassword)
-			reporter := newRecordingReporter(t)
+			reporter := testreport.NewRecorder(t)
 
-			reporter.runWithCleanups(func(reporter testReporter) {
+			reporter.RunWithCleanups(func(reporter testreport.Reporter) {
 				openManagedServer(reporter, connectionURL)
 			})
 
-			failures := reporter.getFailures()
+			failures := reporter.GetFailures()
 			require.NotEmpty(t, failures, "a refused password fails the test instead of skipping it")
 
 			for _, failure := range failures {
@@ -132,7 +133,7 @@ func runBackupAndRestoreCycle(t *testing.T, connectionURL string) {
 
 // openManagedServer parses the URL and checks that the server accepts it, so a wrong URL or a
 // refused password fails before the cycle starts.
-func openManagedServer(reporter testReporter, connectionURL string) managedServer {
+func openManagedServer(reporter testreport.Reporter, connectionURL string) managedServer {
 	reporter.Helper()
 
 	server, err := parseManagedServer(connectionURL)

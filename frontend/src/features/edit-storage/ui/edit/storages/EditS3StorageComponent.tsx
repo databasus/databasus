@@ -3,7 +3,14 @@ import { Info } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { S3_STORAGE_CLASS_LABEL_KEYS, type S3StorageSettings } from '@/entities/storages';
+import {
+  type NeonObjectStorageCredentials,
+  S3_COMPATIBLE_SERVICES,
+  S3_STORAGE_CLASS_LABEL_KEYS,
+  type S3CompatibleService,
+  type S3StorageSettings,
+} from '@/entities/storages';
+import { NeonCredentialsPasteComponent } from '@/features/edit-storage/ui/edit/storages/NeonCredentialsPasteComponent';
 import { getWebsitePageUrl, useLocale } from '@/shared/i18n';
 import { toOptionalValue } from '@/shared/lib';
 import { AddressChangedSecretNoticeComponent, AdvancedSettingsToggleComponent } from '@/shared/ui';
@@ -15,6 +22,8 @@ interface Props {
   onChange: (settings: S3StorageSettings) => void;
   // The error of the latest failed connection test.
   connectionError?: string;
+  // The managed object storage service the member chose or the saved endpoint points to.
+  s3CompatibleService?: S3CompatibleService;
 }
 
 export function EditS3StorageComponent({
@@ -23,6 +32,7 @@ export function EditS3StorageComponent({
   isAddressChanged,
   onChange,
   connectionError,
+  s3CompatibleService,
 }: Props) {
   const { t } = useTranslation();
   const { locale } = useLocale();
@@ -37,6 +47,16 @@ export function EditS3StorageComponent({
     !!settings.s3StorageClass;
   const [isShowAdvanced, setIsShowAdvanced] = useState(hasAdvancedValues);
   const advancedRegionId = useId();
+  const serviceDetails = s3CompatibleService && S3_COMPATIBLE_SERVICES[s3CompatibleService];
+
+  const applyNeonCredentials = (credentials: NeonObjectStorageCredentials) =>
+    onChange({
+      ...settings,
+      s3Endpoint: credentials.endpoint,
+      s3Region: credentials.region ?? settings.s3Region,
+      s3AccessKey: credentials.accessKey ?? settings.s3AccessKey,
+      s3SecretKey: credentials.secretKey ?? settings.s3SecretKey,
+    });
 
   useEffect(() => {
     if (connectionError?.includes('failed to verify certificate')) {
@@ -46,17 +66,31 @@ export function EditS3StorageComponent({
 
   return (
     <>
+      {s3CompatibleService === 'neon' && (
+        <NeonCredentialsPasteComponent onParsed={applyNeonCredentials} />
+      )}
+
       <div className="mb-2 flex items-center">
         <div className="hidden min-w-[110px] sm:block" />
 
         <div className="text-xs text-accent">
-          <a
-            href={getWebsitePageUrl('storagesCloudflareR2', locale)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {t('storages.edit.s3.cloudflareR2Guide')}
-          </a>
+          {serviceDetails ? (
+            <a
+              href={getWebsitePageUrl(serviceDetails.guidePage, locale)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t(serviceDetails.guideLinkKey)}
+            </a>
+          ) : (
+            <a
+              href={getWebsitePageUrl('storagesCloudflareR2', locale)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t('storages.edit.s3.cloudflareR2Guide')}
+            </a>
+          )}
         </div>
       </div>
 
@@ -90,7 +124,7 @@ export function EditS3StorageComponent({
           size="xs"
           className="w-full max-w-[250px]"
           // eslint-disable-next-line i18next/no-literal-string -- example region code
-          placeholder="us-east-1"
+          placeholder={serviceDetails?.examples.region ?? 'us-east-1'}
         />
       </div>
 
@@ -169,9 +203,10 @@ export function EditS3StorageComponent({
             }}
             size="xs"
             className="w-full max-w-[250px]"
-            placeholder={t('storages.edit.optionalPlaceholder', {
-              example: 'https://s3.example.com',
-            })}
+            placeholder={
+              serviceDetails?.examples.endpoint ??
+              t('storages.edit.optionalPlaceholder', { example: 'https://s3.example.com' })
+            }
           />
 
           <Tooltip className="cursor-pointer" label={t('storages.edit.s3.endpointTooltip')}>

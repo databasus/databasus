@@ -39,11 +39,15 @@ for (const theme of ['light', 'dark']) {
       await expect(type).toBeFocused();
 
       await type.press('ArrowDown');
-      await expect(page.getByRole('option')).toHaveText(
-        ['local', 's3', 'nas', 'azureBlob', 'ftp', 'sftp'].map(
-          (type) => dictionary.storages.types[type as keyof typeof dictionary.storages.types],
-        ),
-      );
+      await expect(page.getByRole('option')).toHaveText([
+        dictionary.storages.types.local,
+        dictionary.storages.types.s3,
+        'Neon Object Storage',
+        dictionary.storages.types.nas,
+        dictionary.storages.types.azureBlob,
+        dictionary.storages.types.ftp,
+        dictionary.storages.types.sftp,
+      ]);
 
       if (provider !== 'local') {
         await page.getByText(dictionary.storages.types[provider], { exact: true }).last().click();

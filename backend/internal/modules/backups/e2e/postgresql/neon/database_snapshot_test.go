@@ -8,6 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
+
+	"databasus-backend/internal/lib/testreport"
 )
 
 // seedStatements give the source what a restore can lose: rows in several tables, a foreign key,
@@ -60,7 +62,7 @@ type databaseSnapshot struct {
 	values       map[string]string
 }
 
-func takeSnapshot(reporter testReporter, server managedServer, databaseName string) databaseSnapshot {
+func takeSnapshot(reporter testreport.Reporter, server managedServer, databaseName string) databaseSnapshot {
 	reporter.Helper()
 
 	conn := server.open(reporter, databaseName)

@@ -25,7 +25,7 @@ type Provider struct {
 }
 
 // partLayout is how a file is split into objects. Tests shrink it, because rolling at the production
-// 15.6 GiB object boundary would need about 15 GiB per case.
+// 4800 MiB object boundary would need about 5 GiB per case.
 type partLayout struct {
 	innerPartSize     int
 	maxPartsPerObject int

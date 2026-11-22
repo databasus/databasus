@@ -1,12 +1,15 @@
 import { Alert, Button, TextInput } from '@mantine/core';
 import { CircleAlert } from 'lucide-react';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
+  S3_COMPATIBLE_SERVICES,
   STORAGE_TYPE_LABEL_KEYS,
+  type S3CompatibleService,
   type Storage,
   StorageType,
+  getS3CompatibleServiceFromEndpoint,
   getStorageLogoFromType,
 } from '@/entities/storages';
 import { createDefaultStorageSettings } from '@/features/edit-storage/lib/createDefaultStorageSettings';
@@ -23,6 +26,16 @@ import { EditSFTPStorageComponent } from '@/features/edit-storage/ui/edit/storag
 import { translateApiError } from '@/shared/i18n';
 import { useFeedback } from '@/shared/lib/feedback';
 import { WrappingSelect } from '@/shared/ui';
+
+type StorageTypeChoice = StorageType | S3CompatibleService;
+
+const isS3CompatibleService = (choice: StorageTypeChoice): choice is S3CompatibleService =>
+  choice in S3_COMPATIBLE_SERVICES;
+
+const s3CompatibleServiceOptions = Object.entries(S3_COMPATIBLE_SERVICES).map(
+  ([service, { name }]) => ({ label: name, value: service as S3CompatibleService }),
+);
+
 interface Props {
   workspaceId: string;
 
@@ -95,10 +108,38 @@ export function EditStorageComponent({
   const isAddressChanged = isStorageAddressChanged(settings, savedSettings);
   const isAllDataFilled = !!name && isStorageSettingsFilled(settings, isSaved, savedSettings);
 
-  const storageTypeOptions = Object.values(StorageType).map((storageType) => ({
-    label: t(STORAGE_TYPE_LABEL_KEYS[storageType]),
-    value: storageType,
-  }));
+  // A managed object storage service is a choice of the form only: the storage stays type S3. A
+  // saved storage takes it from its saved endpoint, a new one from the type select.
+  const [chosenS3CompatibleService, setChosenS3CompatibleService] = useState<
+    S3CompatibleService | undefined
+  >(() =>
+    settings.type === StorageType.S3
+      ? getS3CompatibleServiceFromEndpoint(settings.s3Endpoint)
+      : undefined,
+  );
+  const selectedS3CompatibleService =
+    settings.type === StorageType.S3 ? chosenS3CompatibleService : undefined;
+  const s3CompatibleService = isSaved
+    ? savedSettings?.type === StorageType.S3
+      ? getS3CompatibleServiceFromEndpoint(savedSettings.s3Endpoint)
+      : undefined
+    : selectedS3CompatibleService;
+
+  const storageTypeOptions = Object.values(StorageType).flatMap(
+    (storageType): { label: string; value: StorageTypeChoice }[] => [
+      { label: t(STORAGE_TYPE_LABEL_KEYS[storageType]), value: storageType },
+      ...(storageType === StorageType.S3 ? s3CompatibleServiceOptions : []),
+    ],
+  );
+
+  const chooseStorageType = (choice: StorageTypeChoice) => {
+    const service = isS3CompatibleService(choice) ? choice : undefined;
+    const type = isS3CompatibleService(choice) ? StorageType.S3 : choice;
+    const isSwitchWithinS3 = type === StorageType.S3 && settings.type === StorageType.S3;
+
+    setChosenS3CompatibleService(service);
+    if (!isSwitchWithinS3) changeSettings(createDefaultStorageSettings(type));
+  };
 
   return (
     <section aria-label={t('storages.config.settingsTitle')} className="min-w-0">
@@ -144,10 +185,10 @@ export function EditStorageComponent({
           ) : (
             <WrappingSelect
               id={`${controlId}-type`}
-              value={settings.type}
+              value={selectedS3CompatibleService ?? settings.type}
               disabled={isSaving}
               data={storageTypeOptions}
-              onChange={(type: StorageType) => changeSettings(createDefaultStorageSettings(type))}
+              onChange={chooseStorageType}
               size="xs"
               className="w-full max-w-[250px] min-w-0"
             />
@@ -155,7 +196,11 @@ export function EditStorageComponent({
 
           <img
             alt=""
-            src={getStorageLogoFromType(settings.type)}
+            src={
+              !isSaved && selectedS3CompatibleService
+                ? S3_COMPATIBLE_SERVICES[selectedS3CompatibleService].logo
+                : getStorageLogoFromType(settings.type)
+            }
             className="ml-2 h-4 w-4 shrink-0"
           />
         </div>
@@ -171,6 +216,7 @@ export function EditStorageComponent({
             isAddressChanged={isAddressChanged}
             onChange={changeSettings}
             connectionError={connectionError}
+            s3CompatibleService={s3CompatibleService}
           />
         )}
 

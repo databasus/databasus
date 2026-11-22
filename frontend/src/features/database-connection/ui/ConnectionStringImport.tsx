@@ -2,8 +2,9 @@ import { Button } from '@mantine/core';
 import { Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { useConnectionStringImport } from '@/features/database-connection/model/useConnectionStringImport';
+import { DATABASE_CONNECTION_STRING_IMPORT_MESSAGES } from '@/features/database-connection/lib/databaseConnectionStringImportMessages';
 import type { LocalizedText } from '@/shared/i18n';
+import { useClipboardTextImport } from '@/shared/lib/useClipboardTextImport';
 import { ClipboardPasteModalComponent } from '@/shared/ui';
 
 interface ParseFailure {
@@ -20,7 +21,12 @@ export const ConnectionStringImport = <ParseOutcome extends { password?: string 
   onParsed,
 }: Props<ParseOutcome>) => {
   const { t } = useTranslation();
-  const { startImport, pasteModal } = useConnectionStringImport({ parse, onParsed });
+  const { startImport, pasteModal } = useClipboardTextImport({
+    parse,
+    isIncomplete: (parsed) => !parsed.password,
+    onParsed,
+    messages: DATABASE_CONNECTION_STRING_IMPORT_MESSAGES,
+  });
 
   return (
     <div className="mb-3 flex">

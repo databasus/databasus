@@ -2263,6 +2263,19 @@ export const id: typeof en = {
       },
       s3: {
         cloudflareR2Guide: 'Bagaimana cara menggunakan Cloudflare R2?',
+        neonPaste: {
+          title: 'Tempel kredensial dari {{service}}',
+          hint: 'Di Neon Console, klik Connect, pilih Storage, lalu salin blok .env. Buat kredensial terlebih dahulu agar blok berisi kuncinya.',
+          pasteFromClipboard: 'Tempel dari clipboard',
+          orEnterManually: 'atau isi detailnya secara manual',
+          clipboardEmpty: 'Clipboard kosong',
+          clipboardReadFailed: 'Gagal membaca clipboard. Periksa izin browser.',
+          parsed: 'Kolom diisi dari kredensial Neon',
+          parsedWithoutKeys:
+            'Kolom sudah diisi, tetapi blok tidak berisi kunci. Buat kredensial di Neon Console lalu tempel blok lagi.',
+          notNeonCredentials: 'Teks ini bukan blok kredensial Neon Object Storage',
+          guide: 'Bagaimana cara menggunakan Neon Object Storage?',
+        },
         endpointTooltip:
           'URL endpoint khusus yang kompatibel dengan S3 (opsional, kosongkan untuk AWS S3)',
         prefixTooltip:

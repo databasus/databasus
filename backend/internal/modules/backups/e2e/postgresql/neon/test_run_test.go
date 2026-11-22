@@ -14,6 +14,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/lib/testreport"
 )
 
 const (
@@ -40,7 +42,7 @@ type testRun struct {
 
 // startTestRun registers the cleanup before the run creates anything, so the cleanup also runs
 // after a failed test.
-func startTestRun(reporter testReporter, server managedServer, startedAt time.Time) *testRun {
+func startTestRun(reporter testreport.Reporter, server managedServer, startedAt time.Time) *testRun {
 	reporter.Helper()
 
 	run := &testRun{
@@ -65,7 +67,7 @@ func startTestRun(reporter testReporter, server managedServer, startedAt time.Ti
 	return run
 }
 
-func (r *testRun) createDatabase(reporter testReporter, purpose string) string {
+func (r *testRun) createDatabase(reporter testreport.Reporter, purpose string) string {
 	reporter.Helper()
 
 	databaseName := r.marker + "_" + purpose
@@ -75,7 +77,7 @@ func (r *testRun) createDatabase(reporter testReporter, purpose string) string {
 	return databaseName
 }
 
-func (r *testRun) createRole(reporter testReporter, purpose string) string {
+func (r *testRun) createRole(reporter testreport.Reporter, purpose string) string {
 	reporter.Helper()
 
 	roleName := r.marker + "_" + purpose
@@ -87,7 +89,7 @@ func (r *testRun) createRole(reporter testReporter, purpose string) string {
 
 // markRole takes over a role Databasus created and named, by writing the run's marker into its
 // comment.
-func (r *testRun) markRole(reporter testReporter, roleName string) {
+func (r *testRun) markRole(reporter testreport.Reporter, roleName string) {
 	reporter.Helper()
 
 	r.roleNames = append(r.roleNames, roleName)
@@ -131,7 +133,7 @@ func (r *testRun) dropCreatedObjects(ctx context.Context) []string {
 // sweepAbandonedObjects removes the marked databases and roles older than abandonedObjectAge, which
 // a run killed before its cleanup left behind. It never touches an object without the marker. A
 // failed drop is only logged, because another run's sweep may be dropping the same object.
-func sweepAbandonedObjects(reporter testReporter, server managedServer, now time.Time) {
+func sweepAbandonedObjects(reporter testreport.Reporter, server managedServer, now time.Time) {
 	reporter.Helper()
 
 	conn := server.open(reporter, server.maintenanceDatabase)
@@ -162,7 +164,13 @@ func sweepAbandonedObjects(reporter testReporter, server managedServer, now time
 	}
 }
 
-func isRoleAbandoned(reporter testReporter, server managedServer, conn *pgx.Conn, roleName string, now time.Time) bool {
+func isRoleAbandoned(
+	reporter testreport.Reporter,
+	server managedServer,
+	conn *pgx.Conn,
+	roleName string,
+	now time.Time,
+) bool {
 	reporter.Helper()
 
 	if objectMarkerPattern.MatchString(roleName) {
@@ -195,7 +203,13 @@ func isAbandoned(marked string, now time.Time) bool {
 	return now.Sub(time.Unix(createdAtUnix, 0)) > abandonedObjectAge
 }
 
-func queryNames(reporter testReporter, server managedServer, conn *pgx.Conn, query string, args ...any) []string {
+func queryNames(
+	reporter testreport.Reporter,
+	server managedServer,
+	conn *pgx.Conn,
+	query string,
+	args ...any,
+) []string {
 	reporter.Helper()
 
 	rows, err := conn.Query(reporter.Context(), query, args...)
@@ -225,7 +239,7 @@ func dropRole(ctx context.Context, conn *pgx.Conn, roleName string) error {
 	return err
 }
 
-func newRandomHex(reporter testReporter) string {
+func newRandomHex(reporter testreport.Reporter) string {
 	reporter.Helper()
 
 	randomBytes := make([]byte, 4)
@@ -287,10 +301,10 @@ func TestTestRunCleanup(t *testing.T) {
 			t.Parallel()
 			_, connectionURL := startContainerServer(t)
 			server := parseContainerServer(t, connectionURL)
-			reporter := newRecordingReporter(t)
+			reporter := testreport.NewRecorder(t)
 			var failedRun *testRun
 
-			reporter.runWithCleanups(func(reporter testReporter) {
+			reporter.RunWithCleanups(func(reporter testreport.Reporter) {
 				failedRun = startTestRun(reporter, server, time.Now())
 				failedRun.createDatabase(reporter, "source")
 				failedRun.createDatabase(reporter, "restored")
@@ -301,7 +315,7 @@ func TestTestRunCleanup(t *testing.T) {
 				reporter.Fatalf("deliberate failure")
 			})
 
-			assert.Equal(t, []string{"deliberate failure"}, reporter.getFailures())
+			assert.Equal(t, []string{"deliberate failure"}, reporter.GetFailures())
 			requireNoObjectOfRun(t, server, failedRun.marker, "databasus-limited")
 		})
 
@@ -309,17 +323,17 @@ func TestTestRunCleanup(t *testing.T) {
 		t.Parallel()
 		_, connectionURL := startContainerServer(t)
 		server := parseContainerServer(t, connectionURL)
-		reporter := newRecordingReporter(t)
+		reporter := testreport.NewRecorder(t)
 		var keptRoleName string
 
-		reporter.runWithCleanups(func(reporter testReporter) {
+		reporter.RunWithCleanups(func(reporter testreport.Reporter) {
 			run := startTestRun(reporter, server, time.Now())
 			keptRoleName = run.createRole(reporter, "role")
 			server.execute(reporter, run.admin, fmt.Sprintf("GRANT CONNECT ON DATABASE %s TO %s",
 				pgx.Identifier{server.maintenanceDatabase}.Sanitize(), pgx.Identifier{keptRoleName}.Sanitize()))
 		})
 
-		failures := reporter.getFailures()
+		failures := reporter.GetFailures()
 		require.Len(t, failures, 1)
 		assert.Contains(t, failures[0], "could not drop role "+keptRoleName)
 	})

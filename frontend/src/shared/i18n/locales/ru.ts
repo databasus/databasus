@@ -2379,6 +2379,19 @@ export const ru: typeof en = {
       },
       s3: {
         cloudflareR2Guide: 'Как подключить Cloudflare R2?',
+        neonPaste: {
+          title: 'Вставьте учетные данные из {{service}}',
+          hint: 'В Neon Console нажмите Connect, выберите Storage и скопируйте блок .env. Сначала создайте credential, иначе ключей в блоке не будет.',
+          pasteFromClipboard: 'Вставить из буфера обмена',
+          orEnterManually: 'или введите данные вручную',
+          clipboardEmpty: 'Буфер обмена пуст',
+          clipboardReadFailed: 'Не удалось прочитать буфер обмена. Проверьте разрешения браузера.',
+          parsed: 'Поля заполнены из учетных данных Neon',
+          parsedWithoutKeys:
+            'Поля заполнены, но ключей в блоке нет. Создайте credential в Neon Console и вставьте блок снова.',
+          notNeonCredentials: 'Это не блок учетных данных Neon Object Storage',
+          guide: 'Как подключить Neon Object Storage?',
+        },
         endpointTooltip:
           'URL своего S3-совместимого эндпоинта (необязательно, для AWS S3 оставьте пустым)',
         prefixTooltip:

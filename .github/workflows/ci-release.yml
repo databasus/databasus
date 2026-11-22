@@ -801,6 +801,12 @@ jobs:
           TEST_GROUP: ${{ matrix.group }}
           TEST_NEON_DATABASE_URL: ${{ matrix.group == 'logical' && secrets.TEST_NEON_DATABASE_URL || '' }}
           TEST_IS_NEON_REQUIRED: ${{ matrix.group == 'logical' && 'true' || '' }}
+          TEST_NEON_S3_ENDPOINT: ${{ matrix.group == 'storage-providers' && secrets.TEST_NEON_S3_ENDPOINT || '' }}
+          TEST_NEON_S3_REGION: ${{ matrix.group == 'storage-providers' && secrets.TEST_NEON_S3_REGION || '' }}
+          TEST_NEON_S3_BUCKET: ${{ matrix.group == 'storage-providers' && secrets.TEST_NEON_S3_BUCKET || '' }}
+          TEST_NEON_S3_ACCESS_KEY: ${{ matrix.group == 'storage-providers' && secrets.TEST_NEON_S3_ACCESS_KEY || '' }}
+          TEST_NEON_S3_SECRET_KEY: ${{ matrix.group == 'storage-providers' && secrets.TEST_NEON_S3_SECRET_KEY || '' }}
+          TEST_IS_NEON_S3_REQUIRED: ${{ matrix.group == 'storage-providers' && 'true' || '' }}
           # Groups with several container-heavy binaries bound each binary's concurrency.
           # The dedicated CNPG branch sets its own limit.
           TEST_PARALLELISM: '2'

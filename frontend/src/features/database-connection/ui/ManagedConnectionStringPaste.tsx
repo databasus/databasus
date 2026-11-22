@@ -1,5 +1,3 @@
-import { Button, Divider } from '@mantine/core';
-import { ClipboardPaste } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -8,8 +6,9 @@ import {
   PostgresqlConnectionStringParser,
   type PostgresqlConnectionStringParseResult,
 } from '@/entities/databases';
-import { useConnectionStringImport } from '@/features/database-connection/model/useConnectionStringImport';
-import { ClipboardPasteModalComponent } from '@/shared/ui';
+import { DATABASE_CONNECTION_STRING_IMPORT_MESSAGES } from '@/features/database-connection/lib/databaseConnectionStringImportMessages';
+import { useClipboardTextImport } from '@/shared/lib/useClipboardTextImport';
+import { ClipboardPasteBlockComponent } from '@/shared/ui';
 
 interface Props {
   provider: ManagedPostgresqlProvider;
@@ -18,9 +17,11 @@ interface Props {
 
 export const ManagedConnectionStringPaste = ({ provider, onParsed }: Props) => {
   const { t } = useTranslation();
-  const { startImport, pasteModal } = useConnectionStringImport({
+  const { startImport, pasteModal } = useClipboardTextImport({
     parse: (connectionString) => PostgresqlConnectionStringParser.parse(connectionString),
+    isIncomplete: (parsed) => !parsed.password,
     onParsed,
+    messages: DATABASE_CONNECTION_STRING_IMPORT_MESSAGES,
   });
 
   const { name: providerName, connectionStringPaste } = MANAGED_POSTGRESQL_PROVIDERS[provider];
@@ -28,38 +29,14 @@ export const ManagedConnectionStringPaste = ({ provider, onParsed }: Props) => {
   if (!connectionStringPaste) return null;
 
   return (
-    <>
-      <div>
-        <div className="font-semibold">
-          {t('databases.edit.connectionStringPaste.title', { provider: providerName })}
-        </div>
-
-        <p className="mt-1 mb-2 text-xs leading-snug text-muted">
-          {t(connectionStringPaste.hintKey)}
-        </p>
-
-        <pre className="rounded-md bg-code p-2 font-mono text-xs break-all whitespace-pre-wrap text-muted">
-          <code>{connectionStringPaste.example}</code>
-        </pre>
-
-        <Button
-          className="mt-2"
-          variant="light"
-          size="xs"
-          leftSection={<ClipboardPaste aria-hidden size={14} />}
-          onClick={() => void startImport()}
-        >
-          {t('databases.edit.connectionStringPaste.pasteFromClipboard')}
-        </Button>
-
-        <ClipboardPasteModalComponent {...pasteModal} />
-      </div>
-
-      <Divider
-        my="md"
-        labelPosition="center"
-        label={t('databases.edit.connectionStringPaste.orEnterManually')}
-      />
-    </>
+    <ClipboardPasteBlockComponent
+      title={t('databases.edit.connectionStringPaste.title', { provider: providerName })}
+      hint={t(connectionStringPaste.hintKey)}
+      example={connectionStringPaste.example}
+      pasteLabel={t('databases.edit.connectionStringPaste.pasteFromClipboard')}
+      dividerLabel={t('databases.edit.connectionStringPaste.orEnterManually')}
+      onPaste={() => void startImport()}
+      pasteModal={pasteModal}
+    />
   );
 };
