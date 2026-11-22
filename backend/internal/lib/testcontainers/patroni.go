@@ -376,6 +376,7 @@ frontend postgres
 backend primary
   option httpchk GET /primary
   http-check expect status 200
+  timeout check 2s
   default-server inter 200ms fall 1 rise 1 on-marked-down shutdown-sessions
   server node-a node-a:5432 check port %d
   server node-b node-b:5432 check port %d
