@@ -245,7 +245,12 @@ export default function NeonPage() {
                   <a href={getLocalizedHref("ru", "storages")}>
                     Новое хранилище
                   </a>{" "}
-                  можно добавить прямо из этого списка.
+                  можно добавить прямо из этого списка. Хотите хранить бекапы тоже в
+                  Neon? Смотрите,{" "}
+                  <a href={getLocalizedHref("ru", "storages/neon-object-storage")}>
+                    как настроить резервное копирование в Neon Object Storage
+                  </a>
+                  .
                 </li>
                 <li>
                   <strong>Encryption</strong>:{" "}

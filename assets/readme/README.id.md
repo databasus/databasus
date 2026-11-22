@@ -84,7 +84,7 @@ Databasus melakukan restore sungguhan untuk memastikan backup bisa dipakai, buka
 ### 🗄️ **Berbagai tujuan penyimpanan** <a href="https://databasus.com/id/storages/">(lihat penyimpanan yang didukung)</a>
 
 - **Penyimpanan lokal**: simpan backup di VPS/server kamu
-- **Penyimpanan cloud**: S3, Cloudflare R2, Azure Blob Storage, NAS, FTP, SFTP, dan lainnya
+- **Penyimpanan cloud**: S3, Azure Blob Storage, NAS, FTP, SFTP, Cloudflare R2, Neon Object Storage, dan lainnya
 - **Aman**: semua data tetap dalam kendali kamu
 
 ### 📱 **Notifikasi** <a href="https://databasus.com/id/notifiers/">(lihat kanal yang didukung)</a>

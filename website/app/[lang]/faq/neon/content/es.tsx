@@ -253,7 +253,12 @@ export default function NeonPage() {
                   <a href={getLocalizedHref("es", "storages")}>
                     añadir un almacenamiento
                   </a>{" "}
-                  directamente desde esta lista.
+                  directamente desde esta lista. Si también quiere guardar los
+                  respaldos en Neon, consulte{" "}
+                  <a href={getLocalizedHref("es", "storages/neon-object-storage")}>
+                    cómo hacer copias de seguridad en Neon Object Storage
+                  </a>
+                  .
                 </li>
                 <li>
                   <strong>Encryption</strong>: si Databasus{" "}

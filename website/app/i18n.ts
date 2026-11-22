@@ -55,6 +55,7 @@ export const TRANSLATED_PATHS = [
   "faq/neon",
   "storages",
   "storages/cloudflare-r2",
+  "storages/neon-object-storage",
   "notifiers",
   "notifiers/slack",
   "notifiers/teams",

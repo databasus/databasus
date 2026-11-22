@@ -686,17 +686,17 @@ When a member opens a saved S3 storage whose endpoint host is `neon.tech` or end
 
 ### Requirement: Public materials describe Neon Object Storage setup
 
-The website SHALL publish a Neon Object Storage guide at `/storages/neon-object-storage` in every supported language. The guide SHALL walk through creating a bucket and a credential in Neon Console and adding the storage in Databasus, with screenshots, and SHALL answer in short direct answers: whether Neon Object Storage is S3-compatible, which endpoint and region to use, that it uses path-style addressing, how its object size limits relate to Databasus backups, that the service is in beta, and that backups belong in a different Neon project than the databases they protect, because deleting a project removes both. Its title, description and headings SHALL target the search phrasing for backing up to Neon Object Storage in each language, and the page SHALL carry step-by-step and question-and-answer structured data that matches its visible text. The storages page, the documentation navigation, the Neon database guide, the sitemap, the language alternates and the machine-readable page listing SHALL link to it. The README in every supported language SHALL name Neon Object Storage as plain text, without a link, at the end of its list of cloud storage destinations, after Cloudflare R2.
+The website SHALL publish a Neon Object Storage guide at `/storages/neon-object-storage` in every supported language. The guide SHALL walk through creating a bucket and a credential in Neon Console and adding the storage in Databasus, with screenshots, in plain steps without S3 protocol details, and SHALL advise keeping backups in a different Neon project than the databases they protect, because deleting a project removes both. Its title, description and headings SHALL target the search phrasing for backing up to Neon Object Storage in each language, and the page SHALL carry step-by-step structured data that matches its visible steps. The storages page, the documentation navigation, the Neon database guide, the sitemap, the language alternates and the machine-readable page listing SHALL link to it. The README in every supported language SHALL name Neon Object Storage as plain text, without a link, at the end of its list of cloud storage destinations, after Cloudflare R2.
 
 #### Scenario: Reading the guide in any language
 
 - **WHEN** a reader opens `/storages/neon-object-storage` or its translated page in any supported language
-- **THEN** the page shows the setup steps with screenshots and the answers above in that language
+- **THEN** the page shows the setup steps with screenshots in that language
 
 #### Scenario: A machine reads the guide
 
 - **WHEN** a search engine or answer engine reads the page
-- **THEN** it finds a translated title and description, language alternates for every locale, and structured data whose steps and answers match the visible text
+- **THEN** it finds a translated title and description, language alternates for every locale, and step-by-step structured data whose steps match the visible text
 
 #### Scenario: Finding the guide
 

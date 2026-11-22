@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
     href: "/storages",
     children: [
       { title: "Cloudflare R2", href: "/storages/cloudflare-r2" },
+      { title: "Neon Object Storage", href: "/storages/neon-object-storage" },
     ],
   },
   {

@@ -93,6 +93,15 @@ export default function StoragesPage() {
                   - Penyimpanan objek dari Cloudflare yang kompatibel dengan S3
                 </li>
                 <li>
+                  <a
+                    href={getLocalizedHref("id", "storages/neon-object-storage")}
+                    className="font-semibold! text-blue-600 hover:text-blue-800"
+                  >
+                    Neon Object Storage
+                  </a>{" "}
+                  - Penyimpanan objek kompatibel S3 yang tersedia di setiap proyek Neon
+                </li>
+                <li>
                   <strong>Azure Blob Storage</strong> - Penyimpanan cloud dari Microsoft Azure
                 </li>
                 <li>

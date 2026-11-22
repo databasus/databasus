@@ -247,7 +247,12 @@ export default function NeonPage() {
                   <a href={getLocalizedHref("id", "storages")}>
                     Penyimpanan baru
                   </a>{" "}
-                  bisa ditambahkan langsung dari daftar ini.
+                  bisa ditambahkan langsung dari daftar ini. Ingin menyimpan backup
+                  di Neon juga? Lihat{" "}
+                  <a href={getLocalizedHref("id", "storages/neon-object-storage")}>
+                    cara backup ke Neon Object Storage
+                  </a>
+                  .
                 </li>
                 <li>
                   <strong>Encryption</strong>: apakah Databasus{" "}

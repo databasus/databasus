@@ -219,7 +219,7 @@ export default function NeonPage() {
                   <strong>Backup interval</strong> 和时间：Databasus 多久做一次备份，例如每天 03:00。
                 </li>
                 <li>
-                  <strong>Storage</strong>：备份存放的位置。你可以直接在这个列表中<a href={getLocalizedHref("zh", "storages")}>添加存储</a>。
+                  <strong>Storage</strong>：备份存放的位置。你可以直接在这个列表中<a href={getLocalizedHref("zh", "storages")}>添加存储</a>。想把备份也放在 Neon？请看<a href={getLocalizedHref("zh", "storages/neon-object-storage")}>如何备份到 Neon Object Storage</a>。
                 </li>
                 <li>
                   <strong>Encryption</strong>：上传前是否<a href={`${getLocalizedHref("zh", "security")}#level-2-backups-encryption`}>加密备份文件</a>。
