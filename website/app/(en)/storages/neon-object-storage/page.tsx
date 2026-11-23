@@ -124,7 +124,7 @@ export default function NeonObjectStoragePage() {
                 <a href={getLocalizedHref("en", "installation")}>
                   installation guide
                 </a>
-                . Neon Object Storage is in beta; the{" "}
+                . The{" "}
                 <a href="https://neon.com/docs/storage/s3-compatibility">
                   S3 compatibility page
                 </a>{" "}

@@ -117,7 +117,7 @@ export default function NeonObjectStoragePage() {
               <p>
                 Нужен только запущенный Databasus. Если его еще нет, начните
                 с <a href={getLocalizedHref("ru", "installation")}>инструкции по установке</a>.
-                Neon Object Storage пока в бете; что оно поддерживает, описано
+                Что поддерживает Neon Object Storage, описано
                 на <a href="https://neon.com/docs/storage/s3-compatibility">странице о
                 совместимости с S3</a> в документации Neon.
               </p>
