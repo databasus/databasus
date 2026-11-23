@@ -114,9 +114,8 @@ export default function NeonObjectStoragePage() {
               <p>
                 你只需要一个正在运行的
                 Databasus。如果还没有，请先按照<a href={getLocalizedHref("zh", "installation")}>安装指南</a>进行安装。Neon
-                Object Storage 目前处于 beta 阶段，Neon
                 文档中的 <a href="https://neon.com/docs/storage/s3-compatibility">S3
-                兼容性页面</a>列出了它支持的功能。
+                兼容性页面</a>列出了 Neon Object Storage 支持的功能。
               </p>
 
               <h2 id="create-bucket">第 1 步：在 Neon 中创建存储桶</h2>
