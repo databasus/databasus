@@ -116,9 +116,8 @@ export default function NeonObjectStoragePage() {
 
               <p>
                 Yang dibutuhkan hanya Databasus yang sudah berjalan. Jika belum ada,
-                ikuti <a href={getLocalizedHref("id", "installation")}>panduan instalasi</a>.
-                Neon Object Storage masih
-                beta; <a href="https://neon.com/docs/storage/s3-compatibility">halaman
+                ikuti <a href={getLocalizedHref("id", "installation")}>panduan instalasi</a>.{" "}
+                <a href="https://neon.com/docs/storage/s3-compatibility">Halaman
                 kompatibilitas S3</a> di dokumentasi Neon menjelaskan apa saja yang didukung.
               </p>
 

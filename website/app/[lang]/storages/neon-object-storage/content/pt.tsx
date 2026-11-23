@@ -116,9 +116,8 @@ export default function NeonObjectStoragePage() {
 
               <p>
                 Você só precisa de um Databasus rodando. Se ainda não tem, siga
-                o <a href={getLocalizedHref("pt", "installation")}>guia de instalação</a>. O
-                Neon Object Storage está em beta;
-                a <a href="https://neon.com/docs/storage/s3-compatibility">página de
+                o <a href={getLocalizedHref("pt", "installation")}>guia de instalação</a>.
+                A <a href="https://neon.com/docs/storage/s3-compatibility">página de
                 compatibilidade com S3</a> da documentação do Neon lista o que ele suporta.
               </p>
 
