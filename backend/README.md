@@ -1,6 +1,6 @@
 # Before run
 
-> Copy .env.example to .env in the repo root (single source for backend, frontend, and docker compose)
+> mise loads the settings from `.env.example` in the repo root for the backend, frontend and docker compose. To change a value, put only that key into an optional `.env` next to it.
 
 # Run
 
@@ -38,7 +38,7 @@ The backend applies pending migrations on startup. To create a migration:
 
 > goose -dir backend/migrations create MIGRATION_NAME sql
 
-To apply or roll back migrations on the dev database, with the variables from `.env` exported (goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment):
+To apply or roll back migrations on the dev database, from a shell with mise activated (goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment):
 
 > goose -dir backend/migrations up
 

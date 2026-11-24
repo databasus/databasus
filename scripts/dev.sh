@@ -44,11 +44,6 @@ free_backend_port() {
     done
 }
 
-[[ -f "$root/.env" ]] || {
-    echo "$root/.env is missing, copy .env.example to .env" >&2
-    exit 1
-}
-
 apply_libedit_shim
 
 trap stop_services EXIT

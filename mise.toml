@@ -4,6 +4,7 @@ min_version = "2026.11.9"
 
 [tasks.run]
 description = "Start the app locally: dev database, test fixtures, WAL backup source, backend, frontend and website"
+depends = ["dev:prepare"]
 run = "scripts/dev.sh"
 
 [tasks.test]
@@ -40,8 +41,15 @@ run = "scripts/verify-deps.sh"
 description = "Regenerate the servers, the test clients and the frontend types from backend/api/*.yaml"
 run = ["go -C backend generate ./...", "pnpm --dir frontend generate:api"]
 
-# CI/CD commands (also used by hooks)
+# Internal commands for CI/CD and other tasks (also used by hooks)
 # Use the user commands above for everyday development.
+
+[tasks."dev:prepare"]
+description = "Install the pinned tools a worktree's commit names and the host lacks"
+# Tasks do not install tools on their own, so CI jobs install only what they need; the local app
+# installs them here, and run sees them because mise resolves its tools after its dependencies.
+run = "mise install --locked --include-task-tools"
+hide = true
 
 [tasks."python:lint"]
 description = "Check all repository Python formatting, lint rules, annotations and types"
@@ -185,5 +193,7 @@ minimum_release_age = "7d"
 run_auto_install = false
 
 [env]
+# .env is optional and holds only the keys a developer changes; every other key keeps its example value.
+_.file = [".env.example", ".env"]
 # The TypeScript wrapper supplies frontend/node_modules before the mise shim changes NODE_PATH.
 _.path = ["{{config_root}}/tools/bin", "{{config_root}}/tools/lsp"]

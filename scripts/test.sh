@@ -121,13 +121,6 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-if [[ -f "$root/.env" ]]; then
-    set -a
-    # shellcheck source=/dev/null # .env is local and untracked, so CI has nothing to follow
-    source "$root/.env"
-    set +a
-fi
-
 DATABASUS_TEST_ROOT_RUN_ID=$DATABASUS_TEST_RUN_ID
 export DATABASUS_TEST_ROOT_RUN_ID
 

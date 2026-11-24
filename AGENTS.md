@@ -40,7 +40,7 @@ Reply to the user in the language they write in, and keep everything committed t
 
 ## Development environment
 
-Work happens on a Fedora host; any other host distro is on its own. Tool versions are pinned in [`mise.toml`](mise.toml), and the `mise run` commands below are tasks from the same file and `mise-tasks/` that run from any directory of the repository. Run `mise install --locked --include-task-tools` once and activate mise in your shell, so every command resolves to the pinned version. Once per clone, run `mise run hooks:migrate` if an older checkout installed lefthook, then `hk install --mise`, so the commit hook from [`hk.pkl`](hk.pkl) checks formatting and lint without changing files; worktrees share the clone's hook. In a fresh worktree, copy `.env.example` to `.env`.
+Work happens on a Fedora host; any other host distro is on its own. Tool versions are pinned in [`mise.toml`](mise.toml), and the `mise run` commands below are tasks from the same file and `mise-tasks/` that run from any directory of the repository. Run `mise install --locked --include-task-tools` once and activate mise in your shell, so every command resolves to the pinned version. Once per clone, run `mise run hooks:migrate` if an older checkout installed lefthook, then `hk install --mise`, so the commit hook from [`hk.pkl`](hk.pkl) checks formatting and lint without changing files; worktrees share the clone's hook. Settings come from `.env.example`, and an optional `.env` overrides them key by key, so a fresh worktree needs no copy; `mise run run` also installs the pinned tools its commit names and the host lacks.
 
 The repository's skills live in `.agents/skills/`, which Codex reads directly; Claude Code reads them through `.claude/skills`, a symlink to that directory, so each skill has one source file.
 
@@ -55,7 +55,7 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 | `mise run doctor` | Check review tools and whether Codex project hooks are enabled and trusted |
 | `mise run review [<change>]` | Manually rerun parallel AI reviews of a finished OpenSpec change when hooks did not run or another review is needed |
 | `goose -dir backend/migrations create <name> sql` | Create a migration |
-| `goose -dir backend/migrations up` (or `down`), with `.env` exported | Apply or roll back migrations on the dev database; goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment. The server also applies migrations itself at startup |
+| `goose -dir backend/migrations up` (or `down`), from a shell with mise activated | Apply or roll back migrations on the dev database; goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment. The server also applies migrations itself at startup |
 | `mise run generate-api` | Regenerate the servers, the test clients and the frontend types from `backend/api/*.yaml` |
 
 ### Code search and navigation

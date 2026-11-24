@@ -163,7 +163,10 @@ func readTestDsnVariable() (string, error) {
 
 	testDsn := variables[testDatabaseDsnVariable]
 	if testDsn == "" {
-		return "", fmt.Errorf("%s is not set; copy .env.example to .env", testDatabaseDsnVariable)
+		return "", fmt.Errorf(
+			"%s is not set; run through mise, which loads it from .env.example and .env",
+			testDatabaseDsnVariable,
+		)
 	}
 
 	return testDsn, nil

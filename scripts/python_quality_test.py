@@ -275,7 +275,7 @@ class PythonQualityTest(unittest.TestCase):
             self.assertNotEqual(completed_check.returncode, 0)
             output = completed_check.stdout + completed_check.stderr
             self.assertIn("frontend lint failed", output)
-            self.assertIn("invalid-return-type", output)
+            self.assertIn("invalid-explicit-return", output)
 
     def test_passes_when_source_and_external_imports_are_typed(self) -> None:
         self.write_source(
@@ -308,7 +308,7 @@ class PythonQualityTest(unittest.TestCase):
 
         self.assertNotEqual(completed_check.returncode, 0)
         self.assertIn("would be reformatted", completed_check.stdout)
-        self.assertIn("invalid-return-type", completed_check.stdout)
+        self.assertIn("invalid-explicit-return", completed_check.stdout)
 
     def test_rejects_when_a_parameter_uses_any(self) -> None:
         self.write_source(
@@ -345,7 +345,7 @@ class PythonQualityTest(unittest.TestCase):
 
         self.assertNotEqual(completed_check.returncode, 0)
         self.assertIn("could not start ruff", completed_check.stderr)
-        self.assertIn("invalid-return-type", completed_check.stdout)
+        self.assertIn("invalid-explicit-return", completed_check.stdout)
 
     def test_skips_when_source_is_deleted_or_ignored(self) -> None:
         source = self.write_source("deleted.py", "invalid Python")
