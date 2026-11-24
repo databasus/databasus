@@ -10,7 +10,7 @@ PROBE_PASSWORD = "synthetic-account-password"
 PROBE_DATABASE_PASSWORD = "synthetic-database-password"
 BEARER_TOKEN = "synthetic-bearer-marker"
 STARTUP_FAILING_IMAGE = (
-    "postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81"
+    "postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553"
 )
 
 

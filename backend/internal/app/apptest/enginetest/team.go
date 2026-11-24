@@ -258,18 +258,7 @@ func (tm Team) Restore(t *testing.T, backupID uuid.UUID, target apiclient.Restor
 func (tm Team) RequireBackupSizeMatchesDownload(t *testing.T, backup apiclient.LogicalBackup) {
 	t.Helper()
 
-	tokenResponse, err := tm.Owner.Client.CreateDownloadTokenWithResponse(t.Context(),
-		apiclient.DownloadTokenCreate{BackupId: backup.Id})
-	requireStatus(t, "create a download token", err, http.StatusCreated, tokenResponse.StatusCode(),
-		tokenResponse.Body)
-
-	downloadResponse, err := tm.Owner.Client.DownloadLogicalBackupWithResponse(t.Context(), backup.Id,
-		&apiclient.DownloadLogicalBackupParams{Token: tokenResponse.JSON201.Token},
-		func(_ context.Context, request *http.Request) error {
-			request.Header.Set("Accept-Encoding", "identity")
-			return nil
-		})
-	requireStatus(t, "download the backup", err, http.StatusOK, downloadResponse.StatusCode(), downloadResponse.Body)
+	downloadResponse := tm.downloadBackup(t, backup.Id)
 
 	downloadedBytes := int64(len(downloadResponse.Body))
 	announcedLength := downloadResponse.HTTPResponse.ContentLength
@@ -282,6 +271,13 @@ func (tm Team) RequireBackupSizeMatchesDownload(t *testing.T, backup apiclient.L
 	if math.Abs(downloadedSizeMb-backup.SizeMb) > sizeToleranceMb {
 		t.Fatalf("the backup records %f MB and the download delivers %f MB", backup.SizeMb, downloadedSizeMb)
 	}
+}
+
+// DownloadBackup returns the stored file of the backup as the download serves it.
+func (tm Team) DownloadBackup(t *testing.T, backupID uuid.UUID) []byte {
+	t.Helper()
+
+	return tm.downloadBackup(t, backupID).Body
 }
 
 // RequireBackupFailsWithoutHanging pins issue #582: a backup whose upload fails must end FAILED with a
@@ -322,6 +318,25 @@ func (tm Team) CountRestores(t *testing.T, backupID uuid.UUID) int64 {
 	tm.App.QuerySQL(t, &restoreCount, "SELECT count(*) FROM backups_restores WHERE backup_id = ?", backupID)
 
 	return restoreCount
+}
+
+func (tm Team) downloadBackup(t *testing.T, backupID uuid.UUID) *apiclient.DownloadLogicalBackupResponse {
+	t.Helper()
+
+	tokenResponse, err := tm.Owner.Client.CreateDownloadTokenWithResponse(t.Context(),
+		apiclient.DownloadTokenCreate{BackupId: backupID})
+	requireStatus(t, "create a download token", err, http.StatusCreated, tokenResponse.StatusCode(),
+		tokenResponse.Body)
+
+	downloadResponse, err := tm.Owner.Client.DownloadLogicalBackupWithResponse(t.Context(), backupID,
+		&apiclient.DownloadLogicalBackupParams{Token: tokenResponse.JSON201.Token},
+		func(_ context.Context, request *http.Request) error {
+			request.Header.Set("Accept-Encoding", "identity")
+			return nil
+		})
+	requireStatus(t, "download the backup", err, http.StatusOK, downloadResponse.StatusCode(), downloadResponse.Body)
+
+	return downloadResponse
 }
 
 func (tm Team) setRecordedVersion(t *testing.T, check RestoreVersionCheck, version string) {

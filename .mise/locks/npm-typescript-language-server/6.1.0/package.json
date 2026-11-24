@@ -2,6 +2,6 @@
   "name": "mise-npm-install",
   "private": true,
   "dependencies": {
-    "@fission-ai/openspec": "1.11.0"
+    "typescript-language-server": "6.1.0"
   }
 }

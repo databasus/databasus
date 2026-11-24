@@ -54,10 +54,7 @@ const isRetentionChanged = ({
   );
 };
 
-const isOptionalScheduleChanged = ({
-  acknowledged,
-  shown,
-}: Comparison<Schedule | null>): boolean =>
+const isOptionalScheduleChanged = ({ acknowledged, shown }: Comparison<Schedule | null>): boolean =>
   acknowledged && shown ? isScheduleChanged({ acknowledged, shown }) : acknowledged !== shown;
 
 const areShownTriggersChanged = ({
