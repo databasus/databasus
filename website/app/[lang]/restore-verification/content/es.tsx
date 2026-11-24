@@ -185,8 +185,8 @@ export default function RestoreVerificationPage() {
                 <li>
                   Capacidad de disco para cada trabajo de verificación que cubra
                   el <strong>tamaño del archivo de la copia</strong>, el{" "}
-                  <strong>tamaño bruto de la base de datos</strong> y un{" "}
-                  <strong>margen de seguridad</strong> adicional.
+                  <strong>tamaño bruto de la base de datos</strong>, una reserva y los{" "}
+                  <strong>índices más grandes</strong> que se construyen a la vez.
                 </li>
                 <li>
                   Al menos 1 núcleo de CPU y 512 MB de RAM disponibles por
@@ -331,10 +331,16 @@ export default function RestoreVerificationPage() {
                 concurrencia menor. El presupuesto de disco es el más fácil de
                 calcular mal: cada trabajo necesita espacio para el{" "}
                 <strong>tamaño del archivo de la copia</strong>, el{" "}
-                <strong>tamaño bruto de la base de datos</strong> y un{" "}
-                <strong>margen de seguridad adicional de hasta 5 GB</strong>,
-                así que fije <code>--max-disk-gb</code> con holgura por encima
-                de eso para su base de datos más grande.
+                <strong>tamaño bruto de la base de datos</strong>, una{" "}
+                <strong>reserva de unos 1,5 GB</strong> y sus{" "}
+                <strong>índices más grandes</strong>, uno por cada trabajo de
+                restauración en paralelo, porque cada índice en construcción ocupa
+                en disco una ordenación de aproximadamente su mismo tamaño.
+                Databasus reduce el número de trabajos de restauración en paralelo
+                hasta que todo eso cabe en el disco libre del agente, así que un{" "}
+                <code>--max-cpu</code> mayor necesita más disco y un{" "}
+                <code>--max-disk-gb</code> mayor permite restaurar más rápido una
+                base de datos grande.
               </p>
 
               <h3 id="manage">Gestionar el agente</h3>

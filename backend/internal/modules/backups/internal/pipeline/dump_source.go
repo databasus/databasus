@@ -8,12 +8,21 @@ import (
 // logicalDumpSource is one database opened for a dump, behind the engine of its type. Close
 // releases what opening it took, such as an SSH tunnel.
 type logicalDumpSource interface {
-	GetRawSizeMb(ctx context.Context) (float64, bool)
+	GetSizeEstimate(ctx context.Context) SizeEstimate
 	// GetTimescaleDBVersion is empty for every engine but PostgreSQL, and for a database without
 	// the extension.
 	GetTimescaleDBVersion(ctx context.Context) string
 	Dump(ctx context.Context, output io.Writer) error
 	Close()
+}
+
+// SizeEstimate is what the source holds before the dump, read so a verification can plan its
+// restore. RawDbSizeMb is 0 when it could not be read. LargestIndexSizesMb is nil when the sizes were
+// not read, either because the engine does not report them or because reading them failed, and
+// empty when the dumped tables have no index.
+type SizeEstimate struct {
+	RawDbSizeMb         float64
+	LargestIndexSizesMb []float64
 }
 
 // logicalRestoreSink is a restore target opened for a restore. It is named apart from the restore

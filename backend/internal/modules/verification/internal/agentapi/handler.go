@@ -74,6 +74,7 @@ func (h *Handler) ClaimVerification(
 		BackupID:           assignment.BackupID,
 		BackupSizeMb:       assignment.BackupSizeMb,
 		MaxContainerDiskMb: assignment.MaxContainerDiskMb,
+		ParallelJobs:       assignment.ParallelJobs,
 		TimescaledbVersion: assignment.TimescaledbVersion,
 		Database: AssignedDatabase{
 			Type:              string(assignment.Database.Type),

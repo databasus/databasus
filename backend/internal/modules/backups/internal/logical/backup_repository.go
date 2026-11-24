@@ -17,7 +17,7 @@ import (
 const inProgressIndexName = "uq_backups_logical_in_progress_database"
 
 const backupColumns = "id, database_id, storage_id, file_name, status, fail_message, backup_size_mb, " +
-	"backup_raw_db_size_mb, backup_duration_ms, encryption, encryption_salt, encryption_iv, " +
+	"backup_raw_db_size_mb, backup_largest_index_sizes_mb, backup_duration_ms, encryption, encryption_salt, encryption_iv, " +
 	"timescaledb_version, restore_verification_status, created_at"
 
 // Repositories are the repositories of the package. module.go builds them from the pool, so the
@@ -44,14 +44,16 @@ type backupListFilter struct {
 
 // completion is what a published backup records besides its status.
 type completion struct {
-	backupID           uuid.UUID
-	sizeMb             float64
-	rawDatabaseSizeMb  float64
-	durationMs         int64
-	encryption         config.Encryption
-	encryptionSalt     *string
-	encryptionIV       *string
-	timescaledbVersion string
+	backupID          uuid.UUID
+	sizeMb            float64
+	rawDatabaseSizeMb float64
+	// largestIndexSizesMb is nil when the sizes were not recorded.
+	largestIndexSizesMb pq.Float64Array
+	durationMs          int64
+	encryption          config.Encryption
+	encryptionSalt      *string
+	encryptionIV        *string
+	timescaledbVersion  string
 }
 
 // insert returns the unique violation of inProgressIndexName when a backup of the database runs.
@@ -200,10 +202,12 @@ func (r *backupRepository) updateProgress(
 
 func (r *backupRepository) complete(ctx context.Context, backupCompletion completion) (bool, error) {
 	return r.updateInProgress(ctx, "complete the logical backup",
-		`status = 'COMPLETED', backup_size_mb = ?, backup_raw_db_size_mb = ?, backup_duration_ms = ?,
+		`status = 'COMPLETED', backup_size_mb = ?, backup_raw_db_size_mb = ?, backup_largest_index_sizes_mb = ?,
+		backup_duration_ms = ?,
 		encryption = ?, encryption_salt = ?, encryption_iv = ?, timescaledb_version = ?`,
 		backupCompletion.backupID,
-		backupCompletion.sizeMb, backupCompletion.rawDatabaseSizeMb, backupCompletion.durationMs,
+		backupCompletion.sizeMb, backupCompletion.rawDatabaseSizeMb, backupCompletion.largestIndexSizesMb,
+		backupCompletion.durationMs,
 		backupCompletion.encryption, backupCompletion.encryptionSalt, backupCompletion.encryptionIV,
 		backupCompletion.timescaledbVersion)
 }

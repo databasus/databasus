@@ -7,6 +7,7 @@ type VerificationAssignment struct {
 	BackupID           uuid.UUID
 	BackupSizeMb       float64
 	MaxContainerDiskMb float64
+	ParallelJobs       int
 	Database           AssignedDatabase
 	TimescaledbVersion string
 }

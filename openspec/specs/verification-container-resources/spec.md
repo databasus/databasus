@@ -34,7 +34,10 @@ The verification agent SHALL create restore containers without a CPU limit when 
 #### Scenario: CPU budget still sizes the restore
 
 - **WHEN** the Docker host cannot enforce a CPU limit
-- **THEN** the agent still accepts its configured CPU total, reports it to the server, and uses the per-job CPU budget to size restore parallelism
+- **AND** the agent runs with a CPU total of 4 and 2 concurrent jobs
+- **THEN** the agent's claim reports a CPU total of 4 and 2 concurrent jobs
+- **AND** the assignment it receives names at most 2 parallel jobs, the per-job CPU budget
+- **AND** the restore tool runs with exactly the number of parallel jobs the assignment names
 
 ### Requirement: A missing CPU limit is announced and leaves other isolation intact
 

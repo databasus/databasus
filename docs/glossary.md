@@ -95,6 +95,8 @@ This is the project's common language. Shared concepts have one term in document
 | Verification trigger | What started a verification: a user, the interval schedule or a completed backup. |
 | Verification agent | The program on the user's machine that runs verifications. |
 | Assignment eligibility | Whether a verification agent has contacted the server recently enough to receive new work. Registration keeps the agent listed regardless of contact; capacity determines whether a particular verification fits its resource budget. |
+| Restore peak | The most disk a verification's restore is expected to occupy at once: the backup file, the restored database, a reserve for WAL and the empty cluster, and the largest indexes built at the same time, one per parallel restore job. |
+| Disk budget | The disk a verification may use on its agent, set from its restore peak. It is reserved from the assignment until the verification stops running, and the agent stops a restore that reaches it. |
 | Instance health | Whether this instance’s local dependencies, verification-agent freshness and periodic work pass their monitoring checks; distinct from a healthcheck of a user’s database. |
 | Healthcheck | A scheduled check that a user's database answers. |
 | Healthcheck config | The settings of a database that decide whether and how often it is checked, how many failed checks make it unavailable, whether status changes notify and how long attempts are kept. |

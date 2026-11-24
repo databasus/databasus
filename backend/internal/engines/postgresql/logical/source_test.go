@@ -39,6 +39,7 @@ func TestSource(t *testing.T) {
 				{name: "TestConnection RLS privileges", run: runRLSPrivilegeScenarios},
 				{name: "DetectVersion", run: runDetectVersionScenarios},
 				{name: "GetDumpedSizeMb", run: runGetDumpedSizeMbScenarios},
+				{name: "GetLargestDumpedIndexSizesMb", run: runGetLargestDumpedIndexSizesMbScenarios},
 				{name: "GetTimescaleDBVersion", run: runGetTimescaleDBVersionScenarios},
 				{name: "ShouldSuggestReadOnlyUser", run: runShouldSuggestReadOnlyUserScenarios},
 				{name: "CreateReadOnlyUser", run: runCreateReadOnlyUserScenarios},

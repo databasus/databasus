@@ -125,7 +125,7 @@ Each module owns its part of the internal database. Integrity rules live in the 
   - a composite foreign key `(id, type)`, so a provider row cannot attach to a parent of another type;
   - for a row that references one of two kinds of entities, two nullable foreign keys and `CHECK (num_nonnulls(a_id, b_id) = 1)`, never an untyped `(kind, id)` pair.
 - **Enum values** follow [the backend migration rules](../backend/AGENTS.md#migrations).
-- **Types.** Lists are `text[]`. `JSONB` holds only data we treat as opaque and store in clear, such as webhook headers. Time is `TIMESTAMPTZ`, and all time is UTC. Identifiers are UUIDs with `DEFAULT gen_random_uuid()`, and a row that continues another row of the same module takes that row's ID as its primary key.
+- **Types.** Lists of names and enum values are `text[]`. A list of numbers is a typed numeric array, such as `double precision[]`, so a `CHECK` can bound its length and its elements. `JSONB` holds only data we treat as opaque and store in clear, such as webhook headers. Time is `TIMESTAMPTZ`, and all time is UTC. Identifiers are UUIDs with `DEFAULT gen_random_uuid()`, and a row that continues another row of the same module takes that row's ID as its primary key.
 - **Transactions travel in the context** and are never passed as parameters.
   - Services open transactions through an injected transactor and never hold the connection pool. Repositories in any module join the caller's transaction while honoring the query's own deadline and cancellation.
   - Work that outlives its caller detaches from the transaction. External effects register after-commit hooks: the outermost commit runs them in order without the transaction, and rollback discards them.

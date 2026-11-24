@@ -136,15 +136,49 @@ func openPostgresqlDumpSource(
 	}, nil
 }
 
-func (s *postgresqlDumpSource) GetRawSizeMb(ctx context.Context) (float64, bool) {
-	rawSizeMb, err := s.tunnel.GetSource().GetDumpedSizeMb(ctx, s.logger, s.dumpFilter)
-	if err != nil {
-		s.logger.WarnContext(ctx, "failed to fetch raw db size before backup", slog.Any("error", err))
+func (s *postgresqlDumpSource) GetSizeEstimate(ctx context.Context) SizeEstimate {
+	source := s.tunnel.GetSource()
 
-		return 0, false
+	rawSizeMb, rawSizeErr := source.GetDumpedSizeMb(ctx, s.logger, s.dumpFilter)
+	if rawSizeErr != nil {
+		s.logger.WarnContext(ctx, "failed to fetch raw db size before backup", slog.Any("error", rawSizeErr))
+
+		return newPostgresqlSizeEstimate(postgresqlSizeReadings{RawSizeErr: rawSizeErr})
 	}
 
-	return rawSizeMb, true
+	largestIndexSizesMb, indexSizesErr := source.GetLargestDumpedIndexSizesMb(ctx, s.logger, s.dumpFilter)
+	if indexSizesErr != nil {
+		s.logger.WarnContext(ctx, "failed to fetch index sizes before backup", slog.Any("error", indexSizesErr))
+	}
+
+	return newPostgresqlSizeEstimate(postgresqlSizeReadings{
+		RawSizeMb:           rawSizeMb,
+		RawSizeErr:          nil,
+		LargestIndexSizesMb: largestIndexSizesMb,
+		IndexSizesErr:       indexSizesErr,
+	})
+}
+
+type postgresqlSizeReadings struct {
+	RawSizeMb           float64
+	RawSizeErr          error
+	LargestIndexSizesMb []float64
+	IndexSizesErr       error
+}
+
+// A backup records index sizes only beside a known database size: without the database size its
+// restore peak would leave out most of what the restore writes, so it is planned as a backup
+// without index sizes.
+func newPostgresqlSizeEstimate(readings postgresqlSizeReadings) SizeEstimate {
+	if readings.RawSizeErr != nil {
+		return SizeEstimate{RawDbSizeMb: 0, LargestIndexSizesMb: nil}
+	}
+
+	if readings.IndexSizesErr != nil {
+		return SizeEstimate{RawDbSizeMb: readings.RawSizeMb, LargestIndexSizesMb: nil}
+	}
+
+	return SizeEstimate{RawDbSizeMb: readings.RawSizeMb, LargestIndexSizesMb: readings.LargestIndexSizesMb}
 }
 
 func (s *postgresqlDumpSource) GetTimescaleDBVersion(ctx context.Context) string {

@@ -189,8 +189,8 @@ export default function RestoreVerificationPage() {
                 <li>
                   De la capacité disque pour chaque tâche de vérification
                   couvrant la <strong>taille du fichier de backup</strong>, la{" "}
-                  <strong>taille brute de la base</strong> et une{" "}
-                  <strong>marge de sécurité</strong> en plus.
+                  <strong>taille brute de la base</strong>, une réserve et les{" "}
+                  <strong>plus gros index</strong> construits en même temps.
                 </li>
                 <li>
                   Au moins 1 cœur CPU et 512 Mo de RAM disponibles par tâche
@@ -338,12 +338,18 @@ export default function RestoreVerificationPage() {
                 et 1 Go. Le plancher est de 1 CPU et 512 Mo par tâche : si votre
                 budget ne peut pas le satisfaire, l&apos;agent annonce une
                 concurrence plus basse. Le budget disque est le plus facile à
-                rater : chaque tâche a besoin d&apos;assez d&apos;espace pour la{" "}
+                rater : chaque tâche a besoin d&apos;espace pour la{" "}
                 <strong>taille du fichier de backup</strong>, la{" "}
-                <strong>taille brute de la base</strong> et une{" "}
-                <strong>marge de sécurité pouvant atteindre 5 Go</strong> en
-                plus, donc réglez <code>--max-disk-gb</code> confortablement
-                au-dessus de ce total pour votre plus grosse base.
+                <strong>taille brute de la base</strong>, une{" "}
+                <strong>réserve d&apos;environ 1,5 Go</strong> et ses{" "}
+                <strong>plus gros index</strong>, un par tâche de restauration
+                parallèle, car chaque index en cours de construction occupe sur le
+                disque un tri d&apos;à peu près sa propre taille. Databasus réduit
+                le nombre de tâches de restauration parallèles jusqu&apos;à ce que
+                le tout tienne dans le disque libre de l&apos;agent. Un{" "}
+                <code>--max-cpu</code> plus élevé demande donc plus de disque, et
+                un <code>--max-disk-gb</code> plus grand permet de restaurer plus
+                vite une grosse base.
               </p>
 
               <h3 id="manage">Gérer l&apos;agent</h3>

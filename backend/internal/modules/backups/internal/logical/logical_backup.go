@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 
 	files_utils "databasus-backend/internal/lib/filename"
 	"databasus-backend/internal/modules/backups/internal/config"
@@ -46,10 +47,13 @@ type LogicalBackup struct {
 	// The sizes are megabytes of the stored file and of the database before the dump.
 	BackupSizeMb      float64
 	BackupRawDbSizeMb float64
-	BackupDurationMs  int64
-	Encryption        config.Encryption
-	EncryptionSalt    *string
-	EncryptionIV      *string
+	// BackupLargestIndexSizesMb holds the sizes of the largest dumped indexes in megabytes, largest
+	// first. It is nil when they were not recorded and empty when the dumped tables have no index.
+	BackupLargestIndexSizesMb pq.Float64Array `gorm:"type:double precision[]"`
+	BackupDurationMs          int64
+	Encryption                config.Encryption
+	EncryptionSalt            *string
+	EncryptionIV              *string
 	// TimescaledbVersion is the source's TimescaleDB version at backup time, empty without the
 	// extension. A non-empty one makes the restore run the TimescaleDB procedure.
 	TimescaledbVersion        string

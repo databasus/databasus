@@ -9,6 +9,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/lib/pq"
+
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
 	"databasus-backend/internal/modules/backups/internal/runcontext"
@@ -117,6 +119,7 @@ func (s *Service) publishBackup(
 	completedBackup.Status = StatusCompleted
 	completedBackup.BackupSizeMb = result.StoredSizeMb
 	completedBackup.BackupRawDbSizeMb = result.RawDatabaseSizeMb
+	completedBackup.BackupLargestIndexSizesMb = pq.Float64Array(result.LargestIndexSizesMb)
 	completedBackup.BackupDurationMs = s.getDurationMs(startedAt)
 	completedBackup.TimescaledbVersion = result.TimescaledbVersion
 
@@ -138,14 +141,15 @@ func (s *Service) publishBackup(
 		}
 
 		isCompleted, err := s.repository.complete(ctx, completion{
-			backupID:           completedBackup.ID,
-			sizeMb:             completedBackup.BackupSizeMb,
-			rawDatabaseSizeMb:  completedBackup.BackupRawDbSizeMb,
-			durationMs:         completedBackup.BackupDurationMs,
-			encryption:         completedBackup.Encryption,
-			encryptionSalt:     completedBackup.EncryptionSalt,
-			encryptionIV:       completedBackup.EncryptionIV,
-			timescaledbVersion: completedBackup.TimescaledbVersion,
+			backupID:            completedBackup.ID,
+			sizeMb:              completedBackup.BackupSizeMb,
+			rawDatabaseSizeMb:   completedBackup.BackupRawDbSizeMb,
+			largestIndexSizesMb: completedBackup.BackupLargestIndexSizesMb,
+			durationMs:          completedBackup.BackupDurationMs,
+			encryption:          completedBackup.Encryption,
+			encryptionSalt:      completedBackup.EncryptionSalt,
+			encryptionIV:        completedBackup.EncryptionIV,
+			timescaledbVersion:  completedBackup.TimescaledbVersion,
 		})
 		if err != nil {
 			return err

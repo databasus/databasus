@@ -24,6 +24,19 @@ type agentProcess struct {
 	binary     string
 	outputPath string
 	engineHost string
+	capacity   agentCapacity
+}
+
+// agentCapacity is the budget the agent is started with; a scenario raises a field it depends on.
+type agentCapacity struct {
+	maxCPU            int
+	maxRAMMb          int
+	maxDiskGb         int
+	maxConcurrentJobs int
+}
+
+func getDefaultAgentCapacity() agentCapacity {
+	return agentCapacity{maxCPU: 1, maxRAMMb: 2048, maxDiskGb: 10, maxConcurrentJobs: 1}
 }
 
 func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
@@ -39,6 +52,7 @@ func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
 		binary:     binary,
 		outputPath: filepath.Join(directory, "output.log"),
 		engineHost: getEngineHost(),
+		capacity:   getDefaultAgentCapacity(),
 	}
 
 	t.Cleanup(func() {
@@ -76,7 +90,7 @@ func (a *agentProcess) start(t *testing.T, host string, credentials apptest.Crea
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(t.Context())
-	spec := a.spec(agentArguments("run", host, credentials))
+	spec := a.spec(agentArguments("run", host, credentials, a.capacity))
 	spec.Stdout = output
 	spec.Stderr = output
 
@@ -90,7 +104,11 @@ func (a *agentProcess) start(t *testing.T, host string, credentials apptest.Crea
 	t.Cleanup(func() { cancel(); _ = running.Wait(); require.NoError(t, output.Close()) })
 }
 
-func agentArguments(command, host string, credentials apptest.CreatedVerificationAgent) []string {
+func agentArguments(
+	command, host string,
+	credentials apptest.CreatedVerificationAgent,
+	capacity agentCapacity,
+) []string {
 	return []string{
 		command,
 		"--databasus-host",
@@ -102,13 +120,13 @@ func agentArguments(command, host string, credentials apptest.CreatedVerificatio
 		"--allow-insecure-http",
 		"--skip-update",
 		"--max-cpu",
-		"1",
+		strconv.Itoa(capacity.maxCPU),
 		"--max-ram-mb",
-		"2048",
+		strconv.Itoa(capacity.maxRAMMb),
 		"--max-disk-gb",
-		"10",
+		strconv.Itoa(capacity.maxDiskGb),
 		"--max-concurrent-jobs",
-		"1",
+		strconv.Itoa(capacity.maxConcurrentJobs),
 	}
 }
 
