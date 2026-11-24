@@ -3,6 +3,7 @@ package backups_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -41,6 +42,37 @@ func TestDeleteLogicalBackup(t *testing.T) {
 		assert.True(t, tm.app.IsLocalStorageFilePresent(t, keptFileName))
 	})
 
+	for _, finishedStatus := range []apiclient.LogicalBackupStatus{
+		apiclient.LogicalBackupStatusFAILED,
+		apiclient.LogicalBackupStatusCANCELED,
+	} {
+		t.Run("removes the backup from the list and leaves no pending file deletion with status "+
+			string(finishedStatus), func(t *testing.T) {
+			tm := newTeam(t)
+			database := newBackedUpDatabase(t, tm, server)
+			finishedBackupID := insertLogicalBackupRecord(
+				t,
+				tm,
+				database.databaseID,
+				database.storageID,
+				finishedStatus,
+				database.backup.CreatedAt.Add(time.Minute),
+			)
+
+			finishedFileName := getBackupFileName(t, tm, finishedBackupID)
+
+			response := requestLogicalBackupDeletion(t, tm.owner, finishedBackupID)
+
+			require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+			assert.Equal(t, []uuid.UUID{database.backup.Id}, listLogicalBackupIDs(t, tm.owner, database.databaseID))
+
+			require.Equal(t, 2, countPendingFileDeletions(t, tm, finishedFileName))
+
+			tm.app.RunJobPass(t, storageFileDeletionJobName)
+			assert.Zero(t, countPendingFileDeletions(t, tm, finishedFileName))
+		})
+	}
+
 	t.Run("returns 409 already_running for a running backup and keeps it running", func(t *testing.T) {
 		tm := newTeam(t)
 		source := newBackupSourceDatabase(t, tm, server)
@@ -60,4 +92,12 @@ func TestDeleteLogicalBackup(t *testing.T) {
 
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusNotFound, apiclient.ProblemCodeNotFound)
 	})
+}
+
+// countPendingFileDeletions reads the queue of the storage file deletions, which the API does not return.
+func countPendingFileDeletions(t *testing.T, tm team, backupFileName string) int {
+	t.Helper()
+
+	return countRows(t, tm, "SELECT COUNT(*) FROM storages_pending_file_deletions WHERE file_name IN (?, ?)",
+		backupFileName, backupFileName+".metadata")
 }
