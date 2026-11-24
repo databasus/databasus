@@ -11,7 +11,7 @@ COMPOSE_FILE = Path(__file__).parent / "compose.yaml"
 PROJECT_LABEL = "com.docker.compose.project"
 PROJECT_NAME_PREFIX = "databasus-e2e-"
 POSTGRES_IMAGE = (
-    "postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81"
+    "postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553"
 )
 
 

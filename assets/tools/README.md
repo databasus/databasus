@@ -43,20 +43,20 @@ Bundled PostgreSQL minors (identical on both arches, Debian bookworm pgdg):
 |-------|-------|-----------------------------------|
 | 12    | 12.22 | `12.22-3.pgdg12+1` (final, EOL)   |
 | 13    | 13.23 | `13.23-1.pgdg12+1` (final, EOL)   |
-| 14    | 14.23 | `14.23-1.pgdg12+1`                |
-| 15    | 15.18 | `15.18-1.pgdg12+1`                |
-| 16    | 16.14 | `16.14-1.pgdg12+1`                |
-| 17    | 17.10 | `17.10-1.pgdg12+1`                |
-| 18    | 18.4  | `18.4-1.pgdg12+1`                 |
+| 14    | 14.25 | `14.25-1.pgdg12+1` (final, EOL)   |
+| 15    | 15.20 | `15.20-1.pgdg12+1`                |
+| 16    | 16.16 | `16.16-1.pgdg12+1`                |
+| 17    | 17.12 | `17.12-1.pgdg12+1`                |
+| 18    | 18.7  | `18.7-1.pgdg12+2`                 |
 
-Majors 12 and 13 are past upstream EOL, so those minors are the last ones that
-will ever exist. Keep every binary within one major on the same package build —
+Majors 12, 13 and 14 are past upstream EOL, so those minors are the last ones
+that will ever exist. Keep every binary within one major on the same package build —
 a `pg_dump` older than its sibling `pg_basebackup` is how issue #725 (pg_dump
 18.1 silently emitting wrong sequence values) survived unnoticed.
 
 Bundled MySQL patches (identical on both arches, upstream glibc2.28 tarballs
 from `https://cdn.mysql.com/Downloads/MySQL-<dir>/mysql-<patch>-linux-glibc2.28-{x86_64,aarch64}.tar.xz`,
-where `<dir>` is `8.0`, `8.4`, `9.7` or `26.7`. MySQL 5.7 uses the archived
+where `<dir>` is `8.0`, `8.4`, `9.7` or `26.10`. MySQL 5.7 uses the archived
 `mysql-5.7.44-linux-glibc2.12-x86_64.tar.gz` from
 `https://cdn.mysql.com/archives/mysql-5.7/`):
 
@@ -64,9 +64,9 @@ where `<dir>` is `8.0`, `8.4`, `9.7` or `26.7`. MySQL 5.7 uses the archived
 |------------|--------|-------------------------------------------|
 | `mysql-5.7`  | 5.7.44 | final patch of the line; amd64 only      |
 | `mysql-8.0`  | 8.0.46 |                                           |
-| `mysql-8.4`  | 8.4.11 | long-term support line                    |
-| `mysql-9`    | 9.7.2  | serves every 9.x server                   |
-| `mysql-26`   | 26.7.0 | calendar scheme; serves every 26.x server; ships its own OpenSSL |
+| `mysql-8.4`  | 8.4.13 | long-term support line                    |
+| `mysql-9`    | 9.7.4  | serves every 9.x server                   |
+| `mysql-26`   | 26.10.0 | calendar scheme; serves every 26.x server; ships its own OpenSSL |
 
 Bundled MariaDB patches, unpacked from the vendor's own package repositories
 by `tools/refresh-mariadb-bundle.sh`:
@@ -93,11 +93,11 @@ unmodified from the vendor's `ubuntu2204` archives listed in
 
 | arch  | release  | archive                                                                                           | archive sha256                                                     |
 |-------|----------|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
-| `x64` | 100.19.1 | `https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.19.1.tgz`       | `8312f251c360ddfbcdd430c64758bee58b7050e1041e8c9df2906761098acd49` |
-| `arm` | 100.19.1 | `https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-arm64-100.19.1.tgz`        | `e5d37e679ff815c45a86c17bc17de200c3a215a6eafc82516e5ba271f563373e` |
+| `x64` | 100.20.1 | `https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.20.1.tgz`       | `2d56bb351383f7a42ffb866666631da8b7bcd82503b273e0c16d3be201ad12c1` |
+| `arm` | 100.20.1 | `https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-arm64-100.20.1.tgz`        | `02e492384155af7d0623148668bc9eaf228529c32555e33d450b3ec18c8dcdd0` |
 
 One release serves every supported server: the vendor lists 4.2 through 9.0
-for 100.19.1, and the backend accepts every release of the 9 line. Take both
+for 100.20.1, and the backend accepts every release of the 9 line. Take both
 architectures from the same build family; `debian12` has no arm64 archive.
 MongoDB 4.0 is not supported (wire version 7, requires older mongodump).
 
@@ -125,7 +125,7 @@ or lower, except the MongoDB tools, whose `ubuntu2204` build needs glibc 2.34):
 The MySQL 26 clients are the exception for OpenSSL: they call symbols from
 OpenSSL 3.2, while bookworm ships 3.0. Their `RUNPATH` is
 `$ORIGIN/../lib/private`, so `mysql-26/lib/private/` holds the `libssl.so.3`
-and `libcrypto.so.3` (OpenSSL 3.5.7) from the same upstream tarball as the
+and `libcrypto.so.3` (OpenSSL 3.5.9) from the same upstream tarball as the
 binaries, and the loader picks them before the image's copies.
 
 `libedit.so.2` is not installed explicitly in the `Dockerfile`: it reaches the

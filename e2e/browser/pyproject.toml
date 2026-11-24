@@ -3,7 +3,7 @@ name = "databasus-browser-e2e"
 version = "0"
 requires-python = ">=3.14"
 # compose.yaml pins the Playwright browser image of the same version.
-dependencies = ["playwright==1.64.1", "pytest==9.0.3"]
+dependencies = ["playwright==1.64.1", "pytest==9.2.0"]
 
 [tool.uv]
 package = false

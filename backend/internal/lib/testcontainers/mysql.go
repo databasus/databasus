@@ -2,11 +2,11 @@ package containers
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql" // Registers the MySQL driver for readiness probes.
+	"github.com/moby/moby/api/types/network"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -73,11 +73,9 @@ func mysqlFamilyReady(spec mysqlFamilyReadinessSpec) wait.Strategy {
 		dsnParams = "?tls=skip-verify"
 	}
 
-	return wait.ForSQL(spec.Port, "mysql", func(host, mappedPort string) string {
-		portNumber, _, _ := strings.Cut(mappedPort, "/")
-
+	return wait.ForSQL(spec.Port, "mysql", func(host string, mappedPort network.Port) string {
 		return fmt.Sprintf("root:%s@tcp(%s:%s)/%s%s",
-			spec.RootPassword, host, portNumber, spec.Database, dsnParams)
+			spec.RootPassword, host, mappedPort.Port(), spec.Database, dsnParams)
 	}).WithStartupTimeout(mysqlStartupTimeout)
 }
 

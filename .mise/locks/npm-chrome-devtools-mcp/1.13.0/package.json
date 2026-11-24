@@ -2,6 +2,6 @@
   "name": "mise-npm-install",
   "private": true,
   "dependencies": {
-    "chrome-devtools-mcp": "1.11.0"
+    "chrome-devtools-mcp": "1.13.0"
   }
 }
