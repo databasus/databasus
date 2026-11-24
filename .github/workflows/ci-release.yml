@@ -1138,6 +1138,12 @@ jobs:
       - name: Check native runner architecture
         run: scripts/check_native_architecture.sh ${{ matrix.arch }}
 
+      - name: Read pinned PostgreSQL version
+        id: pinned-postgres-version
+        run: |
+          version=$(jq -er '."16"' backend/internal/agent/container/postgres_versions.json)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
       - name: Build native verification image (no push)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -1146,6 +1152,7 @@ jobs:
           platforms: linux/${{ matrix.arch }}
           build-args: |
             PG_MAJOR=16
+            PG_SERVER_VERSION=${{ steps.pinned-postgres-version.outputs.version }}
 
   # Reports under its own CodeQL configuration, which scripts/check_codeql_alerts.sh relies on.
   code-scanning:
@@ -1426,6 +1433,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Read pinned PostgreSQL version
+        id: pinned-postgres-version
+        env:
+          PG_MAJOR: ${{ matrix.major }}
+        run: |
+          version=$(jq -er --arg major "$PG_MAJOR" '.[$major]' backend/internal/agent/container/postgres_versions.json)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push verification image by digest
         id: verification-image-push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -1434,6 +1449,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: |
             PG_MAJOR=${{ matrix.major }}
+            PG_SERVER_VERSION=${{ steps.pinned-postgres-version.outputs.version }}
           outputs: type=image,name=databasus/verification-postgres,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export image digest
@@ -1465,6 +1481,17 @@ jobs:
       matrix:
         major: ['12', '13', '14', '15', '16', '17', '18']
     steps:
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read pinned PostgreSQL version
+        id: pinned-postgres-version
+        env:
+          PG_MAJOR: ${{ matrix.major }}
+        run: |
+          version=$(jq -er --arg major "$PG_MAJOR" '.[$major]' backend/internal/agent/container/postgres_versions.json)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
       - *download-artifact-1
 
       - *download-artifact-2
@@ -1477,10 +1504,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # The agent restores into the "<major>.<minor>" tag; the other two serve
+      # people who start the image by hand.
       - name: Create multi-arch verification manifest
         working-directory: /tmp/digests
         env:
           VERSION: ${{ needs.determine-version.outputs.new_version }}
+          PG_SERVER_VERSION: ${{ steps.pinned-postgres-version.outputs.version }}
         run: |
           platform_image_refs=()
           for digest in *; do
@@ -1488,6 +1518,7 @@ jobs:
           done
 
           docker buildx imagetools create \
+            -t "databasus/verification-postgres:${PG_SERVER_VERSION}" \
             -t "databasus/verification-postgres:${{ matrix.major }}" \
             -t "databasus/verification-postgres:${{ matrix.major }}-v${VERSION}" \
             "${platform_image_refs[@]}"

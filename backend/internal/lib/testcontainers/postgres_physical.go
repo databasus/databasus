@@ -129,12 +129,14 @@ func allowReplicationInitScript() testcontainers.ContainerFile {
 	}
 }
 
-// createTablespaceInitScript pre-creates the custom_ts tablespace at first boot.
+// createTablespaceInitScript pre-creates the custom_ts tablespace at first boot. The directory sits
+// in /tmp because the init script runs as postgres, and the data directory's parent is a tmpfs that
+// inherits the image's mode for /var/lib/postgresql, which recent images no longer make writable.
 func createTablespaceInitScript() testcontainers.ContainerFile {
 	body := "#!/bin/bash\nset -e\n" +
-		"mkdir -p /var/lib/postgresql/custom_tablespace_dir\n" +
+		"mkdir -p /tmp/custom_tablespace_dir\n" +
 		`psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-SQL` + "\n" +
-		"  CREATE TABLESPACE custom_ts LOCATION '/var/lib/postgresql/custom_tablespace_dir';\n" +
+		"  CREATE TABLESPACE custom_ts LOCATION '/tmp/custom_tablespace_dir';\n" +
 		"SQL\n"
 
 	return testcontainers.ContainerFile{

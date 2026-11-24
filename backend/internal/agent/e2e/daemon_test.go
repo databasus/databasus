@@ -35,7 +35,7 @@ func TestAgentDaemon(t *testing.T) {
 		require.NoError(t, err, status)
 		assert.Contains(t, status, "Agent is not running")
 
-		output, err := agent.run(t, agentArguments("start", gate.url, credentials)...)
+		output, err := agent.run(t, agent.arguments("start", gate.url, credentials)...)
 		require.NoError(t, err, output)
 		pidMatch := regexp.MustCompile(`Agent started in background \(PID (\d+)\)`).FindStringSubmatch(output)
 		require.Len(t, pidMatch, 2, output)
@@ -59,7 +59,7 @@ func TestAgentDaemon(t *testing.T) {
 		assert.Contains(t, status, fmt.Sprintf("Agent is running (PID %d)", pid))
 		require.NoError(t, syscall.Kill(pid, 0))
 
-		secondOutput, secondErr := agent.run(t, agentArguments("run", gate.url, credentials)...)
+		secondOutput, secondErr := agent.run(t, agent.arguments("run", gate.url, credentials)...)
 		require.Error(t, secondErr, secondOutput)
 		assert.Contains(t, secondOutput, "another instance is already running")
 		stopOutput, err := agent.run(t, "stop")

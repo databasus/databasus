@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/distribution/reference"
 	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
@@ -103,6 +104,53 @@ func (e *DockerEngine) EnsureImage(ctx context.Context, ref string) error {
 
 	if _, err := io.Copy(io.Discard, reader); err != nil {
 		return fmt.Errorf("drain image pull: %w", err)
+	}
+
+	return nil
+}
+
+// ListImageTags returns the local tags of one repository. Docker's reference
+// filter also returns an image whose other tag belongs to the repository, so
+// every tag is matched against the repository again.
+func (e *DockerEngine) ListImageTags(ctx context.Context, repository string) ([]ImageTag, error) {
+	filters := make(client.Filters)
+	filters.Add("reference", repository)
+
+	listed, err := e.cli.ImageList(ctx, client.ImageListOptions{Filters: filters})
+	if err != nil {
+		return nil, fmt.Errorf("list images: %w", err)
+	}
+
+	var repositoryTags []ImageTag
+	for _, listedImage := range listed.Items {
+		for _, repoTag := range listedImage.RepoTags {
+			named, err := reference.ParseNormalizedNamed(repoTag)
+			if err != nil {
+				continue
+			}
+
+			tagged, isTagged := named.(reference.NamedTagged)
+			if !isTagged || !isSameImageRepository(named.Name(), repository) {
+				continue
+			}
+
+			repositoryTags = append(repositoryTags, ImageTag{Reference: repoTag, Tag: tagged.Tag()})
+		}
+	}
+
+	return repositoryTags, nil
+}
+
+// RemoveImageTag removes one tag without force: Docker refuses while a
+// container uses the image, and an image with other tags only loses this one.
+func (e *DockerEngine) RemoveImageTag(ctx context.Context, imageReference string) error {
+	_, err := e.cli.ImageRemove(ctx, imageReference, client.ImageRemoveOptions{
+		Platforms:     nil,
+		Force:         false,
+		PruneChildren: true,
+	})
+	if err != nil {
+		return fmt.Errorf("remove image %s: %w", imageReference, err)
 	}
 
 	return nil

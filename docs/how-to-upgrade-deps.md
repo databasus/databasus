@@ -67,7 +67,9 @@ Choose the newest patch release that has completed the waiting period within the
 | EOL client line; final patch was published at least fourteen complete days ago | Select the final patch and report EOL status. |
 | Newest client patch is too recent; the previous patch has completed the waiting period | Keep the previous patch. Report the deferred patch and the date its waiting period ends. |
 
-If no suitable release has completed the waiting period, report that the update is deferred. If it must proceed sooner, explain why. Keep the agreed release line and documented architecture support intact.
+If no suitable release has completed the waiting period, report that the update is deferred. Keep the agreed release line and documented architecture support intact.
+
+**Shorten the waiting period only for a critical fix.** A release may be taken sooner when it fixes a security issue or a defect that breaks users' backups, restores or verification. The release must come from its official source, and the exception covers only that release; the other updates of the same task keep their normal period. The report and the commit name the reason, the release, its publication date and how many days the period was shortened.
 
 ## Install from lock files
 
@@ -138,6 +140,8 @@ Run refreshed binaries in the runtime image. Follow the database engine's test r
 ### Images and verification extensions
 
 Keep third-party image digests in their existing declarations or the test-image catalog. The verification Dockerfile pins a base image for each PostgreSQL major version. This makes `PG_MAJOR` select the same base locally and in CI.
+
+The verification agent restores into the [pinned PostgreSQL version](glossary.md) of each major, listed in `backend/internal/agent/container/postgres_versions.json`. Raising one changes three places together: that list, the verification Dockerfile's base digest for the major, and the test catalog, which holds the base under `postgres:<major>` and the published verification image under `databasus/verification-postgres:<version>`. The image build fails when its base or installed server is not the pinned version, and `mise run verify-deps` fails when the catalog has no record for a pinned version.
 
 Standalone VectorChord downloads check their recorded SHA256 before installation. Keep database clients committed to the repository; application image builds do not download them.
 

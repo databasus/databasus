@@ -6,19 +6,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildSpec(t *testing.T) {
 	t.Run("applies hardening controls", func(t *testing.T) {
-		// nil engine: buildSpec is pure and never calls the engine.
-		containerManager := NewManager(
-			Deps{
-				Engine:          nil,
-				AgentID:         "agent-1",
-				EngineImageRepo: "databasus/verification-postgres",
-				Logger:          slog.New(slog.DiscardHandler),
-			},
-		)
+		containerManager := newTestManager(t)
 
 		spec := containerManager.buildSpec(newTestSpawnPlan())
 
@@ -36,14 +29,7 @@ func TestBuildSpec(t *testing.T) {
 		assert.Equal(t, []string{"POSTGRES_PASSWORD=pw"}, spec.Env)
 	})
 	t.Run("omits cpu limit and keeps other controls when the host does not support CPU limits", func(t *testing.T) {
-		containerManager := NewManager(
-			Deps{
-				Engine:          nil,
-				AgentID:         "agent-1",
-				EngineImageRepo: "databasus/verification-postgres",
-				Logger:          slog.New(slog.DiscardHandler),
-			},
-		)
+		containerManager := newTestManager(t)
 		containerManager.isCPULimitSupported = false
 
 		spec := containerManager.buildSpec(newTestSpawnPlan())
@@ -55,14 +41,7 @@ func TestBuildSpec(t *testing.T) {
 		assert.Equal(t, "postgres", spec.User)
 	})
 	t.Run("sets restore tuned postgres cmd", func(t *testing.T) {
-		containerManager := NewManager(
-			Deps{
-				Engine:          nil,
-				AgentID:         "agent-1",
-				EngineImageRepo: "databasus/verification-postgres",
-				Logger:          slog.New(slog.DiscardHandler),
-			},
-		)
+		containerManager := newTestManager(t)
 
 		spec := containerManager.buildSpec(newTestSpawnPlan())
 
@@ -99,63 +78,22 @@ func TestGetVerifierConn(t *testing.T) {
 	})
 }
 
-func TestImageForMajor(t *testing.T) {
-	t.Run("appends major tag to configured repo", func(t *testing.T) {
-		cases := []struct {
-			major    string
-			expected string
-		}{
-			{"12", "databasus/verification-postgres:12"},
-			{"16", "databasus/verification-postgres:16"},
-			{"18", "databasus/verification-postgres:18"},
-		}
+// newTestManager builds a manager without an engine: buildSpec is pure and
+// never calls it.
+func newTestManager(t *testing.T) *Manager {
+	t.Helper()
 
-		for _, tc := range cases {
-			t.Run(tc.major, func(t *testing.T) {
-				assert.Equal(t, tc.expected, imageForMajor(tc.major, "databasus/verification-postgres"))
-			})
-		}
-	})
-}
+	containerManager, err := NewManager(
+		Deps{
+			Engine:          nil,
+			AgentID:         "agent-1",
+			EngineImageRepo: "databasus/verification-postgres",
+			Logger:          slog.New(slog.DiscardHandler),
+		},
+	)
+	require.NoError(t, err)
 
-func TestImageForJob(t *testing.T) {
-	t.Run("returns version matched timescale image when a TimescaleDB version is set", func(t *testing.T) {
-		image := imageForJob(
-			SpawnRequest{PgMajor: "17", TimescaledbVersion: "2.17.0"}, "databasus/verification-postgres",
-		)
-
-		assert.Equal(t, "timescale/timescaledb:2.17.0-pg17", image,
-			"timescale jobs ignore the engine repo and use the version-matched timescale image")
-	})
-	t.Run("uses configured engine repo when no TimescaleDB version is set", func(t *testing.T) {
-		image := imageForJob(SpawnRequest{PgMajor: "17"}, "databasus/verification-postgres")
-
-		assert.Equal(t, "databasus/verification-postgres:17", image)
-	})
-}
-
-func TestStockFallbackImage(t *testing.T) {
-	t.Run("falls back to stock postgres when the bundled image is unavailable", func(t *testing.T) {
-		fallbackImage, canFallBack := stockFallbackImage(
-			SpawnRequest{PgMajor: "16"}, "databasus/verification-postgres:16",
-		)
-
-		assert.True(t, canFallBack)
-		assert.Equal(t, "postgres:16", fallbackImage)
-	})
-	t.Run("does not fall back when the image already uses the stock repository", func(t *testing.T) {
-		_, canFallBack := stockFallbackImage(SpawnRequest{PgMajor: "16"}, "postgres:16")
-
-		assert.False(t, canFallBack, "a job already on the stock image has nothing to fall back to")
-	})
-	t.Run("does not fall back when the job uses TimescaleDB", func(t *testing.T) {
-		_, canFallBack := stockFallbackImage(
-			SpawnRequest{PgMajor: "16", TimescaledbVersion: "2.17.0"}, "timescale/timescaledb:2.17.0-pg16",
-		)
-
-		assert.False(t, canFallBack,
-			"timescale needs its exact version-matched image; stock postgres cannot restore it")
-	})
+	return containerManager
 }
 
 func newTestSpawnPlan() spawnPlan {

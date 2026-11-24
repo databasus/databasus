@@ -7,6 +7,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.8.0
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/containerd/errdefs v1.0.0
+	github.com/distribution/reference v0.6.0
 	github.com/getkin/kin-openapi v0.149.0
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-contrib/gzip v1.2.3
@@ -68,7 +69,6 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
-	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.7.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect

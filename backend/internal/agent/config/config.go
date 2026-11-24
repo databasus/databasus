@@ -19,6 +19,8 @@ const minRAMMbPerJob = 512
 // DefaultVerificationPgImageRepo bundles common extensions so a dump's CREATE
 // EXTENSION statements succeed during verification; override via
 // verificationPgImageRepo (e.g. a private registry, or "postgres" for stock).
+// The agent requests the "<major>.<minor>" tag of its pinned PostgreSQL
+// version from any repository, so an override must publish those tags.
 const DefaultVerificationPgImageRepo = "databasus/verification-postgres"
 
 type Config struct {

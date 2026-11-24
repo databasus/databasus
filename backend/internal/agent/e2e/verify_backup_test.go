@@ -28,7 +28,7 @@ func TestVerifyBackup(t *testing.T) {
 	} {
 		t.Run("completes with an encrypted backup on postgres "+version.major, func(t *testing.T) {
 			endpoint := containers.StartPostgres(t, version.image)
-			verifyBackup(t, backupScenario{endpoint: endpoint})
+			verifyBackup(t, backupScenario{endpoint: endpoint, major: version.major})
 		})
 	}
 	t.Run("completes with a timescaledb hypertable and its chunks", func(t *testing.T) {
@@ -37,24 +37,25 @@ func TestVerifyBackup(t *testing.T) {
 	})
 	t.Run("completes when the backup includes only the public schema", func(t *testing.T) {
 		endpoint := containers.StartPostgres(t, "postgres:18")
-		verifyBackup(t, backupScenario{endpoint: endpoint, isPublicOnly: true})
+		verifyBackup(t, backupScenario{endpoint: endpoint, major: "18", isPublicOnly: true})
 	})
 	t.Run("fails after one attempt when the backup is broken", func(t *testing.T) {
 		endpoint := containers.StartPostgres(t, "postgres:18")
-		verifyBackup(t, backupScenario{endpoint: endpoint, isBroken: true})
+		verifyBackup(t, backupScenario{endpoint: endpoint, major: "18", isBroken: true})
 	})
 	t.Run("fails after one attempt when the disk budget is exceeded", func(t *testing.T) {
 		endpoint := containers.StartPostgres(t, "postgres:18")
-		verifyBackup(t, backupScenario{endpoint: endpoint, diskCapMb: 1})
+		verifyBackup(t, backupScenario{endpoint: endpoint, major: "18", diskCapMb: 1})
 	})
 	t.Run("completes after removing a network left by an earlier attempt", func(t *testing.T) {
 		endpoint := containers.StartPostgres(t, "postgres:18")
-		verifyBackup(t, backupScenario{endpoint: endpoint, isRetry: true})
+		verifyBackup(t, backupScenario{endpoint: endpoint, major: "18", isRetry: true})
 	})
 }
 
 type backupScenario struct {
 	endpoint     containers.Endpoint
+	major        string
 	isTimescale  bool
 	isPublicOnly bool
 	isBroken     bool
@@ -88,6 +89,9 @@ func verifyBackup(t *testing.T, scenario backupScenario) {
 	engine := newEngine(t, credentials.Agent.ID)
 	gate := newGateway(t, team.App.URL, gatewayOptions{isClaimHeld: scenario.isRetry, diskCapMb: scenario.diskCapMb})
 	agent := newAgentProcess(t, currentBinaryDirectory)
+	if !scenario.isTimescale {
+		agent.provideVerificationImage(t, engine, scenario.major)
+	}
 
 	var verificationID uuid.UUID
 	if scenario.isRetry {
@@ -140,6 +144,7 @@ func verifyBackup(t *testing.T, scenario backupScenario) {
 	}
 
 	requireNoLeftovers(t, engine, credentials.Agent.ID)
+	agent.requireNoStockFallback(t)
 
 	if scenario.isBroken {
 		details, err := team.Owner.Client.GetVerificationWithResponse(t.Context(), verificationID)

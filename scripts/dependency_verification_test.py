@@ -39,6 +39,7 @@ class DependencyVerificationTest(unittest.TestCase):
             "tools/dependencies/mise-bootstrap.json",
             "backend/internal/lib/testimages/images.json",
             "backend/cmd/verification-agent/images/postgres",
+            "backend/internal/agent/container/postgres_versions.json",
             "backend/internal/lib/testcontainers/testdata",
             "backend/internal/modules/backups/e2e/postgresql/testdata",
             "backend/internal/modules/backups/physicalapitests/testdata",
@@ -327,6 +328,44 @@ class DependencyVerificationTest(unittest.TestCase):
         execution = self.run_check()
 
         self.assertEqual(execution.returncode, 0, execution.stdout + execution.stderr)
+
+    def test_rejects_verification_catalog_records_that_disagree_with_pinned_versions(
+        self,
+    ) -> None:
+        catalog = self.root / "backend/internal/lib/testimages/images.json"
+        pinned = catalog.read_text()
+        pinned_versions = json.loads(
+            (self.root / "backend/internal/agent/container/postgres_versions.json").read_text()
+        )
+        record_name = f"databasus/verification-postgres:{pinned_versions['18']}"
+
+        document = json.loads(pinned)
+        document["images"].pop(record_name)
+        catalog.write_text(json.dumps(document))
+
+        missing_execution = self.run_check()
+
+        self.assertNotEqual(missing_execution.returncode, 0)
+        self.assertIn("no catalog record for pinned version", missing_execution.stdout)
+
+        document = json.loads(pinned)
+        document["images"]["databasus/verification-postgres:18.0"] = document["images"].pop(
+            record_name
+        )
+        catalog.write_text(json.dumps(document))
+
+        renamed_execution = self.run_check()
+
+        self.assertNotEqual(renamed_execution.returncode, 0)
+        self.assertIn("no catalog record for pinned version", renamed_execution.stdout)
+
+        document["images"][record_name] = document["images"]["databasus/verification-postgres:18.0"]
+        catalog.write_text(json.dumps(document))
+
+        extra_execution = self.run_check()
+
+        self.assertNotEqual(extra_execution.returncode, 0)
+        self.assertIn("names no pinned PostgreSQL version", extra_execution.stdout)
 
     def test_rejects_partial_and_mixed_client_refreshes(self) -> None:
         document = json.loads(self.manifest.read_text())

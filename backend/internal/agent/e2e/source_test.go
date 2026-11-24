@@ -12,18 +12,6 @@ import (
 	containers "databasus-backend/internal/lib/testcontainers"
 )
 
-func getRestoreImages() []string {
-	return []string{
-		"databasus/verification-postgres:12",
-		"databasus/verification-postgres:13",
-		"databasus/verification-postgres:14",
-		"databasus/verification-postgres:15",
-		"databasus/verification-postgres:16",
-		"databasus/verification-postgres:17",
-		"databasus/verification-postgres:18",
-	}
-}
-
 const timescaleImage = "timescale/timescaledb:2.17.0-pg17"
 
 const ordinaryTables = `CREATE TABLE public.t_a (id int PRIMARY KEY, name text);
