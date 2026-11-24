@@ -25,6 +25,19 @@ type agentProcess struct {
 	outputPath                  string
 	engineHost                  string
 	verificationImageRepository string
+	capacity                    agentCapacity
+}
+
+// agentCapacity is the budget the agent is started with; a scenario raises a field it depends on.
+type agentCapacity struct {
+	maxCPU            int
+	maxRAMMb          int
+	maxDiskGb         int
+	maxConcurrentJobs int
+}
+
+func getDefaultAgentCapacity() agentCapacity {
+	return agentCapacity{maxCPU: 1, maxRAMMb: 2048, maxDiskGb: 10, maxConcurrentJobs: 1}
 }
 
 func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
@@ -41,6 +54,7 @@ func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
 		outputPath:                  filepath.Join(directory, "output.log"),
 		engineHost:                  getEngineHost(),
 		verificationImageRepository: newVerificationImageRepository(),
+		capacity:                    getDefaultAgentCapacity(),
 	}
 
 	t.Cleanup(func() {
@@ -104,13 +118,13 @@ func (a *agentProcess) arguments(command, host string, credentials apptest.Creat
 		"--allow-insecure-http",
 		"--skip-update",
 		"--max-cpu",
-		"1",
+		strconv.Itoa(a.capacity.maxCPU),
 		"--max-ram-mb",
-		"2048",
+		strconv.Itoa(a.capacity.maxRAMMb),
 		"--max-disk-gb",
-		"10",
+		strconv.Itoa(a.capacity.maxDiskGb),
 		"--max-concurrent-jobs",
-		"1",
+		strconv.Itoa(a.capacity.maxConcurrentJobs),
 		"--verification-pg-image-repo",
 		a.verificationImageRepository,
 	}

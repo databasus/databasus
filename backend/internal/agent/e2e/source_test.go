@@ -21,6 +21,32 @@ INSERT INTO public.t_b VALUES (1,1,'x'),(2,1,'y'),(3,2,'z'),(4,3,'w'),(5,3,'v');
 
 func seedSource(t *testing.T, endpoint containers.Endpoint, isTimescale bool) apiclient.PostgresqlLogicalSettings {
 	t.Helper()
+
+	statements := ordinaryTables
+	if isTimescale {
+		role := "ts_app_" + enginetest.NewUniqueSuffix()
+		statements = fmt.Sprintf(`CREATE EXTENSION IF NOT EXISTS timescaledb;
+CREATE ROLE %[1]s LOGIN;
+GRANT CREATE ON SCHEMA public TO %[1]s;
+SET ROLE %[1]s;
+CREATE TABLE public.sensor_data (time TIMESTAMPTZ NOT NULL,sensor_id int NOT NULL,temperature double precision NOT NULL);
+SELECT create_hypertable('public.sensor_data','time');
+SELECT add_retention_policy('public.sensor_data',INTERVAL '1000 years');
+INSERT INTO public.sensor_data SELECT ts,1,23.5 FROM generate_series('2024-01-01'::timestamptz,'2024-03-01'::timestamptz,interval '1 hour') AS ts;
+RESET ROLE;`, role)
+	}
+
+	return seedSourceWithStatements(t, endpoint, statements)
+}
+
+// seedSourceWithStatements creates a database of its own on the source server, runs statements in
+// it and returns the settings that back it up.
+func seedSourceWithStatements(
+	t *testing.T,
+	endpoint containers.Endpoint,
+	statements string,
+) apiclient.PostgresqlLogicalSettings {
+	t.Helper()
 	connect := func(database string) *pgx.Conn {
 		connection, err := pgx.Connect(
 			t.Context(),
@@ -43,20 +69,6 @@ func seedSource(t *testing.T, endpoint containers.Endpoint, isTimescale bool) ap
 	_, err := admin.Exec(t.Context(), "CREATE DATABASE "+databaseName)
 	require.NoError(t, err)
 	source := connect(databaseName)
-
-	statements := ordinaryTables
-	if isTimescale {
-		role := "ts_app_" + enginetest.NewUniqueSuffix()
-		statements = fmt.Sprintf(`CREATE EXTENSION IF NOT EXISTS timescaledb;
-CREATE ROLE %[1]s LOGIN;
-GRANT CREATE ON SCHEMA public TO %[1]s;
-SET ROLE %[1]s;
-CREATE TABLE public.sensor_data (time TIMESTAMPTZ NOT NULL,sensor_id int NOT NULL,temperature double precision NOT NULL);
-SELECT create_hypertable('public.sensor_data','time');
-SELECT add_retention_policy('public.sensor_data',INTERVAL '1000 years');
-INSERT INTO public.sensor_data SELECT ts,1,23.5 FROM generate_series('2024-01-01'::timestamptz,'2024-03-01'::timestamptz,interval '1 hour') AS ts;
-RESET ROLE;`, role)
-	}
 
 	_, err = source.Exec(t.Context(), statements)
 	require.NoError(t, err)

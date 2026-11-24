@@ -54,18 +54,18 @@ func (r *verificationRepository) GetVerification(ctx context.Context, id uuid.UU
 	return &verification, true, nil
 }
 
-func (r *verificationRepository) ListRunningBackupIDsByAgentID(
-	ctx context.Context,
-	agentID uuid.UUID,
-) ([]uuid.UUID, error) {
-	backupIDs := make([]uuid.UUID, 0)
+// GetRunningReservedDiskMb sums the disk budgets of the verifications the agent runs, which its
+// next assignment must leave alone.
+func (r *verificationRepository) GetRunningReservedDiskMb(ctx context.Context, agentID uuid.UUID) (int64, error) {
+	var reservedDiskMb int64
 
 	err := database.Conn(ctx, r.db).
 		Model(&Verification{}).
+		Select("COALESCE(SUM(reserved_disk_mb), 0)").
 		Where("agent_id = ? AND status = ?", agentID, VerificationStatusRunning).
-		Pluck("backup_id", &backupIDs).Error
+		Scan(&reservedDiskMb).Error
 
-	return backupIDs, wrapQueryError(err)
+	return reservedDiskMb, wrapQueryError(err)
 }
 
 func (r *verificationRepository) LockOldestPendingTop100(ctx context.Context) ([]*Verification, error) {
@@ -85,15 +85,17 @@ type ClaimUpdate struct {
 	VerificationID uuid.UUID
 	AgentID        uuid.UUID
 	StartedAt      time.Time
+	ReservedDiskMb int64
 }
 
 func (r *verificationRepository) UpdateClaim(ctx context.Context, claim ClaimUpdate) error {
 	result := database.Conn(ctx, r.db).Model(&Verification{}).
 		Where("id = ? AND status = ? AND agent_id IS NULL", claim.VerificationID, VerificationStatusPending).
 		Updates(map[string]any{
-			"status":     VerificationStatusRunning,
-			"agent_id":   claim.AgentID,
-			"started_at": claim.StartedAt,
+			"status":           VerificationStatusRunning,
+			"agent_id":         claim.AgentID,
+			"started_at":       claim.StartedAt,
+			"reserved_disk_mb": claim.ReservedDiskMb,
 		})
 	if result.Error != nil {
 		return result.Error

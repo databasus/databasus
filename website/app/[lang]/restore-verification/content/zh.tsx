@@ -171,8 +171,8 @@ export default function RestoreVerificationPage() {
                 </li>
                 <li>
                   每个验证任务所需的磁盘容量，包括<strong>备份文件大小</strong>
-                  、<strong>数据库原始大小</strong>，再加上一段
-                  <strong>安全余量</strong>。
+                  、<strong>数据库原始大小</strong>、预留空间，以及同时构建的
+                  <strong>最大的几个索引</strong>。
                 </li>
                 <li>每个并发任务至少 1 个 CPU 核心和 512 MB 可用内存。</li>
               </ul>
@@ -291,9 +291,13 @@ export default function RestoreVerificationPage() {
                 和 1 GB。每个任务的下限是 1 个 CPU 和 512
                 MB：如果预算满足不了下限，代理会上报更低的并发数。磁盘预算
                 最容易设错：每个任务需要容纳<strong>备份文件大小</strong>、
-                <strong>数据库原始大小</strong>，外加最多{" "}
-                <strong>5 GB 的安全余量</strong>，所以请按你最大的数据库把{" "}
-                <code>--max-disk-gb</code> 设得宽裕一些。
+                <strong>数据库原始大小</strong>、约{" "}
+                <strong>1.5 GB 的预留空间</strong>，以及
+                <strong>最大的几个索引</strong>，每个并行恢复任务对应一个，
+                因为每个正在构建的索引都会在磁盘上占用与自身大小相当的排序空间。
+                Databasus 会减少并行恢复任务数，直到这些都能放进代理的空闲磁盘。
+                所以 <code>--max-cpu</code> 越大，需要的磁盘越多；
+                <code>--max-disk-gb</code> 越大，大数据库恢复得越快。
               </p>
 
               <h3 id="manage">管理代理</h3>

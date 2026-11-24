@@ -37,6 +37,7 @@ func postgresJob() *agentclient.VerificationAssignment {
 		BackupID:           uuid.New(),
 		BackupSizeMb:       50,
 		MaxContainerDiskMb: 200,
+		ParallelJobs:       2,
 		Database: agentclient.AssignedDatabase{
 			Type:              "POSTGRES_LOGICAL",
 			PostgresqlLogical: &agentclient.AssignedPostgresql{Version: "16"},
@@ -166,6 +167,10 @@ func TestExecuteJob(t *testing.T) {
 		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		require.NotNil(t, report.FailureKind)
 		assert.Equal(t, "DISK_LIMIT_EXCEEDED", *report.FailureKind)
+		require.NotNil(t, report.FailMessage)
+		for _, expectedPart := range []string{"200 MB", "2 parallel jobs", "--max-disk-gb", "--max-cpu"} {
+			assert.Contains(t, *report.FailMessage, expectedPart)
+		}
 		assert.Nil(t, report.PgRestoreExitCode, "a disk-limit verdict carries no pg_restore exit code")
 		assert.True(t, jobContainer.terminated, "the container must be torn down on disk-limit abort")
 	})
@@ -390,10 +395,21 @@ func TestExecuteJob(t *testing.T) {
 
 		assert.Equal(t, []string{"roles", "restore"}, restorer.calls,
 			"a non-timescaledb restore must not run the timescaledb hooks")
-		assert.Equal(t, 2, restorer.runParallelJobs,
-			"a non-timescaledb restore keeps parallel jobs (CPUPerJob)")
 		assert.False(t, restorer.runIsTimescaledb,
 			"the restorer decides on --clean from this flag")
+	})
+	t.Run("restores with the assigned parallel jobs instead of the per-job CPU budget", func(t *testing.T) {
+		apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
+		restorer := &fakeRestorer{runResult: restore.Result{PgRestoreExitCode: 0}}
+		r := newTestRunner(t, apiClient, okSpawner(), restorer, &fakeStats{stats: verifier.Stats{TableCount: 1}},
+			newFakeRegistrar())
+		r.connAlive = func(context.Context, dbconn.Conn) bool { return true }
+		job := postgresJob()
+		job.ParallelJobs = 3
+
+		r.executeJob(t.Context(), job)
+
+		assert.Equal(t, 3, restorer.runParallelJobs, "the per-job CPU budget of the test agent is 2")
 	})
 	t.Run("reports failed without restoring when owner role creation fails", func(t *testing.T) {
 		apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}

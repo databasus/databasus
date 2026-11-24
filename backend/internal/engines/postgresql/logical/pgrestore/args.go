@@ -54,6 +54,8 @@ func BuildArgs(spec ArgsSpec) []string {
 	return args
 }
 
+const MaxParallelJobs = 8
+
 func GetParallelJobs(requestedJobs int, isTimescaleDB bool) int {
 	// Parallel pg_restore loads dependent _timescaledb_catalog rows before the chunk rows
 	// they reference, violating the catalog's foreign keys. TimescaleDB needs one job.
@@ -61,5 +63,5 @@ func GetParallelJobs(requestedJobs int, isTimescaleDB bool) int {
 		return 1
 	}
 
-	return max(1, min(requestedJobs, 8))
+	return max(1, min(requestedJobs, MaxParallelJobs))
 }
