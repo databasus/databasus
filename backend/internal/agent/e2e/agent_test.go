@@ -20,10 +20,11 @@ import (
 )
 
 type agentProcess struct {
-	directory  string
-	binary     string
-	outputPath string
-	engineHost string
+	directory                   string
+	binary                      string
+	outputPath                  string
+	engineHost                  string
+	verificationImageRepository string
 }
 
 func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
@@ -35,10 +36,11 @@ func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
 	require.NoError(t, os.Link(filepath.Join(binaryDirectory, binaryName()), binary))
 
 	agent := &agentProcess{
-		directory:  directory,
-		binary:     binary,
-		outputPath: filepath.Join(directory, "output.log"),
-		engineHost: getEngineHost(),
+		directory:                   directory,
+		binary:                      binary,
+		outputPath:                  filepath.Join(directory, "output.log"),
+		engineHost:                  getEngineHost(),
+		verificationImageRepository: newVerificationImageRepository(),
 	}
 
 	t.Cleanup(func() {
@@ -76,7 +78,7 @@ func (a *agentProcess) start(t *testing.T, host string, credentials apptest.Crea
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(t.Context())
-	spec := a.spec(agentArguments("run", host, credentials))
+	spec := a.spec(a.arguments("run", host, credentials))
 	spec.Stdout = output
 	spec.Stderr = output
 
@@ -90,7 +92,7 @@ func (a *agentProcess) start(t *testing.T, host string, credentials apptest.Crea
 	t.Cleanup(func() { cancel(); _ = running.Wait(); require.NoError(t, output.Close()) })
 }
 
-func agentArguments(command, host string, credentials apptest.CreatedVerificationAgent) []string {
+func (a *agentProcess) arguments(command, host string, credentials apptest.CreatedVerificationAgent) []string {
 	return []string{
 		command,
 		"--databasus-host",
@@ -109,7 +111,16 @@ func agentArguments(command, host string, credentials apptest.CreatedVerificatio
 		"10",
 		"--max-concurrent-jobs",
 		"1",
+		"--verification-pg-image-repo",
+		a.verificationImageRepository,
 	}
+}
+
+func (a *agentProcess) requireNoStockFallback(t *testing.T) {
+	t.Helper()
+	contents, err := os.ReadFile(a.outputPath)
+	require.NoError(t, err)
+	require.NotContains(t, string(contents), "falling back to stock postgres image")
 }
 
 func (a *agentProcess) getPID(t *testing.T) int {

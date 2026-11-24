@@ -94,6 +94,8 @@ This is the project's common language. Shared concepts have one term in document
 | Verification config | The settings of a database that decide when its backups are verified automatically and which outcomes notify. |
 | Verification trigger | What started a verification: a user, the interval schedule or a completed backup. |
 | Verification agent | The program on the user's machine that runs verifications. |
+| Verification image | The container image a verification restores a PostgreSQL backup into: a PostgreSQL server with the extensions backups commonly use. The agent pulls it from its verification image repository, the Databasus one or another its owner configures, and cleans up only that repository. |
+| Pinned PostgreSQL version | The exact PostgreSQL server version, such as 18.7, that one release of the verification agent restores into for a major version. A verification image of any other version is superseded. |
 | Assignment eligibility | Whether a verification agent has contacted the server recently enough to receive new work. Registration keeps the agent listed regardless of contact; capacity determines whether a particular verification fits its resource budget. |
 | Instance health | Whether this instance’s local dependencies, verification-agent freshness and periodic work pass their monitoring checks; distinct from a healthcheck of a user’s database. |
 | Healthcheck | A scheduled check that a user's database answers. |

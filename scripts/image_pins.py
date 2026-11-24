@@ -4,6 +4,7 @@ from pathlib import Path
 
 PLATFORMS = ("linux-x64", "linux-arm64")
 DIGEST = r"sha256:[a-f0-9]{64}"
+VERIFICATION_REPOSITORY = "databasus/verification-postgres"
 
 
 def verify_image_pins(root: Path) -> None:
@@ -16,6 +17,24 @@ def verify_image_pins(root: Path) -> None:
             not in verification
         ):
             raise ValueError(f"verification PostgreSQL {major}: base and catalog digests disagree")
+
+    pinned_versions = json.loads(
+        (root / "backend/internal/agent/container/postgres_versions.json").read_text()
+    )
+    for major in range(12, 19):
+        version = pinned_versions.get(str(major))
+        if version is None:
+            raise ValueError(f"verification PostgreSQL {major}: no pinned version")
+
+        if f"{VERIFICATION_REPOSITORY}:{version}" not in images:
+            raise ValueError(
+                f"verification PostgreSQL {major}: no catalog record for pinned version {version}"
+            )
+
+    for name in images:
+        repository, _, tag = name.partition(":")
+        if repository == VERIFICATION_REPOSITORY and tag not in pinned_versions.values():
+            raise ValueError(f"{name}: catalog record names no pinned PostgreSQL version")
 
     for name, record in images.items():
         if not re.fullmatch(r"[^\s@]+@" + DIGEST, record["reference"]):
