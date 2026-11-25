@@ -21,7 +21,7 @@ import (
 func TestRestoreContainer(t *testing.T) {
 	t.Parallel()
 
-	t.Run("runs without root or capabilities when restoring a backup", func(t *testing.T) {
+	t.Run("runs the pinned server version without root or capabilities when restoring a backup", func(t *testing.T) {
 		t.Parallel()
 
 		endpoint := containers.StartPostgres(t, "postgres:18")
@@ -33,6 +33,7 @@ func TestRestoreContainer(t *testing.T) {
 		engine := newEngine(t, credentials.Agent.ID)
 		gate := newGateway(t, team.App.URL, gatewayOptions{isStreamHeld: true})
 		agent := newAgentProcess(t, currentBinaryDirectory)
+		agentImage := agent.provideVerificationImage(t, engine, "18")
 		verificationID := team.App.EnqueueVerification(t, team.Owner, backup.Id)
 		agent.start(t, gate.url, credentials)
 		agent.getPID(t)
@@ -67,6 +68,9 @@ func TestRestoreContainer(t *testing.T) {
 		instances, err := engine.ContainerList(t.Context(), client.ContainerListOptions{Filters: filters})
 		require.NoError(t, err)
 		require.Len(t, instances.Items, 1)
+		assert.Equal(t, agentImage, instances.Items[0].Image)
+		restoreServerVersion := runInContainer(t, engine, instances.Items[0].ID, "postgres", "--version")
+		assert.Contains(t, restoreServerVersion, "(PostgreSQL) "+getPinnedPostgresVersion(t, "18")+" ")
 		status := readContainerStatus(t, engine, instances.Items[0].ID)
 
 		var hasUID, hasCapabilities bool

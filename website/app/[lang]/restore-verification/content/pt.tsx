@@ -187,8 +187,8 @@ export default function RestoreVerificationPage() {
                 <li>
                   Capacidade de disco para cada trabalho de verificação que
                   cubra o <strong>tamanho do arquivo de backup</strong>, o{" "}
-                  <strong>tamanho bruto da base de dados</strong> e uma{" "}
-                  <strong>margem de segurança</strong> adicional.
+                  <strong>tamanho bruto da base de dados</strong>, uma reserva e os{" "}
+                  <strong>maiores índices</strong> construídos ao mesmo tempo.
                 </li>
                 <li>
                   Pelo menos 1 núcleo de CPU e 512 MB de RAM disponíveis por
@@ -332,10 +332,15 @@ export default function RestoreVerificationPage() {
                 concorrência. O orçamento de disco é o mais fácil de errar: cada
                 trabalho precisa de espaço para o{" "}
                 <strong>tamanho do arquivo de backup</strong>, o{" "}
-                <strong>tamanho bruto da base de dados</strong> e uma{" "}
-                <strong>margem de segurança de até 5 GB</strong> adicional, por
-                isso defina <code>--max-disk-gb</code> confortavelmente acima
-                disso para a sua maior base de dados.
+                <strong>tamanho bruto da base de dados</strong>, uma{" "}
+                <strong>reserva de cerca de 1,5 GB</strong> e os seus{" "}
+                <strong>maiores índices</strong>, um por trabalho de restauração em
+                paralelo, porque cada índice em construção ocupa no disco uma
+                ordenação de tamanho parecido com o dele. O Databasus reduz o
+                número de trabalhos de restauração em paralelo até tudo isso caber
+                no disco livre do agente. Por isso, um <code>--max-cpu</code> maior
+                precisa de mais disco, e um <code>--max-disk-gb</code> maior
+                permite restaurar uma base grande mais rápido.
               </p>
 
               <h3 id="manage">Gerenciar o agente</h3>

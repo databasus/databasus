@@ -156,8 +156,8 @@ export default function RestoreVerificationPage() {
                 </li>
                 <li>
                   Kapasitas disk untuk setiap tugas verifikasi yang mencakup{" "}
-                  <strong>ukuran file backup</strong>, <strong>ukuran mentah database</strong>, dan{" "}
-                  <strong>ruang cadangan</strong> tambahan.
+                  <strong>ukuran file backup</strong>, <strong>ukuran mentah database</strong>, ruang cadangan, dan{" "}
+                  <strong>indeks terbesar</strong> yang dibangun bersamaan.
                 </li>
                 <li>
                   Setidaknya 1 core CPU dan RAM 512 MB tersedia untuk setiap tugas yang berjalan
@@ -267,9 +267,13 @@ export default function RestoreVerificationPage() {
                 setiap tugas mendapat 1 CPU dan 1 GB. Batas minimumnya adalah 1 CPU dan 512 MB per
                 tugas. Jika anggaran tidak mencukupi, agen melaporkan kapasitas tugas bersamaan yang
                 lebih rendah. Anggaran disk paling mudah keliru: setiap tugas memerlukan ruang untuk{" "}
-                <strong>ukuran file backup</strong>, <strong>ukuran mentah database</strong>, serta{" "}
-                <strong>ruang cadangan hingga 5 GB</strong>. Jadi, atur <code>--max-disk-gb</code>{" "}
-                cukup jauh di atas total kebutuhan itu untuk database terbesar.
+                <strong>ukuran file backup</strong>, <strong>ukuran mentah database</strong>,{" "}
+                <strong>ruang cadangan sekitar 1,5 GB</strong>, serta <strong>indeks terbesarnya</strong>,
+                satu untuk setiap tugas restore paralel, karena setiap indeks yang sedang dibangun memakai
+                ruang disk untuk pengurutan kira-kira sebesar indeks itu sendiri. Databasus mengurangi
+                jumlah tugas restore paralel sampai semuanya muat di disk kosong agen. Jadi,{" "}
+                <code>--max-cpu</code> yang lebih besar membutuhkan disk lebih banyak, dan{" "}
+                <code>--max-disk-gb</code> yang lebih besar membuat database besar di-restore lebih cepat.
               </p>
               <h3 id="manage">Mengelola agen</h3>
               <p>Binary yang sama menyediakan empat subcommand:</p>

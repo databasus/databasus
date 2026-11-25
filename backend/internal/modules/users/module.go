@@ -5,7 +5,6 @@ package users
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -20,6 +19,7 @@ import (
 	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users/internal/accounts"
+	"databasus-backend/internal/modules/users/internal/authenticator"
 	usershttpapi "databasus-backend/internal/modules/users/internal/httpapi"
 	"databasus-backend/internal/modules/users/internal/identity"
 	"databasus-backend/internal/modules/users/internal/identityproof"
@@ -47,6 +47,9 @@ type (
 	// IdentityProofBinding names what an emailed confirmation code authorizes: a purpose and the
 	// operation's subject.
 	IdentityProofBinding = identityproof.Binding
+	// IdentityConfirmation says how root admin confirms an operation: with the app or with an
+	// emailed code, and when that code expires.
+	IdentityConfirmation = identityproof.Confirmation
 	// RecoveryTargetState is what the users tables of a startup recovery target hold.
 	RecoveryTargetState = instancerecovery.State
 )
@@ -102,12 +105,14 @@ type Module interface {
 	RequireRootAdmin(ctx context.Context, actor Actor) (User, error)
 	// GetRootAdmin reports false when the instance has no root admin yet.
 	GetRootAdmin(ctx context.Context) (User, bool, error)
-	// SendIdentityCode emails root admin a five-minute code bound to the session and the binding. It
-	// answers identity_proof_unavailable while two-factor sign-in is off or mail cannot reach root
-	// admin, and rate_limited within a minute of another.
-	SendIdentityCode(ctx context.Context, actor Actor, binding IdentityProofBinding) (time.Time, error)
-	// VerifyIdentityCode consumes a code emailed for this session and binding. Any other code
-	// answers identity_proof_invalid.
+	// SendIdentityCode asks for root admin's second factor. With a connected app it sends nothing and
+	// answers the app method; otherwise it emails a five-minute code bound to the session and the
+	// binding. It answers identity_proof_unavailable while two-factor sign-in is off, or when root
+	// admin has no app and mail cannot reach them, and rate_limited within a minute of another code.
+	SendIdentityCode(ctx context.Context, actor Actor, binding IdentityProofBinding) (IdentityConfirmation, error)
+	// VerifyIdentityCode consumes root admin's app code or recovery code when root admin has an app,
+	// and a code emailed for this session and binding otherwise. Any other code answers
+	// identity_proof_invalid, and too many wrong app codes answer too_many_wrong_codes.
 	VerifyIdentityCode(ctx context.Context, actor Actor, binding IdentityProofBinding, code *string) error
 	// InviteUser creates a user who finishes sign-up later. It answers permission_denied when the
 	// instance settings forbid the actor to invite and email_taken when the address has a user.
@@ -116,15 +121,18 @@ type Module interface {
 	// instance admin always may.
 	CanCreateWorkspaces(ctx context.Context, actor Actor) (bool, error)
 	GetUserCount(ctx context.Context) (int64, error)
-	// IsTwoFactorAuthRequired answers whether the instance requires two-factor sign-in.
 	IsTwoFactorAuthRequired(ctx context.Context) (bool, error)
 
 	// The console methods serve the commands an operator runs inside the instance. They take no
 	// actor: whoever runs them can already run anything there.
 	CreateUserFromConsole(ctx context.Context, request ConsoleUserRequest) (ConsoleUserOutcome, error)
 	ChangePasswordFromConsole(ctx context.Context, change ConsolePasswordChange) error
-	// DisableTwoFactorAuth reports false when the second factor was already off.
+	// DisableTwoFactorAuth reports false when the second factor was already off. Connected apps
+	// stay connected.
 	DisableTwoFactorAuth(ctx context.Context) (bool, error)
+	// ResetAuthenticatorAppFromConsole removes one account's app and recovery codes. It reports false
+	// when the account had no app, and fails when no account has the address.
+	ResetAuthenticatorAppFromConsole(ctx context.Context, email string) (bool, error)
 	RenderAdminListing(ctx context.Context) (string, error)
 }
 
@@ -190,13 +198,25 @@ func New(deps Deps) Module {
 		Logger:       deps.Logger,
 	})
 
-	accountsService := accounts.NewService(accounts.Deps{
-		Repositories: accountRepositories,
+	authenticatorService := authenticator.NewService(authenticator.Deps{
+		Repositories: authenticator.NewRepositories(deps.DB),
 		Transactor:   deps.Transactor,
 		Clock:        deps.Clock,
-		AuditLog:     deps.AuditLog,
+		MasterKey:    deps.MasterKey,
+		Users:        directory,
 		Settings:     settingsService,
+		AuditLog:     deps.AuditLog,
 		Logger:       deps.Logger,
+	})
+
+	accountsService := accounts.NewService(accounts.Deps{
+		Repositories:  accountRepositories,
+		Transactor:    deps.Transactor,
+		Clock:         deps.Clock,
+		AuditLog:      deps.AuditLog,
+		Settings:      settingsService,
+		Authenticator: authenticatorService,
+		Logger:        deps.Logger,
 	})
 
 	turnstileClient := turnstile.New(turnstile.Deps{
@@ -206,31 +226,33 @@ func New(deps Deps) Module {
 	})
 
 	signInService := signin.NewService(signin.Deps{
-		Repositories: signin.NewRepositories(deps.DB),
-		Transactor:   deps.Transactor,
-		Clock:        deps.Clock,
-		MasterKey:    deps.MasterKey,
-		Accounts:     accountsService,
-		Settings:     settingsService,
-		AuditLog:     deps.AuditLog,
-		Mailer:       deps.Mailer,
-		RateLimiter:  deps.RateLimiter,
-		Turnstile:    turnstileClient,
-		GitHub:       oauth.NewGitHub(deps.GitHub),
-		Google:       oauth.NewGoogle(deps.Google),
-		Logger:       deps.Logger,
+		Repositories:  signin.NewRepositories(deps.DB),
+		Transactor:    deps.Transactor,
+		Clock:         deps.Clock,
+		MasterKey:     deps.MasterKey,
+		Accounts:      accountsService,
+		Authenticator: authenticatorService,
+		Settings:      settingsService,
+		AuditLog:      deps.AuditLog,
+		Mailer:        deps.Mailer,
+		RateLimiter:   deps.RateLimiter,
+		Turnstile:     turnstileClient,
+		GitHub:        oauth.NewGitHub(deps.GitHub),
+		Google:        oauth.NewGoogle(deps.Google),
+		Logger:        deps.Logger,
 	})
 
 	identityProofService := identityproof.NewService(identityproof.Deps{
-		Repositories: identityproof.NewRepositories(deps.DB),
-		Transactor:   deps.Transactor,
-		Clock:        deps.Clock,
-		Accounts:     accountsService,
-		Directory:    directory,
-		Settings:     settingsService,
-		Mailer:       deps.Mailer,
-		AuditLog:     deps.AuditLog,
-		Logger:       deps.Logger,
+		Repositories:  identityproof.NewRepositories(deps.DB),
+		Transactor:    deps.Transactor,
+		Clock:         deps.Clock,
+		Accounts:      accountsService,
+		Directory:     directory,
+		Authenticator: authenticatorService,
+		Settings:      settingsService,
+		Mailer:        deps.Mailer,
+		AuditLog:      deps.AuditLog,
+		Logger:        deps.Logger,
 	})
 
 	passwordResetService := passwordreset.NewService(passwordreset.Deps{
@@ -252,10 +274,12 @@ func New(deps Deps) Module {
 		Settings:      settingsService,
 		SignIn:        signInService,
 		IdentityProof: identityProofService,
+		Authenticator: authenticatorService,
 		Access:        usershttpapi.NewAccess(signInService, deps.Logger),
 		Handler: usershttpapi.NewHandler(usershttpapi.Deps{
 			SignIn:        signInService,
 			Accounts:      accountsService,
+			Authenticator: authenticatorService,
 			Settings:      settingsService,
 			PasswordReset: passwordResetService,
 		}),

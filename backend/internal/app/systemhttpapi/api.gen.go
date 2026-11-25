@@ -148,55 +148,60 @@ func (e JobHealthLastOutcome) Valid() bool {
 
 // Defines values for ProblemCode.
 const (
-	ProblemCodeAdminEmailMissing          ProblemCode = "admin_email_missing"
-	ProblemCodeAlreadyMember              ProblemCode = "already_member"
-	ProblemCodeAlreadyRunning             ProblemCode = "already_running"
-	ProblemCodeArchiveTooLarge            ProblemCode = "archive_too_large"
-	ProblemCodeBackupNotCompleted         ProblemCode = "backup_not_completed"
-	ProblemCodeCannotChangeOwnRole        ProblemCode = "cannot_change_own_role"
-	ProblemCodeCleanupPending             ProblemCode = "cleanup_pending"
-	ProblemCodeDatabaseConnectionFailed   ProblemCode = "database_connection_failed"
-	ProblemCodeDatabasusBackupInUse       ProblemCode = "databasus_backup_in_use"
-	ProblemCodeEmailNotConfigured         ProblemCode = "email_not_configured"
-	ProblemCodeEmailNotFound              ProblemCode = "email_not_found"
-	ProblemCodeEmailTaken                 ProblemCode = "email_taken"
-	ProblemCodeHumanVerificationFailed    ProblemCode = "human_verification_failed"
-	ProblemCodeIdentityProofInvalid       ProblemCode = "identity_proof_invalid"
-	ProblemCodeIdentityProofUnavailable   ProblemCode = "identity_proof_unavailable"
-	ProblemCodeInUse                      ProblemCode = "in_use"
-	ProblemCodeInstanceUnhealthy          ProblemCode = "instance_unhealthy"
-	ProblemCodeInsufficientDiskSpace      ProblemCode = "insufficient_disk_space"
-	ProblemCodeInternal                   ProblemCode = "internal"
-	ProblemCodeInvalidRequest             ProblemCode = "invalid_request"
-	ProblemCodeInvalidResetCode           ProblemCode = "invalid_reset_code"
-	ProblemCodeNoExtendableChain          ProblemCode = "no_extendable_chain"
-	ProblemCodeNoRestorableBackup         ProblemCode = "no_restorable_backup"
-	ProblemCodeNotFound                   ProblemCode = "not_found"
-	ProblemCodeNotRunning                 ProblemCode = "not_running"
-	ProblemCodeOauthFailed                ProblemCode = "oauth_failed"
-	ProblemCodeOauthNotConfigured         ProblemCode = "oauth_not_configured"
-	ProblemCodeOwnerRequiresTransfer      ProblemCode = "owner_requires_transfer"
-	ProblemCodePasswordIncorrect          ProblemCode = "password_incorrect"
-	ProblemCodePasswordNotSet             ProblemCode = "password_not_set"
-	ProblemCodePasswordNotSetGithub       ProblemCode = "password_not_set_github"
-	ProblemCodePasswordNotSetGoogle       ProblemCode = "password_not_set_google"
-	ProblemCodePasswordNotSetGoogleGithub ProblemCode = "password_not_set_google_github"
-	ProblemCodePendingSignInNotUsable     ProblemCode = "pending_sign_in_not_usable"
-	ProblemCodePermissionDenied           ProblemCode = "permission_denied"
-	ProblemCodeRateLimited                ProblemCode = "rate_limited"
-	ProblemCodeRecoveryIncompatible       ProblemCode = "recovery_incompatible"
-	ProblemCodeRecoveryNotReady           ProblemCode = "recovery_not_ready"
-	ProblemCodeRegistrationClosed         ProblemCode = "registration_closed"
-	ProblemCodeRegistrationIncomplete     ProblemCode = "registration_incomplete"
-	ProblemCodeSignInCodeIncorrect        ProblemCode = "sign_in_code_incorrect"
-	ProblemCodeSignInCodeNotSent          ProblemCode = "sign_in_code_not_sent"
-	ProblemCodeSignInCodeResentTooSoon    ProblemCode = "sign_in_code_resent_too_soon"
-	ProblemCodeStorageUnavailable         ProblemCode = "storage_unavailable"
-	ProblemCodeTargetTimeUnreachable      ProblemCode = "target_time_unreachable"
-	ProblemCodeTooManySignInCodes         ProblemCode = "too_many_sign_in_codes"
-	ProblemCodeUnauthenticated            ProblemCode = "unauthenticated"
-	ProblemCodeUserDeactivated            ProblemCode = "user_deactivated"
-	ProblemCodeWorkspaceNotEmpty          ProblemCode = "workspace_not_empty"
+	ProblemCodeAdminEmailMissing           ProblemCode = "admin_email_missing"
+	ProblemCodeAlreadyMember               ProblemCode = "already_member"
+	ProblemCodeAlreadyRunning              ProblemCode = "already_running"
+	ProblemCodeArchiveTooLarge             ProblemCode = "archive_too_large"
+	ProblemCodeAuthenticatorAppRequired    ProblemCode = "authenticator_app_required"
+	ProblemCodeAuthenticatorSetupNotUsable ProblemCode = "authenticator_setup_not_usable"
+	ProblemCodeBackupNotCompleted          ProblemCode = "backup_not_completed"
+	ProblemCodeCannotChangeOwnRole         ProblemCode = "cannot_change_own_role"
+	ProblemCodeCleanupPending              ProblemCode = "cleanup_pending"
+	ProblemCodeDatabaseConnectionFailed    ProblemCode = "database_connection_failed"
+	ProblemCodeDatabasusBackupInUse        ProblemCode = "databasus_backup_in_use"
+	ProblemCodeEmailNotConfigured          ProblemCode = "email_not_configured"
+	ProblemCodeEmailNotFound               ProblemCode = "email_not_found"
+	ProblemCodeEmailTaken                  ProblemCode = "email_taken"
+	ProblemCodeHumanVerificationFailed     ProblemCode = "human_verification_failed"
+	ProblemCodeIdentityProofInvalid        ProblemCode = "identity_proof_invalid"
+	ProblemCodeIdentityProofUnavailable    ProblemCode = "identity_proof_unavailable"
+	ProblemCodeInUse                       ProblemCode = "in_use"
+	ProblemCodeInstanceUnhealthy           ProblemCode = "instance_unhealthy"
+	ProblemCodeInsufficientDiskSpace       ProblemCode = "insufficient_disk_space"
+	ProblemCodeInternal                    ProblemCode = "internal"
+	ProblemCodeInvalidRequest              ProblemCode = "invalid_request"
+	ProblemCodeInvalidResetCode            ProblemCode = "invalid_reset_code"
+	ProblemCodeNoExtendableChain           ProblemCode = "no_extendable_chain"
+	ProblemCodeNoRestorableBackup          ProblemCode = "no_restorable_backup"
+	ProblemCodeNotFound                    ProblemCode = "not_found"
+	ProblemCodeNotRunning                  ProblemCode = "not_running"
+	ProblemCodeOauthFailed                 ProblemCode = "oauth_failed"
+	ProblemCodeOauthNotConfigured          ProblemCode = "oauth_not_configured"
+	ProblemCodeOwnerRequiresTransfer       ProblemCode = "owner_requires_transfer"
+	ProblemCodePasswordIncorrect           ProblemCode = "password_incorrect"
+	ProblemCodePasswordNotSet              ProblemCode = "password_not_set"
+	ProblemCodePasswordNotSetGithub        ProblemCode = "password_not_set_github"
+	ProblemCodePasswordNotSetGoogle        ProblemCode = "password_not_set_google"
+	ProblemCodePasswordNotSetGoogleGithub  ProblemCode = "password_not_set_google_github"
+	ProblemCodePendingSignInNotResendable  ProblemCode = "pending_sign_in_not_resendable"
+	ProblemCodePendingSignInNotUsable      ProblemCode = "pending_sign_in_not_usable"
+	ProblemCodePermissionDenied            ProblemCode = "permission_denied"
+	ProblemCodeRateLimited                 ProblemCode = "rate_limited"
+	ProblemCodeRecoveryIncompatible        ProblemCode = "recovery_incompatible"
+	ProblemCodeRecoveryNotReady            ProblemCode = "recovery_not_ready"
+	ProblemCodeRegistrationClosed          ProblemCode = "registration_closed"
+	ProblemCodeRegistrationIncomplete      ProblemCode = "registration_incomplete"
+	ProblemCodeSecondFactorInvalid         ProblemCode = "second_factor_invalid"
+	ProblemCodeSignInCodeIncorrect         ProblemCode = "sign_in_code_incorrect"
+	ProblemCodeSignInCodeNotSent           ProblemCode = "sign_in_code_not_sent"
+	ProblemCodeSignInCodeResentTooSoon     ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeStorageUnavailable          ProblemCode = "storage_unavailable"
+	ProblemCodeTargetTimeUnreachable       ProblemCode = "target_time_unreachable"
+	ProblemCodeTooManySignInCodes          ProblemCode = "too_many_sign_in_codes"
+	ProblemCodeTooManyWrongCodes           ProblemCode = "too_many_wrong_codes"
+	ProblemCodeUnauthenticated             ProblemCode = "unauthenticated"
+	ProblemCodeUserDeactivated             ProblemCode = "user_deactivated"
+	ProblemCodeWorkspaceNotEmpty           ProblemCode = "workspace_not_empty"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
@@ -209,6 +214,10 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeAlreadyRunning:
 		return true
 	case ProblemCodeArchiveTooLarge:
+		return true
+	case ProblemCodeAuthenticatorAppRequired:
+		return true
+	case ProblemCodeAuthenticatorSetupNotUsable:
 		return true
 	case ProblemCodeBackupNotCompleted:
 		return true
@@ -268,6 +277,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodePasswordNotSetGoogleGithub:
 		return true
+	case ProblemCodePendingSignInNotResendable:
+		return true
 	case ProblemCodePendingSignInNotUsable:
 		return true
 	case ProblemCodePermissionDenied:
@@ -282,6 +293,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeRegistrationIncomplete:
 		return true
+	case ProblemCodeSecondFactorInvalid:
+		return true
 	case ProblemCodeSignInCodeIncorrect:
 		return true
 	case ProblemCodeSignInCodeNotSent:
@@ -293,6 +306,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeTargetTimeUnreachable:
 		return true
 	case ProblemCodeTooManySignInCodes:
+		return true
+	case ProblemCodeTooManyWrongCodes:
 		return true
 	case ProblemCodeUnauthenticated:
 		return true
@@ -457,6 +472,9 @@ type VersionResponse struct {
 	// Version The version of the running instance, such as `3.26.0`
 	Version string `json:"version"`
 }
+
+// AuthenticatorAppSetupId defines model for AuthenticatorAppSetupId.
+type AuthenticatorAppSetupId = openapi_types.UUID
 
 // BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
 type BackupConfigDatabaseId = openapi_types.UUID

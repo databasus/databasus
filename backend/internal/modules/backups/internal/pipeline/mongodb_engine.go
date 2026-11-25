@@ -120,15 +120,15 @@ func openMongodbDumpSource(
 	}, nil
 }
 
-func (s *mongodbDumpSource) GetRawSizeMb(ctx context.Context) (float64, bool) {
+func (s *mongodbDumpSource) GetSizeEstimate(ctx context.Context) SizeEstimate {
 	rawSizeMb, err := s.tunnel.GetSource().GetRawSizeMb(ctx, s.logger)
 	if err != nil {
 		s.logger.WarnContext(ctx, "failed to fetch raw db size before backup", slog.Any("error", err))
 
-		return 0, false
+		return SizeEstimate{RawDbSizeMb: 0, LargestIndexSizesMb: nil}
 	}
 
-	return rawSizeMb, true
+	return SizeEstimate{RawDbSizeMb: rawSizeMb, LargestIndexSizesMb: nil}
 }
 
 func (s *mongodbDumpSource) GetTimescaleDBVersion(context.Context) string {

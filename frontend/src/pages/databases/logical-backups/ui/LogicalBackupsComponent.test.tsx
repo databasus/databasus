@@ -514,44 +514,51 @@ describe('LogicalBackupsComponent failures', () => {
       expect(await screen.findAllByText('Canceled')).toHaveLength(2);
     });
 
-    it('removes the row through the reload after a confirmed delete', async () => {
-      let listRequests = 0;
-      mockServer.use(
-        mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
-        http.get(`*${API_BASE_PATH}/logical-backups`, () => {
-          listRequests += 1;
+    it.each([
+      { status: 'COMPLETED', label: 'Successful' },
+      { status: 'FAILED', label: 'Failed' },
+      { status: 'CANCELED', label: 'Canceled' },
+    ] as const)(
+      'removes the row through the reload after a confirmed delete of a $status backup',
+      async ({ status, label }) => {
+        let listRequests = 0;
+        mockServer.use(
+          mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
+          http.get(`*${API_BASE_PATH}/logical-backups`, () => {
+            listRequests += 1;
 
-          if (listRequests === 1) {
-            return HttpResponse.json<LogicalBackupPage>({
-              totalUsageMb: 0,
-              items: [buildBackup('listed-backup', 'COMPLETED')],
-            });
-          }
+            if (listRequests === 1) {
+              return HttpResponse.json<LogicalBackupPage>({
+                totalUsageMb: 0,
+                items: [buildBackup('listed-backup', status)],
+              });
+            }
 
-          // A held poll keeps later polls off, so only the reload can change the list.
-          return listRequests === 2
-            ? createPendingApiResponse().response
-            : HttpResponse.json<LogicalBackupPage>({ totalUsageMb: 0, items: [] });
-        }),
-        http.delete(
-          `*${API_BASE_PATH}/logical-backups/:backupId`,
-          () => new HttpResponse(null, { status: 204 }),
-        ),
-      );
-      vi.useFakeTimers();
-      renderBackupList();
-      await waitForCondition(() => screen.getAllByText('Successful'));
-      await advanceClockUntil(() => expect(listRequests).toBe(2));
+            // A held poll keeps later polls off, so only the reload can change the list.
+            return listRequests === 2
+              ? createPendingApiResponse().response
+              : HttpResponse.json<LogicalBackupPage>({ totalUsageMb: 0, items: [] });
+          }),
+          http.delete(
+            `*${API_BASE_PATH}/logical-backups/:backupId`,
+            () => new HttpResponse(null, { status: 204 }),
+          ),
+        );
+        vi.useFakeTimers();
+        renderBackupList();
+        await waitForCondition(() => screen.getAllByText(label));
+        await advanceClockUntil(() => expect(listRequests).toBe(2));
 
-      fireEvent.click(screen.getAllByRole('button', { name: 'Delete backup' })[0]);
-      await waitForCondition(() => screen.getByRole('button', { name: 'Delete' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+        fireEvent.click(screen.getAllByRole('button', { name: 'Delete backup' })[0]);
+        await waitForCondition(() => screen.getByRole('button', { name: 'Delete' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-      await waitForCondition(() => screen.getAllByText('No backups yet'));
+        await waitForCondition(() => screen.getAllByText('No backups yet'));
 
-      expect(screen.queryByText('Successful')).toBeNull();
-      expect(listRequests).toBeGreaterThanOrEqual(3);
-    });
+        expect(screen.queryByText(label)).toBeNull();
+        expect(listRequests).toBeGreaterThanOrEqual(3);
+      },
+    );
 
     it('shows no message and keeps the row when refreshes fail after a successful cancel', async () => {
       const showAlert = vi.fn();
@@ -810,8 +817,8 @@ describe('LogicalBackupsComponent row actions', () => {
       label: 'Successful',
       offeredActions: ['delete', 'verify', 'restore', 'download'],
     },
-    { status: 'FAILED', label: 'Failed', offeredActions: [] },
-    { status: 'CANCELED', label: 'Canceled', offeredActions: [] },
+    { status: 'FAILED', label: 'Failed', offeredActions: ['delete'] },
+    { status: 'CANCELED', label: 'Canceled', offeredActions: ['delete'] },
   ] as const)(
     'offers exactly the actions of the status with a $status backup',
     async ({ status, label, offeredActions }) => {
@@ -829,10 +836,11 @@ describe('LogicalBackupsComponent row actions', () => {
     declareListedBackups([
       buildBackup('completed-backup', 'COMPLETED'),
       buildBackup('running-backup', 'IN_PROGRESS'),
+      buildBackup('failed-backup', 'FAILED'),
     ]);
     renderBackupList(false);
 
-    await screen.findAllByText('In progress');
+    await screen.findAllByText('Failed');
 
     expect(getOfferedRowActions()).toEqual(['restore', 'download']);
     expect(getStartButton().disabled).toBe(false);

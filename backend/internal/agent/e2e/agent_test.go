@@ -20,10 +20,24 @@ import (
 )
 
 type agentProcess struct {
-	directory  string
-	binary     string
-	outputPath string
-	engineHost string
+	directory                   string
+	binary                      string
+	outputPath                  string
+	engineHost                  string
+	verificationImageRepository string
+	capacity                    agentCapacity
+}
+
+// agentCapacity is the budget the agent is started with; a scenario raises a field it depends on.
+type agentCapacity struct {
+	maxCPU            int
+	maxRAMMb          int
+	maxDiskGb         int
+	maxConcurrentJobs int
+}
+
+func getDefaultAgentCapacity() agentCapacity {
+	return agentCapacity{maxCPU: 1, maxRAMMb: 2048, maxDiskGb: 10, maxConcurrentJobs: 1}
 }
 
 func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
@@ -35,10 +49,12 @@ func newAgentProcess(t *testing.T, binaryDirectory string) *agentProcess {
 	require.NoError(t, os.Link(filepath.Join(binaryDirectory, binaryName()), binary))
 
 	agent := &agentProcess{
-		directory:  directory,
-		binary:     binary,
-		outputPath: filepath.Join(directory, "output.log"),
-		engineHost: getEngineHost(),
+		directory:                   directory,
+		binary:                      binary,
+		outputPath:                  filepath.Join(directory, "output.log"),
+		engineHost:                  getEngineHost(),
+		verificationImageRepository: newVerificationImageRepository(),
+		capacity:                    getDefaultAgentCapacity(),
 	}
 
 	t.Cleanup(func() {
@@ -76,7 +92,7 @@ func (a *agentProcess) start(t *testing.T, host string, credentials apptest.Crea
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(t.Context())
-	spec := a.spec(agentArguments("run", host, credentials))
+	spec := a.spec(a.arguments("run", host, credentials))
 	spec.Stdout = output
 	spec.Stderr = output
 
@@ -90,7 +106,7 @@ func (a *agentProcess) start(t *testing.T, host string, credentials apptest.Crea
 	t.Cleanup(func() { cancel(); _ = running.Wait(); require.NoError(t, output.Close()) })
 }
 
-func agentArguments(command, host string, credentials apptest.CreatedVerificationAgent) []string {
+func (a *agentProcess) arguments(command, host string, credentials apptest.CreatedVerificationAgent) []string {
 	return []string{
 		command,
 		"--databasus-host",
@@ -102,14 +118,23 @@ func agentArguments(command, host string, credentials apptest.CreatedVerificatio
 		"--allow-insecure-http",
 		"--skip-update",
 		"--max-cpu",
-		"1",
+		strconv.Itoa(a.capacity.maxCPU),
 		"--max-ram-mb",
-		"2048",
+		strconv.Itoa(a.capacity.maxRAMMb),
 		"--max-disk-gb",
-		"10",
+		strconv.Itoa(a.capacity.maxDiskGb),
 		"--max-concurrent-jobs",
-		"1",
+		strconv.Itoa(a.capacity.maxConcurrentJobs),
+		"--verification-pg-image-repo",
+		a.verificationImageRepository,
 	}
+}
+
+func (a *agentProcess) requireNoStockFallback(t *testing.T) {
+	t.Helper()
+	contents, err := os.ReadFile(a.outputPath)
+	require.NoError(t, err)
+	require.NotContains(t, string(contents), "falling back to stock postgres image")
 }
 
 func (a *agentProcess) getPID(t *testing.T) int {

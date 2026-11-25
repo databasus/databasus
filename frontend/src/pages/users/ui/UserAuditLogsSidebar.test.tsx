@@ -16,6 +16,8 @@ const firstUser: User = {
   status: 'ACTIVE',
   isRootAdmin: false,
   createdAt: '2026-10-01T00:00:00Z',
+  authenticatorAppConnectedAt: null,
+  unusedRecoveryCodeCount: null,
 };
 const secondUser: User = { ...firstUser, id: 'second-user', name: 'Second' };
 const auditEvent = {

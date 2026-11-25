@@ -199,8 +199,8 @@ def find_stale_entries(listed_packages: list[str], module_packages: list[str]) -
 
 
 class TestScriptTestCase(unittest.TestCase):
-    """Runs a copy of scripts/test.sh in a checkout of its own, so the repository's .env and the
-    machine's real locks stay out of the test."""
+    """Runs a copy of scripts/test.sh in a checkout of its own, so the machine's real locks stay out
+    of the test."""
 
     def setUp(self) -> None:
         self.workspace = Path(tempfile.mkdtemp(prefix="test-sh-"))

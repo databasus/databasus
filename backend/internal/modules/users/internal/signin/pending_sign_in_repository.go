@@ -40,9 +40,11 @@ func (r *pendingSignInRepository) lockUser(ctx context.Context, userID uuid.UUID
 }
 
 type livePendingSignInFilter struct {
-	userID          uuid.UUID
-	passwordVersion uuid.UUID
-	now             time.Time
+	userID             uuid.UUID
+	kind               PendingSignInKind
+	authenticatorAppID *uuid.UUID
+	passwordVersion    uuid.UUID
+	now                time.Time
 }
 
 func (r *pendingSignInRepository) getLive(
@@ -51,13 +53,16 @@ func (r *pendingSignInRepository) getLive(
 ) (PendingSignIn, bool, error) {
 	var pendingSignIn PendingSignIn
 
-	err := database.Conn(ctx, r.db).
+	query := database.Conn(ctx, r.db).
 		Where(
-			"user_id = ? AND password_version = ? AND is_used = ? AND failed_attempt_count < ? AND expires_at > ?",
-			filter.userID, filter.passwordVersion, false, maxCodeAttempts, filter.now,
-		).
-		Order("created_at DESC").
-		First(&pendingSignIn).Error
+			"user_id = ? AND kind = ? AND password_version = ? AND is_used = ? AND failed_attempt_count < ? AND expires_at > ?",
+			filter.userID, filter.kind, filter.passwordVersion, false, maxCodeAttempts, filter.now,
+		)
+	if filter.authenticatorAppID != nil {
+		query = query.Where("authenticator_app_id = ?", *filter.authenticatorAppID)
+	}
+
+	err := query.Order("created_at DESC").First(&pendingSignIn).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return PendingSignIn{}, false, nil
 	}
@@ -84,7 +89,9 @@ func (r *pendingSignInRepository) getByID(ctx context.Context, pendingSignInID u
 	return pendingSignIn, true, nil
 }
 
-func (r *pendingSignInRepository) countCreatedSince(
+// countEmailCodesCreatedSince counts only emailed codes, so app sign-ins never spend the mail
+// allowance.
+func (r *pendingSignInRepository) countEmailCodesCreatedSince(
 	ctx context.Context,
 	userID uuid.UUID,
 	since time.Time,
@@ -92,7 +99,7 @@ func (r *pendingSignInRepository) countCreatedSince(
 	var pendingSignInCount int64
 
 	err := database.Conn(ctx, r.db).Model(&PendingSignIn{}).
-		Where("user_id = ? AND created_at > ?", userID, since).
+		Where("user_id = ? AND kind = ? AND created_at > ?", userID, PendingSignInKindEmailCode, since).
 		Count(&pendingSignInCount).Error
 	if err != nil {
 		return 0, fmt.Errorf("count the pending sign-ins of the user: %w", err)

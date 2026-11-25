@@ -28,7 +28,7 @@ Helm controller, so their images are not recorded.
 CNPG 1.30 supports Kubernetes 1.34 to 1.36 according to its
 [supported releases](https://github.com/cloudnative-pg/cloudnative-pg/blob/v1.30.1/docs/src/supported_releases.md).
 The CNPG PostgreSQL images are built on Debian trixie, like the official
-`postgres:17` (17.11) and `postgres:18` (18.6) images that boot recovered
+`postgres:17` (17.12) and `postgres:18` (18.7) images that boot recovered
 clusters, so both use the same C library collations.
 
 Every selected release was published at least fourteen complete days before the

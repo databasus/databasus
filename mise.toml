@@ -1,9 +1,10 @@
-min_version = "2026.10.6"
+min_version = "2026.11.9"
 
 # User commands
 
 [tasks.run]
 description = "Start the app locally: dev database, test fixtures, WAL backup source, backend, frontend and website"
+depends = ["dev:prepare"]
 run = "scripts/dev.sh"
 
 [tasks.test]
@@ -40,8 +41,15 @@ run = "scripts/verify-deps.sh"
 description = "Regenerate the servers, the test clients and the frontend types from backend/api/*.yaml"
 run = ["go -C backend generate ./...", "pnpm --dir frontend generate:api"]
 
-# CI/CD commands (also used by hooks)
+# Internal commands for CI/CD and other tasks (also used by hooks)
 # Use the user commands above for everyday development.
+
+[tasks."dev:prepare"]
+description = "Install the pinned tools a worktree's commit names and the host lacks"
+# Tasks do not install tools on their own, so CI jobs install only what they need; the local app
+# installs them here, and run sees them because mise resolves its tools after its dependencies.
+run = "mise install --locked --include-task-tools"
+hide = true
 
 [tasks."python:lint"]
 description = "Check all repository Python formatting, lint rules, annotations and types"
@@ -149,30 +157,30 @@ hide = true
 [tools]
 go = "1.27.4"
 node = "24.21.0"
-pnpm = "12.17.0"
-hk = "2.8.1"
-process-compose = "1.122.0"
-"aqua:pressly/goose" = "3.27.3"
+pnpm = "12.21.0"
+hk = "2.13.0"
+process-compose = "1.124.0"
+"aqua:pressly/goose" = "3.30.1"
 golangci-lint = "2.15.0"
 "aqua:air-verse/air" = "1.67.4"
-"npm:chrome-devtools-mcp" = "1.11.0"
-python = "3.14.7"
-uv = "0.13.7"
-ruff = "0.17.3"
-ty = "0.0.97"
-"npm:@fission-ai/openspec" = "1.11.0"
-"npm:typescript-language-server" = "6.0.2"
+"npm:chrome-devtools-mcp" = "1.13.0"
+python = "3.14.10"
+uv = "0.13.8"
+ruff = "0.17.5"
+ty = "0.0.104"
+"npm:@fission-ai/openspec" = "1.17.0"
+"npm:typescript-language-server" = "6.1.0"
 ripgrep = "15.2.0"
 shellcheck = "0.11.0"
-vacuum = "0.35.1"
-"aqua:aquasecurity/trivy" = "0.76.1"
-gh = "2.103.3"
+vacuum = "0.41.0"
+"aqua:aquasecurity/trivy" = "0.76.2"
+gh = "2.104.0"
 jq = "1.8.2"
 actionlint = "1.7.12"
 gitleaks = "8.30.1"
 "npm:semver" = "7.8.6"
-helm = "4.3.1"
-"pypi:semgrep" = "1.182.1"
+helm = "4.3.2"
+"pypi:semgrep" = "1.185.0"
 
 [tool_alias]
 pnpm = "github:pnpm/pnpm"
@@ -185,5 +193,7 @@ minimum_release_age = "7d"
 run_auto_install = false
 
 [env]
+# .env is optional and holds only the keys a developer changes; every other key keeps its example value.
+_.file = [".env.example", ".env"]
 # The TypeScript wrapper supplies frontend/node_modules before the mise shim changes NODE_PATH.
 _.path = ["{{config_root}}/tools/bin", "{{config_root}}/tools/lsp"]

@@ -66,13 +66,13 @@ func (s *Service) GetInstanceSettings(ctx context.Context) (InstanceSettings, er
 	return s.toInstanceSettings(settings), nil
 }
 
-func (s *Service) IsTwoFactorAuthRequired(ctx context.Context) (bool, error) {
+func (s *Service) GetTwoFactorRequirement(ctx context.Context) (TwoFactorRequirement, error) {
 	settings, err := s.repository.getOrCreate(ctx)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 
-	return settings.IsTwoFactorAuthRequired, nil
+	return settings.TwoFactorRequirement, nil
 }
 
 func (s *Service) CanInviteUsers(ctx context.Context, actor identity.Actor) (bool, error) {
@@ -101,9 +101,10 @@ func (s *Service) CanCreateWorkspaces(ctx context.Context, actor identity.Actor)
 	return settings.IsMemberAllowedToCreateWorkspaces, nil
 }
 
-// UpdateInstanceSettings refuses to turn the second factor on unless every active administrator
-// can receive a code, because that switch is what locks an instance out. Turning it off is never
-// refused, so an administrator can still leave an instance whose mail server is gone.
+// UpdateInstanceSettings refuses to require the emailed code unless every active administrator can
+// receive one, because that requirement is what locks an instance out. Turning it off or moving to
+// the authenticator app is never refused for mail, so an administrator can still leave an instance
+// whose mail server is gone.
 func (s *Service) UpdateInstanceSettings(
 	ctx context.Context,
 	actor identity.Actor,
@@ -111,6 +112,10 @@ func (s *Service) UpdateInstanceSettings(
 ) (InstanceSettings, error) {
 	if !actor.IsAdmin() {
 		return InstanceSettings{}, ErrNotAdmin
+	}
+
+	if !switches.TwoFactorRequirement.IsValid() {
+		return InstanceSettings{}, ErrTwoFactorRequirementInvalid
 	}
 
 	author, err := s.getActorUser(ctx, actor)
@@ -126,7 +131,9 @@ func (s *Service) UpdateInstanceSettings(
 			return err
 		}
 
-		if switches.IsTwoFactorAuthRequired && !currentSettings.IsTwoFactorAuthRequired {
+		isBecomingEmail := switches.TwoFactorRequirement == TwoFactorRequirementEmail &&
+			currentSettings.TwoFactorRequirement != TwoFactorRequirementEmail
+		if isBecomingEmail {
 			err = s.checkCodesCanReachEveryAdmin(ctx)
 			if err != nil {
 				return err
@@ -162,6 +169,7 @@ func (s *Service) UpdateInstanceSettings(
 // DisableTwoFactorAuthFromConsole is the way back into an instance whose mail server has died, so
 // it takes no actor and asks no permission: whoever runs it already runs commands inside the
 // instance. The audit event keeps the host from being a way to move a security switch unobserved.
+// Connected authenticator apps stay: they belong to the accounts, not to the requirement.
 func (s *Service) DisableTwoFactorAuthFromConsole(ctx context.Context) (bool, error) {
 	isChanged := false
 
@@ -171,11 +179,11 @@ func (s *Service) DisableTwoFactorAuthFromConsole(ctx context.Context) (bool, er
 			return err
 		}
 
-		if !currentSettings.IsTwoFactorAuthRequired {
+		if !currentSettings.TwoFactorRequirement.IsRequired() {
 			return nil
 		}
 
-		err = s.repository.updateIsTwoFactorAuthRequired(ctx, currentSettings.ID, false)
+		err = s.repository.updateTwoFactorRequirement(ctx, currentSettings.ID, TwoFactorRequirementOff)
 		if err != nil {
 			return err
 		}
@@ -185,7 +193,8 @@ func (s *Service) DisableTwoFactorAuthFromConsole(ctx context.Context) (bool, er
 		return s.auditLog.Record(ctx, audit.Event{
 			Author:      nil,
 			WorkspaceID: nil,
-			Message:     "isTwoFactorAuthRequired: true -> false (switched off from the host console)",
+			Message: fmt.Sprintf("twoFactorRequirement: %s -> %s (switched off from the host console)",
+				currentSettings.TwoFactorRequirement, TwoFactorRequirementOff),
 		})
 	})
 
@@ -229,7 +238,7 @@ func (s *Service) toInstanceSettings(settings Settings) InstanceSettings {
 		IsAllowExternalRegistrations:      settings.IsAllowExternalRegistrations,
 		IsAllowMemberInvitations:          settings.IsAllowMemberInvitations,
 		IsMemberAllowedToCreateWorkspaces: settings.IsMemberAllowedToCreateWorkspaces,
-		IsTwoFactorAuthRequired:           settings.IsTwoFactorAuthRequired,
+		TwoFactorRequirement:              settings.TwoFactorRequirement,
 		IsEmailConfigured:                 s.mailer.IsConfigured(),
 	}
 }
@@ -238,7 +247,7 @@ func applySwitches(settings Settings, switches Switches) Settings {
 	settings.IsAllowExternalRegistrations = switches.IsAllowExternalRegistrations
 	settings.IsAllowMemberInvitations = switches.IsAllowMemberInvitations
 	settings.IsMemberAllowedToCreateWorkspaces = switches.IsMemberAllowedToCreateWorkspaces
-	settings.IsTwoFactorAuthRequired = switches.IsTwoFactorAuthRequired
+	settings.TwoFactorRequirement = switches.TwoFactorRequirement
 
 	return settings
 }
@@ -257,15 +266,19 @@ func describeChangedSwitches(current Settings, proposed Switches) []string {
 			current.IsMemberAllowedToCreateWorkspaces,
 			proposed.IsMemberAllowedToCreateWorkspaces,
 		},
-		{"isTwoFactorAuthRequired", current.IsTwoFactorAuthRequired, proposed.IsTwoFactorAuthRequired},
 	}
 
-	messages := make([]string, 0, len(changes))
+	messages := make([]string, 0, len(changes)+1)
 
 	for _, change := range changes {
 		if change.isCurrent != change.isProposed {
 			messages = append(messages, fmt.Sprintf("%s: %t -> %t", change.name, change.isCurrent, change.isProposed))
 		}
+	}
+
+	if current.TwoFactorRequirement != proposed.TwoFactorRequirement {
+		messages = append(messages, fmt.Sprintf("twoFactorRequirement: %s -> %s",
+			current.TwoFactorRequirement, proposed.TwoFactorRequirement))
 	}
 
 	return messages

@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -24,6 +24,8 @@ const openProfile = async (onUserChanged = vi.fn()) => {
       status: 'ACTIVE',
       isRootAdmin: false,
       createdAt: '2026-10-01T00:00:00Z',
+      authenticatorAppConnectedAt: null,
+      unusedRecoveryCodeCount: null,
     }),
   );
   const view = renderScreen(<ProfilePage onUserChanged={onUserChanged} />);
@@ -160,6 +162,8 @@ describe('ProfilePage', () => {
         role: 'ADMIN' as const,
         status: 'ACTIVE' as const,
         isRootAdmin: false,
+        authenticatorAppConnectedAt: null,
+        unusedRecoveryCodeCount: null,
         createdAt: '2026-10-01T00:00:00Z',
         ...savedProfile,
       };
@@ -263,6 +267,8 @@ describe('ProfilePage', () => {
       role: 'ADMIN' as const,
       status: 'ACTIVE' as const,
       isRootAdmin: false,
+      authenticatorAppConnectedAt: null,
+      unusedRecoveryCodeCount: null,
       createdAt: '2026-10-01T00:00:00Z',
     };
     const save = mockApi.delayed({
@@ -300,6 +306,8 @@ describe('ProfilePage', () => {
       role: 'ADMIN' as const,
       status: 'ACTIVE' as const,
       isRootAdmin: false,
+      authenticatorAppConnectedAt: null,
+      unusedRecoveryCodeCount: null,
       createdAt: '2026-10-01T00:00:00Z',
     };
     const save = mockApi.delayed({
@@ -379,6 +387,8 @@ describe('ProfilePage', () => {
                 status: 'ACTIVE',
                 isRootAdmin: false,
                 createdAt: '2026-10-01T00:00:00Z',
+                authenticatorAppConnectedAt: null,
+                unusedRecoveryCodeCount: null,
               },
             })
           : mockApi.delayed({
@@ -451,6 +461,8 @@ describe('ProfilePage', () => {
         status: 'ACTIVE',
         isRootAdmin: false,
         createdAt: '2026-10-01T00:00:00Z',
+        authenticatorAppConnectedAt: null,
+        unusedRecoveryCodeCount: null,
       }),
     );
     fireEvent.click(retry);
@@ -469,6 +481,8 @@ it.each([false, true])(
       role: 'ADMIN' as const,
       status: 'ACTIVE' as const,
       isRootAdmin: false,
+      authenticatorAppConnectedAt: null,
+      unusedRecoveryCodeCount: null,
       createdAt: '2026-10-01T00:00:00Z',
     };
     const save = mockApi.delayed({
@@ -506,3 +520,195 @@ it.each([false, true])(
     expect(onUserChanged).toHaveBeenCalledWith(acknowledgedUser);
   },
 );
+
+describe('ProfilePage authenticator app', () => {
+  const appText = DICTIONARIES.en.users.profile.authenticatorApp;
+  const codeText = DICTIONARIES.en.authenticatorApp.code;
+  const baseUser = {
+    id: 'owner-id',
+    email: 'owner@example.com',
+    name: 'Owner',
+    role: 'ADMIN' as const,
+    status: 'ACTIVE' as const,
+    isRootAdmin: false,
+    createdAt: '2026-10-01T00:00:00Z',
+  };
+  const withApp = (connectedAt: string, unusedRecoveryCodeCount: number) => ({
+    ...baseUser,
+    authenticatorAppConnectedAt: connectedAt,
+    unusedRecoveryCodeCount,
+  });
+  const withoutApp = {
+    ...baseUser,
+    authenticatorAppConnectedAt: null,
+    unusedRecoveryCodeCount: null,
+  };
+  const issuedCodes = Array.from({ length: 10 }, (_, index) => `new${index}-abcde`);
+  const setup = {
+    authenticatorAppSetupId: 'setup-id',
+    secret: 'JBSWY3DPEHPK3PXP',
+    otpauthUri: 'otpauth://totp/Databasus:owner@example.com?secret=JBSWY3DPEHPK3PXP',
+    expiresAt: '2999-01-01T00:00:00Z',
+  };
+
+  const serveAccount = (initialAccount: object) => {
+    let account = initialAccount;
+    mockServer.use(http.get(`*${API_BASE_PATH}/users/:userId`, () => HttpResponse.json(account)));
+
+    return (changedAccount: object) => {
+      account = changedAccount;
+    };
+  };
+
+  const renderProfile = async (isAuthenticatorAppRequired = false) => {
+    activateSession({ token: 'current-session', userId: 'owner-id' });
+    const view = renderScreen(
+      <ProfilePage isAuthenticatorAppRequired={isAuthenticatorAppRequired} />,
+    );
+    await screen.findByDisplayValue('owner@example.com');
+
+    return view;
+  };
+
+  const enterCode = async (user: ReturnType<typeof renderScreen>['user'], code: string) => {
+    await user.type(await screen.findByLabelText(codeText.appCode), code);
+    await user.click(screen.getByRole('button', { name: appText.confirm }));
+  };
+
+  it('connects an app, shows the recovery codes once and then ten codes left', async () => {
+    const changeAccount = serveAccount(withoutApp);
+    const confirmedCodes: string[] = [];
+    mockServer.use(
+      mockApi.post('/users/{userId}/authenticator-app-setups', 201, setup),
+      http.post(
+        `*${API_BASE_PATH}/users/:userId/authenticator-app-setups/:setupId/confirm`,
+        async ({ request }) => {
+          confirmedCodes.push(((await request.json()) as { code: string }).code);
+          changeAccount(withApp('2026-11-24T10:00:00Z', 10));
+          return HttpResponse.json({ recoveryCodes: issuedCodes });
+        },
+      ),
+    );
+    const { user } = await renderProfile();
+
+    expect(screen.getByText(appText.notConnected)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: appText.connect }));
+    expect(await screen.findByText(setup.secret)).toBeTruthy();
+    await enterCode(user, '123456');
+
+    expect(await screen.findByText(issuedCodes[0])).toBeTruthy();
+    expect(confirmedCodes).toEqual(['123456']);
+    expect(await screen.findByText('Unused recovery codes: 10.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: appText.done }));
+
+    expect(screen.queryByText(issuedCodes[0])).toBeNull();
+    expect(screen.getByText('Unused recovery codes: 10.')).toBeTruthy();
+  });
+
+  it('replaces the app after a current code and states the new connection date', async () => {
+    const changeAccount = serveAccount(withApp('2026-11-01T10:00:00Z', 7));
+    const proofs: unknown[] = [];
+    mockServer.use(
+      http.post(`*${API_BASE_PATH}/users/:userId/authenticator-app-setups`, async ({ request }) => {
+        proofs.push(await request.json());
+        return HttpResponse.json(setup, { status: 201 });
+      }),
+      http.post(`*${API_BASE_PATH}/users/:userId/authenticator-app-setups/:setupId/confirm`, () => {
+        changeAccount(withApp('2026-11-24T10:00:00Z', 10));
+        return HttpResponse.json({ recoveryCodes: issuedCodes });
+      }),
+    );
+    const { user } = await renderProfile();
+    const previousDate = screen.getByText(/^Connected: /).textContent;
+
+    await user.click(screen.getByRole('button', { name: appText.replace }));
+    await enterCode(user, '111111');
+    await screen.findByText(setup.secret);
+    await enterCode(user, '222222');
+
+    expect(await screen.findByText(issuedCodes[0])).toBeTruthy();
+    expect(proofs).toEqual([{ code: '111111' }]);
+    await waitFor(() =>
+      expect(screen.getByText(/^Connected: /).textContent).not.toBe(previousDate),
+    );
+    expect(screen.getByText('Unused recovery codes: 10.')).toBeTruthy();
+  });
+
+  it('regenerates recovery codes after a current code and then states ten left', async () => {
+    const changeAccount = serveAccount(withApp('2026-11-01T10:00:00Z', 3));
+    mockServer.use(
+      http.post(`*${API_BASE_PATH}/users/:userId/recovery-codes`, () => {
+        changeAccount(withApp('2026-11-01T10:00:00Z', 10));
+        return HttpResponse.json({ recoveryCodes: issuedCodes }, { status: 201 });
+      }),
+    );
+    const { user } = await renderProfile();
+
+    await user.click(screen.getByRole('button', { name: appText.regenerate }));
+    await enterCode(user, '123456');
+
+    expect(await screen.findByText(issuedCodes[9])).toBeTruthy();
+    expect(await screen.findByText('Unused recovery codes: 10.')).toBeTruthy();
+  });
+
+  it.each([
+    {
+      action: 'replace',
+      button: appText.replace,
+      path: '/users/{userId}/authenticator-app-setups',
+    },
+    { action: 'regenerate', button: appText.regenerate, path: '/users/{userId}/recovery-codes' },
+    {
+      action: 'disconnect',
+      button: appText.disconnect,
+      path: '/users/{userId}/disconnect-authenticator-app',
+    },
+  ] as const)(
+    'keeps the dialog open and the profile unchanged when the code to $action is wrong',
+    async ({ button, path }) => {
+      serveAccount(withApp('2026-11-01T10:00:00Z', 9));
+      mockServer.use(mockApi.post(path, 400, buildProblem('second_factor_invalid', 400)));
+      const { user } = await renderProfile();
+
+      await user.click(screen.getByRole('button', { name: button }));
+      const dialog = await screen.findByRole('dialog');
+      await user.type(within(dialog).getByLabelText(codeText.appCode), '000000');
+      await user.click(
+        within(dialog).getByRole('button', {
+          name: button === appText.disconnect ? appText.disconnect : appText.confirm,
+        }),
+      );
+
+      expect(
+        await within(dialog).findByText(DICTIONARIES.en.errors.secondFactorInvalid),
+      ).toBeTruthy();
+      expect(screen.getByText('Unused recovery codes: 9.')).toBeTruthy();
+    },
+  );
+
+  it('disconnects the app with a recovery code when the instance does not require one', async () => {
+    serveAccount(withApp('2026-11-01T10:00:00Z', 9));
+    mockServer.use(mockApi.post('/users/{userId}/disconnect-authenticator-app', 200, withoutApp));
+    const { user } = await renderProfile();
+
+    await user.click(screen.getByRole('button', { name: appText.disconnect }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: codeText.useRecoveryCode }));
+    await user.type(within(dialog).getByLabelText(codeText.recoveryCode), 'abcde-fghij');
+    await user.click(within(dialog).getByRole('button', { name: appText.disconnect }));
+
+    expect(await screen.findByText(appText.notConnected)).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('replaces disconnecting with an explanation under the app requirement', async () => {
+    serveAccount(withApp('2026-11-01T10:00:00Z', 9));
+    await renderProfile(true);
+
+    expect(screen.getByRole('button', { name: appText.replace })).toBeTruthy();
+    expect(screen.getByRole('button', { name: appText.regenerate })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: appText.disconnect })).toBeNull();
+    expect(screen.getByText(appText.requiredByInstance)).toBeTruthy();
+  });
+});

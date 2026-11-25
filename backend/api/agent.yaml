@@ -238,7 +238,7 @@ components:
     VerificationAssignment:
       type: object
       description: VerificationAssignment
-      required: [verificationId, backupId, backupSizeMb, maxContainerDiskMb, database, timescaledbVersion]
+      required: [verificationId, backupId, backupSizeMb, maxContainerDiskMb, parallelJobs, database, timescaledbVersion]
       properties:
         verificationId:
           x-go-name: VerificationID
@@ -252,8 +252,17 @@ components:
           type: number
           format: double
         maxContainerDiskMb:
+          description: >-
+            The disk budget of the verification in megabytes: the restore peak planned for
+            parallelJobs. The agent stops the restore when the container's disk reaches it.
           type: number
           format: double
+        parallelJobs:
+          description: >-
+            How many parallel jobs the restore runs with. The server picks the most that the
+            agent's per-job CPU budget allows and whose restore peak fits the agent's free disk.
+          type: integer
+          minimum: 1
         database:
           $ref: "#/components/schemas/AssignedDatabase"
         timescaledbVersion:

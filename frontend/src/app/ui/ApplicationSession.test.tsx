@@ -25,6 +25,8 @@ const account = {
   role: 'ADMIN' as const,
   status: 'ACTIVE' as const,
   isRootAdmin: false,
+  authenticatorAppConnectedAt: null,
+  unusedRecoveryCodeCount: null,
   createdAt: '2026-10-01T00:00:00Z',
 };
 const workspace = {
@@ -90,7 +92,7 @@ const seedAccount = () => {
       isAllowExternalRegistrations: false,
       isAllowMemberInvitations: false,
       isMemberAllowedToCreateWorkspaces: false,
-      isTwoFactorAuthRequired: false,
+      twoFactorRequirement: 'OFF',
       isEmailConfigured: true,
     }),
     mockApi.get('/system/disk-usages', 200, {

@@ -43,6 +43,7 @@ export default function PasswordResetPage() {
   const listAdminsCommand = `docker exec -it databasus ./main --list-admins`;
   const createUserCommand = `docker exec -it databasus ./main --create-user --email="ops@example.com" --password="YourSecurePassword123" --role=admin`;
   const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
+  const resetTwoFactorCommand = `docker exec -it databasus ./main --reset-2fa --email="owner@example.com"`;
 
   return (
     <>
@@ -244,9 +245,7 @@ export default function PasswordResetPage() {
                 rien.
               </p>
 
-              <h2 id="disable-two-factor">
-                Cesser de demander un code à la connexion
-              </h2>
+              <h2 id="disable-two-factor">Ne plus exiger la 2FA</h2>
 
               <p>
                 Une instance peut exiger, en plus du mot de passe, un code à six
@@ -273,6 +272,25 @@ export default function PasswordResetPage() {
                 connexion par mot de passe se passe alors de code, et un
                 administrateur pourra réactiver le réglage dès que la messagerie
                 refonctionnera.
+              </p>
+
+              <h2 id="reset-authenticator-app">Réinitialiser l&apos;application d&apos;authentification d&apos;un compte</h2>
+
+              <p>
+                Si quelqu&apos;un a perdu le téléphone qui porte son application d&apos;authentification, retirez l&apos;application de son compte sur le serveur où Databasus tourne :
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{resetTwoFactorCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={resetTwoFactorCommand} />
+                </div>
+              </div>
+
+              <p>
+                La prochaine connexion de ce compte suit le réglage 2FA de l&apos;instance. Un administrateur peut aussi réinitialiser l&apos;application d&apos;un utilisateur depuis la liste des utilisateurs.
               </p>
             </article>
           </div>

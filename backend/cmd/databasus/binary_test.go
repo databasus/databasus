@@ -121,6 +121,7 @@ func TestBinary(t *testing.T) {
 				expectedOutput: "password reset successfully",
 			},
 			{arguments: []string{"--disable-2fa"}, expectedOutput: "Two-factor authentication"},
+			{arguments: []string{"--reset-2fa", "--email=" + email}, expectedOutput: "Nothing changed"},
 			{arguments: []string{"--list-admins"}, expectedOutput: email},
 		}
 
@@ -165,6 +166,14 @@ func TestBinary(t *testing.T) {
 	t.Run("refuses --new-password without --email before reading the connection string", func(t *testing.T) {
 		binaryRun := runBinary(t, newOperatorHost(t), map[string]string{"ENV_MODE": "production"},
 			"--new-password=rotated-password-456")
+
+		assert.NotEqual(t, 0, binaryRun.exitCode, binaryRun.output)
+		assert.Contains(t, binaryRun.output, "--email")
+		assert.NotContains(t, binaryRun.output, "DATABASE_DSN")
+	})
+
+	t.Run("refuses --reset-2fa without --email before reading the connection string", func(t *testing.T) {
+		binaryRun := runBinary(t, newOperatorHost(t), map[string]string{"ENV_MODE": "production"}, "--reset-2fa")
 
 		assert.NotEqual(t, 0, binaryRun.exitCode, binaryRun.output)
 		assert.Contains(t, binaryRun.output, "--email")

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"testing"
 	"time"
@@ -115,10 +114,16 @@ func createNetwork(t *testing.T, engine *client.Client, agentID, verificationID 
 
 func readContainerStatus(t *testing.T, engine *client.Client, containerID string) string {
 	t.Helper()
+
+	return runInContainer(t, engine, containerID, "cat", "/proc/1/status")
+}
+
+func runInContainer(t *testing.T, engine *client.Client, containerID string, command ...string) string {
+	t.Helper()
 	execution, err := engine.ExecCreate(
 		t.Context(),
 		containerID,
-		client.ExecCreateOptions{Cmd: []string{"cat", "/proc/1/status"}, AttachStdout: true, AttachStderr: true},
+		client.ExecCreateOptions{Cmd: command, AttachStdout: true, AttachStderr: true},
 	)
 	require.NoError(t, err)
 
@@ -139,20 +144,14 @@ func readContainerStatus(t *testing.T, engine *client.Client, containerID string
 
 func createStrayContainer(t *testing.T, engine *client.Client, agentID uuid.UUID) string {
 	t.Helper()
-	if _, err := engine.ImageInspect(t.Context(), getRestoreImages()[6]); err != nil {
-		download, err := engine.ImagePull(t.Context(), getRestoreImages()[6], client.ImagePullOptions{})
-		require.NoError(t, err)
-		_, err = io.Copy(io.Discard, download)
-		closeErr := download.Close()
-		require.NoError(t, err)
-		require.NoError(t, closeErr)
-	}
+	strayImage := getPinnedVerificationImage(t, "18")
+	ensureLocalImage(t, engine, strayImage)
 
 	instance, err := engine.ContainerCreate(
 		t.Context(),
 		client.ContainerCreateOptions{
 			Config: &container.Config{
-				Image:  getRestoreImages()[6],
+				Image:  strayImage,
 				Cmd:    []string{"sleep", "600"},
 				Labels: map[string]string{agent_container.LabelAgentID: agentID.String()},
 			},

@@ -21,9 +21,10 @@ const (
 	signInCodeResendWindow = time.Minute
 )
 
-// VerifySignInCode completes a pending sign-in with its emailed code. Each guess first claims one of
-// the five attempts, so simultaneous guesses never check more than five codes, and the correct code
-// spends the pending sign-in, so two requests carrying it cannot both sign in.
+// VerifySignInCode completes a pending sign-in with its emailed code, or with an app code or a
+// recovery code when it waits for the app. Each guess first claims one of the five attempts, so
+// simultaneous guesses never check more than five codes, and the correct code spends the pending
+// sign-in, so two requests carrying it cannot both sign in.
 func (s *Service) VerifySignInCode(
 	ctx context.Context,
 	pendingSignInID uuid.UUID,
@@ -50,6 +51,24 @@ func (s *Service) VerifySignInCode(
 		return Session{}, err
 	}
 
+	switch pendingSignIn.Kind {
+	case PendingSignInKindEmailCode:
+		return s.verifyEmailedCode(ctx, pendingSignIn, user, code)
+	case PendingSignInKindAuthenticatorCode:
+		return s.verifyAuthenticatorCode(ctx, pendingSignIn, user, code)
+	case PendingSignInKindAuthenticatorSetup:
+		return Session{}, ErrPendingSignInNotUsable
+	}
+
+	return Session{}, ErrPendingSignInNotUsable
+}
+
+func (s *Service) verifyEmailedCode(
+	ctx context.Context,
+	pendingSignIn PendingSignIn,
+	user accounts.UserRecord,
+	code string,
+) (Session, error) {
 	attemptCount, isAttemptClaimed, err := s.pendingSignIns.claimAttempt(ctx, pendingSignIn.ID, s.clock.Now())
 	if err != nil {
 		return Session{}, err
@@ -59,13 +78,22 @@ func (s *Service) VerifySignInCode(
 		return Session{}, ErrPendingSignInNotUsable
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(pendingSignIn.HashedCode), []byte(code)) != nil {
+	if pendingSignIn.HashedCode == nil ||
+		bcrypt.CompareHashAndPassword([]byte(*pendingSignIn.HashedCode), []byte(code)) != nil {
 		return Session{}, s.refuseWrongSignInCode(ctx, attemptCount, user)
 	}
 
+	return s.spendAndCompleteSignIn(ctx, pendingSignIn, user)
+}
+
+func (s *Service) spendAndCompleteSignIn(
+	ctx context.Context,
+	pendingSignIn PendingSignIn,
+	user accounts.UserRecord,
+) (Session, error) {
 	var session Session
 
-	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
+	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		isSpent, err := s.pendingSignIns.spend(ctx, pendingSignIn.ID, s.clock.Now())
 		if err != nil {
 			return err
@@ -85,7 +113,8 @@ func (s *Service) VerifySignInCode(
 
 // ResendSignInCode sends a new code and answers the pending sign-in it names. The previous code
 // stops working only once the new one is on its way, so a refused resend leaves the user with the
-// code they already have.
+// code they already have. A pending sign-in that waits for an app sends no mail and has nothing to
+// resend.
 func (s *Service) ResendSignInCode(
 	ctx context.Context,
 	pendingSignInID uuid.UUID,
@@ -99,6 +128,10 @@ func (s *Service) ResendSignInCode(
 	pendingSignIn, user, err := s.loadUsablePendingSignIn(ctx, pendingSignInID)
 	if err != nil {
 		return PendingSignInView{}, err
+	}
+
+	if pendingSignIn.Kind != PendingSignInKindEmailCode {
+		return PendingSignInView{}, ErrPendingSignInNotResendable
 	}
 
 	isAllowed, err := s.rateLimiter.RecordAttemptAndCheckIsAllowed(ctx, ratelimit.Attempt{
@@ -140,7 +173,8 @@ func (s *Service) DeletePendingSignInsPastRetention(ctx context.Context, now tim
 // loadUsablePendingSignIn re-checks what the password step checked, because a pending sign-in
 // proves that a password was correct minutes ago, not that the user may be let in now: the user
 // still exists, is active and has not changed the password. The second-factor setting is not
-// among the checks, so switching it off does not strand somebody holding a code.
+// among the checks, so switching it off or changing its method does not strand somebody holding a
+// code or a setup.
 func (s *Service) loadUsablePendingSignIn(
 	ctx context.Context,
 	pendingSignInID uuid.UUID,

@@ -126,15 +126,15 @@ func openMysqlDumpSource(
 	}, nil
 }
 
-func (s *mysqlDumpSource) GetRawSizeMb(ctx context.Context) (float64, bool) {
+func (s *mysqlDumpSource) GetSizeEstimate(ctx context.Context) SizeEstimate {
 	rawSizeMb, err := s.tunnel.GetSource().GetRawSizeMb(ctx, s.logger, s.spec.Version)
 	if err != nil {
 		s.logger.WarnContext(ctx, "failed to fetch raw db size before backup", slog.Any("error", err))
 
-		return 0, false
+		return SizeEstimate{RawDbSizeMb: 0, LargestIndexSizesMb: nil}
 	}
 
-	return rawSizeMb, true
+	return SizeEstimate{RawDbSizeMb: rawSizeMb, LargestIndexSizesMb: nil}
 }
 
 func (s *mysqlDumpSource) GetTimescaleDBVersion(context.Context) string {

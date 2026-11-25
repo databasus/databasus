@@ -30,12 +30,12 @@ func (s *Service) UpdateProfile(
 	actor identity.Actor,
 	userID uuid.UUID,
 	update ProfileUpdate,
-) (identity.User, error) {
+) (UserWithAuthenticatorApp, error) {
 	if actor.UserID != userID {
-		return identity.User{}, ErrNotOwnUser
+		return UserWithAuthenticatorApp{}, ErrNotOwnUser
 	}
 
-	var updatedUser UserRecord
+	var updatedUserWithApp UserWithAuthenticatorApp
 
 	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		user, isFound, err := s.repository.getByID(ctx, userID)
@@ -61,17 +61,24 @@ func (s *Service) UpdateProfile(
 			return err
 		}
 
-		updatedUser = user
+		updatedUser := user
 		updatedUser.Name = update.Name
 		updatedUser.Email = update.Email
 
-		return s.recordProfileChanges(ctx, user, updatedUser)
+		err = s.recordProfileChanges(ctx, user, updatedUser)
+		if err != nil {
+			return err
+		}
+
+		updatedUserWithApp, err = s.withAuthenticatorApp(ctx, updatedUser.ToUser())
+
+		return err
 	})
 	if err != nil {
-		return identity.User{}, err
+		return UserWithAuthenticatorApp{}, err
 	}
 
-	return updatedUser.ToUser(), nil
+	return updatedUserWithApp, nil
 }
 
 func (s *Service) ChangePassword(

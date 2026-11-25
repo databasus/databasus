@@ -10,7 +10,7 @@ var (
 	}
 	ErrProofUnavailable = &apierror.Problem{
 		Code:   apierror.CodeIdentityProofUnavailable,
-		Detail: "an emailed confirmation code needs two-factor sign-in, a mail server and a usable address",
+		Detail: "a confirmation needs two-factor sign-in, and an emailed one also a mail server and a usable address",
 		Errors: nil,
 	}
 	ErrRateLimited = &apierror.Problem{

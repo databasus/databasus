@@ -1,9 +1,14 @@
-import { ActionIcon, Alert, Button, Loader, Switch } from '@mantine/core';
+import { ActionIcon, Alert, Button, Loader, Radio, Switch } from '@mantine/core';
 import { CircleAlert, Copy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type InstanceSettings, type InstanceSettingsUpdate, settingsApi } from '@/entities/users';
+import {
+  type InstanceSettings,
+  type InstanceSettingsUpdate,
+  TwoFactorRequirement,
+  settingsApi,
+} from '@/entities/users';
 import type { Workspace } from '@/entities/workspaces';
 import { focusSettingsHeading } from '@/pages/instance-settings/lib/focusSettingsHeading';
 import { InstanceBackupsSection } from '@/pages/instance-settings/ui/instance-backups/InstanceBackupsSection';
@@ -32,8 +37,11 @@ const toFormSettings = (settings: InstanceSettings): InstanceSettingsUpdate => (
   isAllowExternalRegistrations: settings.isAllowExternalRegistrations,
   isAllowMemberInvitations: settings.isAllowMemberInvitations,
   isMemberAllowedToCreateWorkspaces: settings.isMemberAllowedToCreateWorkspaces,
-  isTwoFactorAuthRequired: settings.isTwoFactorAuthRequired,
+  twoFactorRequirement: settings.twoFactorRequirement,
 });
+
+const getPreselectedTwoFactorRequirement = (settings: InstanceSettings): TwoFactorRequirement =>
+  settings.isEmailConfigured ? TwoFactorRequirement.EMAIL : TwoFactorRequirement.AUTHENTICATOR_APP;
 
 export function InstanceSettingsPage({
   isRootAdmin,
@@ -60,7 +68,7 @@ export function InstanceSettingsPage({
     isAllowExternalRegistrations: false,
     isAllowMemberInvitations: false,
     isMemberAllowedToCreateWorkspaces: false,
-    isTwoFactorAuthRequired: false,
+    twoFactorRequirement: TwoFactorRequirement.OFF,
   });
 
   const loadSettings = () => {
@@ -73,13 +81,16 @@ export function InstanceSettingsPage({
     setFormSettings(toFormSettings(query.data));
   }, [query.data]);
 
-  const handleSettingChange = (key: keyof InstanceSettingsUpdate, value: boolean) => {
+  const handleSettingChange = <Key extends keyof InstanceSettingsUpdate>(
+    key: Key,
+    value: InstanceSettingsUpdate[Key],
+  ) => {
     const newFormSettings = { ...formSettings, [key]: value };
     setFormSettings(newFormSettings);
   };
 
   const handleSave = async () => {
-    if (!hasChanges || isSaving) return;
+    if (!hasChanges || isSaving || isEmailMethodUnsavable) return;
     setFailure(undefined);
     const submitted = { ...formSettings };
 
@@ -88,9 +99,10 @@ export function InstanceSettingsPage({
       if (!isCurrent()) return;
       setSettings(updatedSettings);
       setFormSettings((current) => {
-        const retained = { ...current };
+        const retained: InstanceSettingsUpdate = { ...current };
         for (const key of Object.keys(submitted) as (keyof InstanceSettingsUpdate)[]) {
-          if (current[key] === submitted[key]) retained[key] = updatedSettings[key];
+          if (current[key] === submitted[key])
+            Object.assign(retained, { [key]: updatedSettings[key] });
         }
         return retained;
       });
@@ -114,6 +126,16 @@ export function InstanceSettingsPage({
   const notify = useFeedback();
   const isCurrent = useSessionGuard();
 
+  const isSecondFactorRequired = formSettings.twoFactorRequirement !== TwoFactorRequirement.OFF;
+  const isEmailMethodWithoutMailServer =
+    !!settings &&
+    !settings.isEmailConfigured &&
+    formSettings.twoFactorRequirement === TwoFactorRequirement.EMAIL;
+  // The instance refuses only a switch to the emailed code, so an email requirement saved before
+  // the mail server was gone does not block saving other settings.
+  const isEmailMethodUnsavable =
+    isEmailMethodWithoutMailServer && settings?.twoFactorRequirement !== TwoFactorRequirement.EMAIL;
+
   const hasChanges =
     !!settings &&
     (Object.keys(formSettings) as (keyof InstanceSettingsUpdate)[]).some(
@@ -123,7 +145,7 @@ export function InstanceSettingsPage({
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
       <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded bg-surface p-4 wrap-anywhere shadow sm:p-5">
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded bg-surface p-4 pb-100 wrap-anywhere shadow sm:p-5 sm:pb-100">
           <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
 
           {failure !== undefined &&
@@ -224,51 +246,80 @@ export function InstanceSettingsPage({
                     </div>
                   </div>
 
-                  <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-content">
-                        {t('settings.twoFactorAuth.title')}
-                      </div>
-
-                      <div className="mt-1 text-muted">
-                        {t('settings.twoFactorAuth.description')}
-                      </div>
-
-                      {!settings?.isEmailConfigured && (
-                        <div className="mt-1 text-muted">
-                          <Trans
-                            i18nKey="settings.twoFactorAuth.mailServerRequired"
-                            components={{
-                              docsLink: (
-                                <a
-                                  href={getWebsitePageUrl('advancedConfigEmailSmtp', locale)}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="!text-accent"
-                                />
-                              ),
-                            }}
-                          />
+                  <div className="border-b border-border pb-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-content">
+                          {t('settings.twoFactorAuth.title')}
                         </div>
-                      )}
+
+                        <div className="mt-1 text-muted">
+                          {t('settings.twoFactorAuth.description')}
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <Switch
+                          aria-label={t('settings.twoFactorAuth.title')}
+                          checked={isSecondFactorRequired}
+                          onChange={(event) =>
+                            handleSettingChange(
+                              'twoFactorRequirement',
+                              event.currentTarget.checked
+                                ? getPreselectedTwoFactorRequirement(settings)
+                                : TwoFactorRequirement.OFF,
+                            )
+                          }
+                        />
+                      </div>
                     </div>
-                    <div className="shrink-0">
-                      <Switch
-                        aria-label={t('settings.twoFactorAuth.title')}
-                        checked={formSettings.isTwoFactorAuthRequired}
-                        // Switching off needs no mail server, so an instance that has
-                        // lost one can still be taken back to one factor from here.
-                        disabled={
-                          !settings?.isEmailConfigured && !settings?.isTwoFactorAuthRequired
-                        }
-                        onChange={(event) =>
+
+                    {isSecondFactorRequired && (
+                      <Radio.Group
+                        className="mt-3"
+                        label={t('settings.twoFactorAuth.method')}
+                        value={formSettings.twoFactorRequirement}
+                        onChange={(value) =>
                           handleSettingChange(
-                            'isTwoFactorAuthRequired',
-                            event.currentTarget.checked,
+                            'twoFactorRequirement',
+                            value === TwoFactorRequirement.EMAIL
+                              ? TwoFactorRequirement.EMAIL
+                              : TwoFactorRequirement.AUTHENTICATOR_APP,
                           )
                         }
-                      />
-                    </div>
+                      >
+                        <div className="mt-2 space-y-2">
+                          <Radio
+                            value={TwoFactorRequirement.EMAIL}
+                            label={t('settings.twoFactorAuth.methods.email')}
+                            description={
+                              isEmailMethodWithoutMailServer && (
+                                <span className="text-warning">
+                                  <Trans
+                                    i18nKey="settings.twoFactorAuth.mailServerRequired"
+                                    components={{
+                                      mailServerLink: (
+                                        <button
+                                          type="button"
+                                          className="cursor-pointer text-accent hover:underline"
+                                          onClick={() =>
+                                            focusSettingsHeading(MAIL_SERVER_HEADING_ID)
+                                          }
+                                        />
+                                      ),
+                                    }}
+                                  />
+                                </span>
+                              )
+                            }
+                          />
+                          <Radio
+                            value={TwoFactorRequirement.AUTHENTICATOR_APP}
+                            label={t('settings.twoFactorAuth.methods.authenticatorApp')}
+                            description={t('settings.twoFactorAuth.authenticatorAppExamples')}
+                          />
+                        </div>
+                      </Radio.Group>
+                    )}
                   </div>
                 </div>
                 {hasChanges && (
@@ -279,7 +330,7 @@ export function InstanceSettingsPage({
                       aria-label={t('settings.saveChanges')}
                       onClick={handleSave}
                       loading={isSaving}
-                      disabled={isSaving}
+                      disabled={isSaving || isEmailMethodUnsavable}
                       aria-busy={isSaving}
                     >
                       {isSaving ? t('settings.saving') : t('settings.saveChanges')}

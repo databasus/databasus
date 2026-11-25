@@ -40,7 +40,9 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
 
   const { cancellingBackupId, deletingBackupId, downloadingBackupId, verifyingBackupId } = actions;
 
-  if (backup.status === LogicalBackupStatus.IN_PROGRESS && actions.isCanManageDBs) {
+  if (backup.status === LogicalBackupStatus.IN_PROGRESS) {
+    if (!actions.isCanManageDBs) return <div className="flex flex-wrap gap-2" />;
+
     return (
       <div className="flex flex-wrap gap-2">
         <RowActionButton
@@ -55,34 +57,26 @@ export const LogicalBackupActions = ({ backup, actions }: Props) => {
     );
   }
 
-  if (backup.status !== LogicalBackupStatus.COMPLETED)
-    return <div className="flex flex-wrap gap-2" />;
+  const isDeletingThisBackup = deletingBackupId === backup.id;
 
-  if (deletingBackupId === backup.id) {
-    return (
-      <div className="flex flex-wrap gap-2">
-        <RowActionButton
-          title={t('backups.list.actions.deleteBackup')}
-          icon={<Trash2 size={18} />}
-          className="!text-danger"
-          isPending
-          onClick={() => {}}
-        />
-      </div>
-    );
+  const deleteButton = actions.isCanManageDBs && (
+    <RowActionButton
+      title={t('backups.list.actions.deleteBackup')}
+      icon={<Trash2 size={18} />}
+      className="!text-danger"
+      isPending={isDeletingThisBackup}
+      isDisabled={Boolean(deletingBackupId) && !isDeletingThisBackup}
+      onClick={() => actions.onDelete(backup.id)}
+    />
+  );
+
+  if (backup.status !== LogicalBackupStatus.COMPLETED || isDeletingThisBackup) {
+    return <div className="flex flex-wrap gap-2">{deleteButton}</div>;
   }
 
   return (
     <div className="flex flex-wrap gap-2">
-      {actions.isCanManageDBs && (
-        <RowActionButton
-          title={t('backups.list.actions.deleteBackup')}
-          icon={<Trash2 size={18} />}
-          className="!text-danger"
-          isDisabled={Boolean(deletingBackupId)}
-          onClick={() => actions.onDelete(backup.id)}
-        />
-      )}
+      {deleteButton}
 
       {actions.isCanManageDBs && actions.databaseType === DatabaseType.POSTGRES_LOGICAL && (
         <RowActionButton

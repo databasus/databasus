@@ -15,6 +15,7 @@ const (
 	ConsoleCommandCreateUser       ConsoleCommandKind = "create-user"
 	ConsoleCommandResetPassword    ConsoleCommandKind = "reset-password"
 	ConsoleCommandDisableTwoFactor ConsoleCommandKind = "disable-2fa"
+	ConsoleCommandResetTwoFactor   ConsoleCommandKind = "reset-2fa"
 )
 
 type ConsoleCommand struct {
@@ -39,6 +40,8 @@ func (a *App) RunConsoleCommand(ctx context.Context, command ConsoleCommand) (st
 		return a.resetPassword(ctx, command)
 	case ConsoleCommandDisableTwoFactor:
 		return a.disableTwoFactor(ctx)
+	case ConsoleCommandResetTwoFactor:
+		return a.resetTwoFactor(ctx, command)
 	default:
 		return "", fmt.Errorf("%w: %q", ErrUnknownConsoleCommand, command.Kind)
 	}
@@ -100,10 +103,27 @@ func (a *App) disableTwoFactor(ctx context.Context) (string, error) {
 	}
 
 	if isChanged {
-		return "Two-factor authentication is now off. The next password sign-in needs no code.", nil
+		return "Two-factor authentication is now off. The next password sign-in of an account " +
+			"without an authenticator app needs no code.", nil
 	}
 
 	return "Two-factor authentication was already off. Nothing changed.", nil
+}
+
+func (a *App) resetTwoFactor(ctx context.Context, command ConsoleCommand) (string, error) {
+	isReset, err := a.usersModule.ResetAuthenticatorAppFromConsole(ctx, command.Email)
+	if err != nil {
+		a.logger.ErrorContext(ctx, "failed to reset the authenticator app", slog.Any("error", err))
+
+		return "", fmt.Errorf("reset the authenticator app: %w", err)
+	}
+
+	if isReset {
+		return fmt.Sprintf("The authenticator app and recovery codes of %s are removed. "+
+			"The next password sign-in follows the instance's second factor setting.", command.Email), nil
+	}
+
+	return fmt.Sprintf("%s has no authenticator app. Nothing changed.", command.Email), nil
 }
 
 // renderConsoleUserOutcome is the line the operator reads. A rerun says the password was not

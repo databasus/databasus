@@ -1,4 +1,4 @@
-amends "package://github.com/jdx/hk/releases/download/v2.8.1/hk@2.8.1#/Config.pkl"
+amends "package://github.com/jdx/hk/releases/download/v2.13.0/hk@2.13.0#/Config.pkl"
 
 // The commit check only reads: several agents edit one working tree, and fixing or stashing would
 // rewrite or hide another agent's unstaged edits. mise run format is the only writer.

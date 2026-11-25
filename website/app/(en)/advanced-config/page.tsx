@@ -245,28 +245,6 @@ export default function AdvancedConfigPage() {
                 This is the instance mail server. Email notifiers, which report backup events, have SMTP settings of their own in each notifier&apos;s form, so a notifier that delivers mail tells you nothing about this server. To check the instance mail server, open <strong>Databasus settings → Mail server</strong> and press <strong>Send test email</strong>. The message goes to your own address, and a failed delivery shows the mail server&apos;s response.
               </p>
 
-              <div className="bg-[#1f2937]/50 border border-[#ffffff20] border-l-[3px] my-4 border-l-red-500 rounded-lg px-4 py-4 flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-red-500 mt-0.5 shrink-0"
-                >
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <path d="M12 9v4M12 17h.01" />
-                </svg>
-                <div>
-                  <p className="text-gray-300 my-0!">
-                    <strong>If your relay does not offer STARTTLS, set <code>SMTP_SECURITY=none</code> before upgrading.</strong> On any port other than 465 the default mode is <code>starttls</code>, which refuses to continue without encryption, so such a relay receives nothing until the variable is set. If the instance requires the emailed sign-in code, nobody gets in with a password while mail cannot be delivered. To get back in, switch the second factor off with <code>docker exec -it databasus ./main --disable-2fa</code> (see <a href="/password/#disable-two-factor" className="text-blue-400 hover:text-blue-300">Stop requiring a sign-in code</a>).
-                  </p>
-                </div>
-              </div>
-
               <table>
                 <thead>
                   <tr>

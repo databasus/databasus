@@ -1,4 +1,4 @@
-FROM docker.io/library/postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+FROM docker.io/library/postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553
 COPY server.key /etc/ssl-test/server.key
 COPY server.crt /etc/ssl-test/server.crt
 COPY ca.crt /etc/ssl-test/ca.crt

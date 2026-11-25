@@ -17,16 +17,6 @@ import (
 const (
 	containerReadyTimeout = 60 * time.Second
 	readyPollInterval     = 1 * time.Second
-
-	// stockEngineImageRepo is the official Postgres image; the job's major version
-	// (from the backend assignment) is appended as the tag. It is the fallback
-	// when the configured (extension-bundling) repo can't be pulled.
-	stockEngineImageRepo = "postgres"
-
-	// timescaleImageRepo carries the timescaledb extension; the tag is
-	// "<extversion>-pg<major>" so the engine matches the dump exactly
-	// (pg_restore cannot cross extension versions).
-	timescaleImageRepo = "timescale/timescaledb"
 )
 
 // containerUser is the unprivileged user every Postgres image the agent runs
@@ -62,6 +52,7 @@ type Manager struct {
 	engine              *DockerEngine
 	agentID             string
 	engineImageRepo     string
+	pinnedVersions      PinnedPostgresVersions
 	isCPULimitSupported bool
 	log                 *slog.Logger
 }
@@ -73,14 +64,20 @@ type Deps struct {
 	Logger          *slog.Logger
 }
 
-func NewManager(deps Deps) *Manager {
+func NewManager(deps Deps) (*Manager, error) {
+	pinnedVersions, err := LoadPinnedPostgresVersions()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Manager{
 		engine:              deps.Engine,
 		agentID:             deps.AgentID,
 		engineImageRepo:     deps.EngineImageRepo,
+		pinnedVersions:      pinnedVersions,
 		isCPULimitSupported: true,
 		log:                 deps.Logger,
-	}
+	}, nil
 }
 
 func (m *Manager) StartupSelfCheck(ctx context.Context) error {
@@ -121,33 +118,23 @@ func (m *Manager) PurgeContainers(ctx context.Context) {
 	purgeAgentContainers(ctx, m.engine, m.agentID, m.log)
 }
 
+// RemoveSupersededImages removes the verification images this release no
+// longer restores into. Call once at startup, after PurgeContainers, so no
+// container of this agent still holds such an image.
+func (m *Manager) RemoveSupersededImages(ctx context.Context) {
+	removeSupersededVerificationImages(ctx, m.engine, m.engineImageRepo, m.pinnedVersions, m.log)
+}
+
 // Spawn's every failure is pre-pg_restore — the runner reports it with no exit
 // code (retryable AgentSetupFailed), never BackupRejected.
 func (m *Manager) Spawn(jobCtx context.Context, req SpawnRequest) (*PostgresContainer, error) {
-	image := imageForJob(req, m.engineImageRepo)
-
-	if err := m.engine.EnsureImage(jobCtx, image); err != nil {
-		fallbackImage, canFallBack := stockFallbackImage(req, image)
-		if !canFallBack {
-			return nil, fmt.Errorf("ensure image: %w", err)
-		}
-
-		// The extension-bundling image is unreachable (registry down, air-gapped,
-		// not yet published). Fall back to the stock Postgres image; missing
-		// extensions then surface as ignored pg_restore errors the runner tolerates.
-		m.log.WarnContext(
-			jobCtx,
-			"bundled verification image unavailable; falling back to stock postgres image",
-			slog.Any("bundled_image", image),
-			slog.Any("stock_image", fallbackImage),
-			slog.Any("error", err),
-		)
-
-		image = fallbackImage
-
-		if err := m.engine.EnsureImage(jobCtx, image); err != nil {
-			return nil, fmt.Errorf("ensure stock image: %w", err)
-		}
+	image, err := ensureJobImage(jobCtx, m.engine, jobImageRequest{
+		spawn:           req,
+		engineImageRepo: m.engineImageRepo,
+		pinnedVersions:  m.pinnedVersions,
+	}, m.log)
+	if err != nil {
+		return nil, err
 	}
 
 	password, err := randomPassword()
@@ -290,35 +277,6 @@ func pingOnce(ctx context.Context, conn dbconn.Conn) error {
 	defer func() { _ = pgConn.Close(pingCtx) }()
 
 	return pgConn.Ping(pingCtx)
-}
-
-func imageForJob(req SpawnRequest, engineImageRepo string) string {
-	if req.TimescaledbVersion != "" {
-		return fmt.Sprintf("%s:%s-pg%s", timescaleImageRepo, req.TimescaledbVersion, req.PgMajor)
-	}
-
-	return imageForMajor(req.PgMajor, engineImageRepo)
-}
-
-func imageForMajor(pgMajor, engineImageRepo string) string {
-	return engineImageRepo + ":" + pgMajor
-}
-
-// stockFallbackImage decides whether a failed pull of the configured image may
-// retry against the official Postgres image. Timescale jobs need their exact
-// version-matched image (pg_restore cannot cross extension versions), so they
-// never fall back; nor does a job already targeting the stock repo.
-func stockFallbackImage(req SpawnRequest, attemptedImage string) (string, bool) {
-	if req.TimescaledbVersion != "" {
-		return "", false
-	}
-
-	stockImage := imageForMajor(req.PgMajor, stockEngineImageRepo)
-	if stockImage == attemptedImage {
-		return "", false
-	}
-
-	return stockImage, true
 }
 
 func randomPassword() (string, error) {

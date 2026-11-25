@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"databasus-backend/internal/modules/users/internal/identity"
 )
 
 const (
@@ -24,7 +22,7 @@ type UserListQuery struct {
 }
 
 type UserPage struct {
-	Users []identity.User
+	Users []UserWithAuthenticatorApp
 	// NextCursor is nil on the last page.
 	NextCursor *string
 }

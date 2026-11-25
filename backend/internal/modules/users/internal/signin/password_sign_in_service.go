@@ -2,6 +2,7 @@ package signin
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users/internal/accounts"
 	"databasus-backend/internal/modules/users/internal/identity"
+	"databasus-backend/internal/modules/users/internal/settings"
 )
 
 const (
@@ -58,17 +60,12 @@ func (s *Service) SignIn(ctx context.Context, request SignInRequest) (SignInOutc
 		return SignInOutcome{}, ErrUserDeactivated
 	}
 
-	instanceSettings, err := s.settings.GetSettings(ctx)
+	pendingSignIn, isSecondFactorRequired, err := s.startSecondFactor(ctx, user)
 	if err != nil {
 		return SignInOutcome{}, err
 	}
 
-	if instanceSettings.IsTwoFactorAuthRequired {
-		pendingSignIn, err := s.startTwoFactorSignIn(ctx, user)
-		if err != nil {
-			return SignInOutcome{}, err
-		}
-
+	if isSecondFactorRequired {
 		return SignInOutcome{Session: nil, PendingSignIn: &pendingSignIn}, nil
 	}
 
@@ -78,6 +75,45 @@ func (s *Service) SignIn(ctx context.Context, request SignInRequest) (SignInOutc
 	}
 
 	return SignInOutcome{Session: &session, PendingSignIn: nil}, nil
+}
+
+// startSecondFactor chooses the second factor of the account: a connected app under every
+// requirement, then the emailed code or a new app setup as the instance requires. It reports false
+// when the instance requires none.
+func (s *Service) startSecondFactor(
+	ctx context.Context,
+	user accounts.UserRecord,
+) (PendingSignInView, bool, error) {
+	app, hasApp, err := s.authenticator.GetConnectedApp(ctx, user.ID)
+	if err != nil {
+		return PendingSignInView{}, false, err
+	}
+
+	if hasApp {
+		pendingSignIn, err := s.startAuthenticatorCodeSignIn(ctx, user, app.ID)
+
+		return pendingSignIn, true, err
+	}
+
+	requirement, err := s.settings.GetTwoFactorRequirement(ctx)
+	if err != nil {
+		return PendingSignInView{}, false, err
+	}
+
+	switch requirement {
+	case settings.TwoFactorRequirementEmail:
+		pendingSignIn, err := s.startTwoFactorSignIn(ctx, user)
+
+		return pendingSignIn, true, err
+	case settings.TwoFactorRequirementAuthenticatorApp:
+		pendingSignIn, err := s.startAuthenticatorSetupSignIn(ctx, user)
+
+		return pendingSignIn, true, err
+	case settings.TwoFactorRequirementOff:
+		return PendingSignInView{}, false, nil
+	}
+
+	return PendingSignInView{}, false, fmt.Errorf("unknown two-factor requirement %q", requirement)
 }
 
 func (s *Service) verifyPassword(ctx context.Context, request SignInRequest) (accounts.UserRecord, error) {

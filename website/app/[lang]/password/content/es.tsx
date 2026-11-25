@@ -43,6 +43,7 @@ export default function PasswordResetPage() {
   const listAdminsCommand = `docker exec -it databasus ./main --list-admins`;
   const createUserCommand = `docker exec -it databasus ./main --create-user --email="ops@example.com" --password="YourSecurePassword123" --role=admin`;
   const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
+  const resetTwoFactorCommand = `docker exec -it databasus ./main --reset-2fa --email="owner@example.com"`;
 
   return (
     <>
@@ -237,9 +238,7 @@ export default function PasswordResetPage() {
                 invitada, o a una cuenta que inicia sesión con Google o GitHub,
                 el comando falla y no cambia nada.
               </p>
-              <h2 id="disable-two-factor">
-                Dejar de pedir un código al iniciar sesión
-              </h2>
+              <h2 id="disable-two-factor">Dejar de exigir 2FA</h2>
 
               <p>
                 Una instancia puede exigir, además de la contraseña, un código
@@ -264,6 +263,25 @@ export default function PasswordResetPage() {
                 cambio en el historial de auditoría. El siguiente inicio de
                 sesión con contraseña ya no pide código, y un administrador
                 puede volver a activar el ajuste cuando el correo funcione.
+              </p>
+
+              <h2 id="reset-authenticator-app">Restablecer la aplicación de autenticación de una cuenta</h2>
+
+              <p>
+                Si alguien perdió el teléfono con su aplicación de autenticación, quite la aplicación de su cuenta en el servidor donde se ejecuta Databasus:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{resetTwoFactorCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={resetTwoFactorCommand} />
+                </div>
+              </div>
+
+              <p>
+                El siguiente inicio de sesión de esa cuenta sigue el ajuste de 2FA de la instancia. Un administrador también puede restablecer la aplicación de un usuario desde la lista de usuarios.
               </p>
             </article>
           </div>

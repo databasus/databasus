@@ -35,54 +35,54 @@
       },
       "reference": "docker.io/databasus/databasus@sha256:a4bbf8b285c54f76c61a997d604cb22d7f53a01fe72b644a8abdb9b5b4cc82a5"
     },
-    "databasus/verification-postgres:12": {
+    "databasus/verification-postgres:12.22": {
       "platforms": {
-        "linux-arm64": "sha256:4dd03049f53cc808ff11e535299b855c4540eebc91ac90e7843e4af252094e02",
-        "linux-x64": "sha256:89d8f32252d235a7747c54de145b76da3caeb33cae98d14848f135adc90c9dc8"
+        "linux-arm64": "sha256:8cd319775f0ad42b38dc3a9478a9e392f81f264e21e90e77e165ff508d986841",
+        "linux-x64": "sha256:156a114f8f9cf594739e4f730ccc1159baa2d88940ba16dd19a5231b2c48d78f"
       },
-      "reference": "docker.io/databasus/verification-postgres:12@sha256:06a8ceed0f9f02aa599a43ff29a38e0d9ec8de1a394f3c9979a9dc9456e5f0b9"
+      "reference": "docker.io/databasus/verification-postgres:12.22@sha256:89c4505c800d9c3e2fb4c28b4e35eb2087b8cca9cc428b7995c21be41be1e52d"
     },
-    "databasus/verification-postgres:13": {
+    "databasus/verification-postgres:13.23": {
       "platforms": {
-        "linux-arm64": "sha256:95759de0d774528e2a79071404639facdca14e9b04f82c73eac9b0cdbca72b68",
-        "linux-x64": "sha256:85f6163a9de538941a116cbab161682d851dbd3f68975a23554419125422a2eb"
+        "linux-arm64": "sha256:27ff68ecbd1ce245b3dfa2dfc6eb90f5e00db30661e6bb62055ea8640f28c1e8",
+        "linux-x64": "sha256:34b815c4639dbb6ecf00708734537227d1a8fef5e5e860c2c52b938d6390f6eb"
       },
-      "reference": "docker.io/databasus/verification-postgres:13@sha256:baea253ae8eb001b9b005b649f5d62d101258ec33fb801fbdabe2ca81b152635"
+      "reference": "docker.io/databasus/verification-postgres:13.23@sha256:ccc8e764a61171d35c06a8dad7bf9560c96a308c29243798f7560e9388eb5b53"
     },
-    "databasus/verification-postgres:14": {
+    "databasus/verification-postgres:14.25": {
       "platforms": {
-        "linux-arm64": "sha256:33b7b2f1b8729923a27c8308cc2d767f5e884733a4d2be9ff150d02109ffa3dc",
-        "linux-x64": "sha256:9e48d174565a0e777dbcc4f8a156c49d7ecb9c15e8ba3731aa237b230bbdd7d0"
+        "linux-arm64": "sha256:ef567faabc80bcaa65e40d67fb23593760d0b310f99c314fe9c27edab130c3fa",
+        "linux-x64": "sha256:a662a4bf06810590a0d92a6096104966d6318eac456975623b1ab87485152146"
       },
-      "reference": "docker.io/databasus/verification-postgres:14@sha256:071b52929e80331fdd75cf9c954bd3d55049d598bc7b398a191c6e2d0005ee0c"
+      "reference": "docker.io/databasus/verification-postgres:14.25@sha256:a264bead3a63606ad2a02c32b66b2f7e58a606c31e7ebb84a638a0e0153a0731"
     },
-    "databasus/verification-postgres:15": {
+    "databasus/verification-postgres:15.20": {
       "platforms": {
-        "linux-arm64": "sha256:078977fde8e069055132fa6b49fd151c9740958b92cb0ef1c9820a2ca6bf302c",
-        "linux-x64": "sha256:b4f99631c1f60156a476bb9a3bafea81178d890985eaf63d79021a4423eebfe4"
+        "linux-arm64": "sha256:355168d94b60c657221e496947351344c1121195bb529ff985281c2c4181c108",
+        "linux-x64": "sha256:6b4ec84c74bc014e89710d4c9588eef4ededc5873ad90df856024865d4bfa696"
       },
-      "reference": "docker.io/databasus/verification-postgres:15@sha256:4cca8316cf14a5f95dba8a51731d9862db19f8b85028b9f4a8309366372d6c1e"
+      "reference": "docker.io/databasus/verification-postgres:15.20@sha256:676f08148c9f9ca0fa2eb6550a645ab16f48c9e2727b7876627c3d6d2b83f513"
     },
-    "databasus/verification-postgres:16": {
+    "databasus/verification-postgres:16.16": {
       "platforms": {
-        "linux-arm64": "sha256:8e3e9232df0c84b909e8a43d593d1e87c411026e414a83572b6d2648d120c2ea",
-        "linux-x64": "sha256:308da2ce377e104755e37d426175e4899bd2b2c17c7fb4167327ed0968b0ea55"
+        "linux-arm64": "sha256:80c7f845dd24a9f380730cccd4c227e11a3a60e688461bc9e68aa42a1808a998",
+        "linux-x64": "sha256:9538644bf85a678b8cae01a44705a6f86cbfc757e70c3ec841c7bc7411dcc8ef"
       },
-      "reference": "docker.io/databasus/verification-postgres:16@sha256:01deef4c543ac9bfd0f504ec8b190653fcc5171d72e1502aef8a681352db8ab2"
+      "reference": "docker.io/databasus/verification-postgres:16.16@sha256:07ba53cfa80592c34f6f62d137d35160da96aa5395eed3d1e584e2f6bdacbf65"
     },
-    "databasus/verification-postgres:17": {
+    "databasus/verification-postgres:17.12": {
       "platforms": {
-        "linux-arm64": "sha256:9beb11e4d777603a183df58a11f972c5269cdb1de0397340408a3641ed74ba28",
-        "linux-x64": "sha256:564f098b980e035499feee4d2b0fde7c204dee65d25860c4b7a1755707824def"
+        "linux-arm64": "sha256:c552ba9a5f1300f5dd875678184eee9c35ef6e4b2dca79e7cfdc22fd969b0ce6",
+        "linux-x64": "sha256:13c2d7a1a88b774ae4e3503a37a7f6c2a436c66b5fdc00c9e74aad767edff7f6"
       },
-      "reference": "docker.io/databasus/verification-postgres:17@sha256:e61100407910936acc445c155406d1a215050e29f8f1699f1bb6c05755b0754e"
+      "reference": "docker.io/databasus/verification-postgres:17.12@sha256:9a283b5228b84014d99e679ea3c93a7841afe3a9fe46795fd34c1db22181bf28"
     },
-    "databasus/verification-postgres:18": {
+    "databasus/verification-postgres:18.7": {
       "platforms": {
-        "linux-arm64": "sha256:22ac33f0ce967a334a7729321957cdcbc3d59c34b101fb22e2c6aa35ef9410b2",
-        "linux-x64": "sha256:d6c42a33ba057ea1a93f4b54c093f8288e2fc07d20752fb52983a6cc7df21a23"
+        "linux-arm64": "sha256:12b93b93ed18bfadd4ba2d70568e7a5474745d78e3f91502eda61406e50d0da8",
+        "linux-x64": "sha256:e62a6e929d2104af12b7c0b63d664eba6cba941327e4ce2de020c4d3987a39cd"
       },
-      "reference": "docker.io/databasus/verification-postgres:18@sha256:e8dc93d4acf3feb73bf7d54e5e2f2651e26af35ec474ef484fa4fdb5c8890a5e"
+      "reference": "docker.io/databasus/verification-postgres:18.7@sha256:7b9ae02bd302cf6be8ae5ed4bb4c6e0671ead59c456126cb3a047029de288c50"
     },
     "debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3": {
       "platforms": {
@@ -322,52 +322,52 @@
     },
     "postgres:14": {
       "platforms": {
-        "linux-arm64": "sha256:6e2302670f95ac5312dd7c9b78e5c7a5ef5e983c8f896599341cc48ef3d20cdf",
-        "linux-x64": "sha256:a4a139181ce9290fbc5a16973ef1931f3e1dfb491ccaf2407a992a3557cf71ea"
+        "linux-arm64": "sha256:08e6ab407f2fa2aafa833392e107d071eecea413e68fa59adf26c2fa6d2b8922",
+        "linux-x64": "sha256:270cb53984b19f6c4aef23ccfe061d64d2715dfcd1246c7e1b2c42f8efeee263"
       },
-      "reference": "docker.io/library/postgres:14@sha256:834a046089d76edd1d2e81c4741f3ad5d1853646ededc86c2708936aad31c1ed"
+      "reference": "docker.io/library/postgres:14@sha256:d4f56810bfc965cb9f2db30d2631f79d107efb02bf9f2431fc4889178555cb95"
     },
     "postgres:15": {
       "platforms": {
-        "linux-arm64": "sha256:6fd00320c0d70da5caf73c9382162d5a2b0fc718f3861f94687badb6ef8ab1c4",
-        "linux-x64": "sha256:61a5b377afa2f8604cf6f3e6d7b17b7bcee2ac3cc0245a7b698a43a29e9896c6"
+        "linux-arm64": "sha256:2ef314a0f90b6b01926408683219248978f7702dc26fecabb86057188e6ad718",
+        "linux-x64": "sha256:8a7b3318a33b4c4b366d3ada884d5339d719114e837f0d43776835ff01dec927"
       },
-      "reference": "docker.io/library/postgres:15@sha256:1aac5b49cefd627f02816141ca4ad012d6cc19460dfe02a9b5168a105be3fc53"
+      "reference": "docker.io/library/postgres:15@sha256:5a407822929c3789ff5154d3d35bd7e2090318149344c8a3d4ca942b035822ed"
     },
     "postgres:16": {
       "platforms": {
-        "linux-arm64": "sha256:dbac72df02f02f9f7c63e0e45735bbe37902608390ad9bd983d1cc3a018160fd",
-        "linux-x64": "sha256:43f9275df91e012c3da3d86bea5d7bb5e67a473296cc906c5f9e80b8176b1a37"
+        "linux-arm64": "sha256:15364b278fab4a982ae09243c788e4df96a31a5b4bed50e6dab2d83420690653",
+        "linux-x64": "sha256:2d5c77ae9b0e0944ffb92f8d8fc2fa2edb215cb0976da8bac34df917af417e87"
       },
-      "reference": "docker.io/library/postgres:16@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657"
+      "reference": "docker.io/library/postgres:16@sha256:63e83b5a3dc36a917dccb76fe1bd2ac51f1ec9c1deb47ff20d4f04233bf6eae9"
     },
     "postgres:17": {
       "platforms": {
-        "linux-arm64": "sha256:f998bd5067cabb2b023800c6fbf04f24bd22fbb7f8430cfd8c8503a6c3834777",
-        "linux-x64": "sha256:996e9dc583ba9f0265a2c75547a9c95fb22c251e394749cab205a0a00e1856a1"
+        "linux-arm64": "sha256:73cd1868ae15ef8c7f95d81219b47c92c884a8341bc05f41656f7b8a89e3efc1",
+        "linux-x64": "sha256:6f7593c161689b6b02c78668b314af7da8811b592c5519108c57a49d0b6ad788"
       },
-      "reference": "docker.io/library/postgres:17@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f"
+      "reference": "docker.io/library/postgres:17@sha256:846a7ddaa67a4b354ae1d21087b683901aa6113a4ed626d3787cfbf6c85e3e07"
     },
-    "postgres:17@sha256:a63c1ea3f6a3a5a1621f97d2aba3b30faecfab4224c1b0000cc85ced57bb1939": {
+    "postgres:17@sha256:846a7ddaa67a4b354ae1d21087b683901aa6113a4ed626d3787cfbf6c85e3e07": {
       "platforms": {
-        "linux-arm64": "sha256:8630835ad34e3e09007371ac2d8785bd941c3c1fccc02145e3af050b9e520659",
-        "linux-x64": "sha256:3518071376d0b6156b02e1db2747a78511b5b9dc3763cc79c506ebe2dc2ee71c"
+        "linux-arm64": "sha256:73cd1868ae15ef8c7f95d81219b47c92c884a8341bc05f41656f7b8a89e3efc1",
+        "linux-x64": "sha256:6f7593c161689b6b02c78668b314af7da8811b592c5519108c57a49d0b6ad788"
       },
-      "reference": "docker.io/library/postgres:17@sha256:a63c1ea3f6a3a5a1621f97d2aba3b30faecfab4224c1b0000cc85ced57bb1939"
+      "reference": "docker.io/library/postgres:17@sha256:846a7ddaa67a4b354ae1d21087b683901aa6113a4ed626d3787cfbf6c85e3e07"
     },
     "postgres:18": {
       "platforms": {
-        "linux-arm64": "sha256:a8a18afebc8b2b529112c931f193151b712e566b7a49563dc0f328d51f652087",
-        "linux-x64": "sha256:e923a22ac074261dd73970c57edf659475bf0497cb9456f17d98ed7cdd3ca913"
+        "linux-arm64": "sha256:ede0133b5b300f7609629c2bd8ac2cf8cbaf830527200ea2cbecf80f4481f2d3",
+        "linux-x64": "sha256:c7fedce47eff6a78cb35dad6b627f0d684107f75ab15c0870e40c093766ba452"
       },
-      "reference": "docker.io/library/postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42"
+      "reference": "docker.io/library/postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553"
     },
-    "postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81": {
+    "postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553": {
       "platforms": {
-        "linux-arm64": "sha256:9a74990a5c776ff210361b67616b347750c66c36ea0dfbb4f575d19fcc3d8437",
-        "linux-x64": "sha256:f4b419e350fd98d4a8429603295208976dea4c8fb8326d818d346d3e29f1db6f"
+        "linux-arm64": "sha256:ede0133b5b300f7609629c2bd8ac2cf8cbaf830527200ea2cbecf80f4481f2d3",
+        "linux-x64": "sha256:c7fedce47eff6a78cb35dad6b627f0d684107f75ab15c0870e40c093766ba452"
       },
-      "reference": "docker.io/library/postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81"
+      "reference": "docker.io/library/postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553"
     },
     "quay.io/coreos/etcd:v3.6.16": {
       "platforms": {

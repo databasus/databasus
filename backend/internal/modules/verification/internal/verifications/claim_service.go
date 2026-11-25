@@ -40,17 +40,13 @@ func (s *Service) claimVerification(
 	agent *agents.Agent,
 	capacity AgentCapacity,
 ) (*VerificationAssignment, error) {
-	runningBackupIDs, err := s.verificationRepository.ListRunningBackupIDsByAgentID(ctx, agent.ID)
-	if err != nil {
-		return nil, err
-	}
-	runningBackups, err := s.backups.GetLogicalBackups(ctx, runningBackupIDs)
-	if err != nil {
-		return nil, err
-	}
-
 	var assignment *VerificationAssignment
-	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
+	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
+		reservedDiskMb, err := s.verificationRepository.GetRunningReservedDiskMb(ctx, agent.ID)
+		if err != nil {
+			return err
+		}
+
 		pending, err := s.verificationRepository.LockOldestPendingTop100(ctx)
 		if err != nil {
 			return err
@@ -79,7 +75,8 @@ func (s *Service) claimVerification(
 		}
 
 		for _, candidate := range candidates {
-			if !EvaluateDiskAdmission(capacity, runningBackups, candidate.Backup).IsFit {
+			restorePlan, isFit := PlanRestore(capacity, reservedDiskMb, candidate.Backup)
+			if !isFit {
 				continue
 			}
 			database, isFound := databasesByID[candidate.Verification.DatabaseID]
@@ -89,7 +86,12 @@ func (s *Service) claimVerification(
 			}
 			if err := s.verificationRepository.UpdateClaim(
 				ctx,
-				ClaimUpdate{VerificationID: candidate.Verification.ID, AgentID: agent.ID, StartedAt: s.clock.Now()},
+				ClaimUpdate{
+					VerificationID: candidate.Verification.ID,
+					AgentID:        agent.ID,
+					StartedAt:      s.clock.Now(),
+					ReservedDiskMb: restorePlan.DiskBudgetMb,
+				},
 			); err != nil {
 				return err
 			}
@@ -97,7 +99,8 @@ func (s *Service) claimVerification(
 				VerificationID:     candidate.Verification.ID,
 				BackupID:           candidate.Backup.ID,
 				BackupSizeMb:       candidate.Backup.BackupSizeMb,
-				MaxContainerDiskMb: float64(EstimateRequiredForRestoreDiskMb(candidate.Backup)),
+				MaxContainerDiskMb: float64(restorePlan.DiskBudgetMb),
+				ParallelJobs:       restorePlan.ParallelJobs,
 				Database: AssignedDatabase{
 					Type:              database.Type,
 					PostgresqlLogical: &AssignedPostgresql{Version: pgshared.Version(version)},

@@ -257,6 +257,22 @@ func (a *App) ExecuteSQL(tb testing.TB, statement string, values ...any) {
 	executeOnDatabase(tb, a.databaseDsn, statement, values...)
 }
 
+func (a *App) RunOnDatabase(tb testing.TB, work func(ctx context.Context, db *gorm.DB) error) {
+	tb.Helper()
+
+	db, err := database.Open(tb.Context(), a.databaseDsn)
+	if err != nil {
+		tb.Fatalf("open the database of the test application: %v", err)
+	}
+
+	defer closeConnections(db)
+
+	err = work(tb.Context(), db)
+	if err != nil {
+		tb.Fatalf("run on the database of the test application: %v", err)
+	}
+}
+
 // ExecuteRefusedSQL runs a statement the schema is expected to refuse and returns the refusal, so a
 // test can pin a constraint the application never violates.
 func (a *App) ExecuteRefusedSQL(tb testing.TB, statement string, values ...any) error {

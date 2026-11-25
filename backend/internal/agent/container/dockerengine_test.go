@@ -1,7 +1,6 @@
 package container
 
 import (
-	"log/slog"
 	"net/netip"
 	"testing"
 
@@ -83,14 +82,7 @@ func TestToContainerConfigs(t *testing.T) {
 
 		for _, testCase := range testCases {
 			t.Run(testCase.name, func(t *testing.T) {
-				containerManager := NewManager(
-					Deps{
-						Engine:          nil,
-						AgentID:         "agent-1",
-						EngineImageRepo: "databasus/verification-postgres",
-						Logger:          slog.New(slog.DiscardHandler),
-					},
-				)
+				containerManager := newTestManager(t)
 				containerManager.isCPULimitSupported = testCase.isCPULimitSupported
 				spec := containerManager.buildSpec(newTestSpawnPlan())
 

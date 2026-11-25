@@ -61,7 +61,7 @@ func RunDaemon(ctx context.Context, cfg *config.Config, agentVersion string, isD
 		return err
 	}
 
-	containerManager := container.NewManager(
+	containerManager, err := container.NewManager(
 		container.Deps{
 			Engine:          engine,
 			AgentID:         cfg.AgentID,
@@ -69,6 +69,10 @@ func RunDaemon(ctx context.Context, cfg *config.Config, agentVersion string, isD
 			Logger:          log,
 		},
 	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize container manager: %w", err)
+	}
+
 	if err := containerManager.StartupSelfCheck(ctx); err != nil {
 		return err
 	}
@@ -78,6 +82,7 @@ func RunDaemon(ctx context.Context, cfg *config.Config, agentVersion string, isD
 	// lock guarantees a single agent owns no live container the instant it
 	// starts.
 	containerManager.PurgeContainers(ctx)
+	containerManager.RemoveSupersededImages(ctx)
 
 	pool := runner.NewPool(capacity.MaxConcurrentJobs)
 	heartbeater := heartbeat.NewHeartbeater(apiClient, capacity, log)

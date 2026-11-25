@@ -4,22 +4,26 @@
 # common extensions, so a dump's CREATE EXTENSION statements succeed when the
 # agent restores a backup for verification. This mirrors how the agent uses
 # timescale/timescaledb for TimescaleDB. Built per PG major and published as
-# databasus/verification-postgres:<major>.
+# databasus/verification-postgres:<major>.<minor>, the tag the agent restores
+# into, and as :<major> and :<major>-v<Databasus version> for manual use.
 #
 ARG PG_MAJOR=16
 
 FROM docker.io/library/postgres:12@sha256:2f2a8c2a7d10862e7fba2602e304523554f9df8244c632dafe2628ccb398fb5c AS postgres-12
 FROM docker.io/library/postgres:13@sha256:4689940c683801b4ab839ab3b0a0a3555a5fe425371422310944e89eca7d8068 AS postgres-13
-FROM docker.io/library/postgres:14@sha256:834a046089d76edd1d2e81c4741f3ad5d1853646ededc86c2708936aad31c1ed AS postgres-14
-FROM docker.io/library/postgres:15@sha256:1aac5b49cefd627f02816141ca4ad012d6cc19460dfe02a9b5168a105be3fc53 AS postgres-15
-FROM docker.io/library/postgres:16@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657 AS postgres-16
-FROM docker.io/library/postgres:17@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f AS postgres-17
-FROM docker.io/library/postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42 AS postgres-18
+FROM docker.io/library/postgres:14@sha256:d4f56810bfc965cb9f2db30d2631f79d107efb02bf9f2431fc4889178555cb95 AS postgres-14
+FROM docker.io/library/postgres:15@sha256:5a407822929c3789ff5154d3d35bd7e2090318149344c8a3d4ca942b035822ed AS postgres-15
+FROM docker.io/library/postgres:16@sha256:63e83b5a3dc36a917dccb76fe1bd2ac51f1ec9c1deb47ff20d4f04233bf6eae9 AS postgres-16
+FROM docker.io/library/postgres:17@sha256:846a7ddaa67a4b354ae1d21087b683901aa6113a4ed626d3787cfbf6c85e3e07 AS postgres-17
+FROM docker.io/library/postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553 AS postgres-18
 
 FROM postgres-${PG_MAJOR}
 
 # ARGs declared before FROM are not visible in the build stage, so redeclare it.
 ARG PG_MAJOR
+# The exact server version this image is published under, such as 18.7. The
+# release reads it from the agent's pinned PostgreSQL versions.
+ARG PG_SERVER_VERSION
 ARG TARGETARCH
 ARG VCHORD_VERSION=1.1.1
 COPY vectorchord.sha256 /opt/vectorchord.sha256
@@ -108,3 +112,19 @@ RUN set -eux; \
     printf "shared_preload_libraries = '%s'\n" \
         "${PRELOAD_LIBRARIES}${version_specific_preload_libraries}" \
         >> "/usr/share/postgresql/${PG_MAJOR}/postgresql.conf.sample"
+
+# The agent restores into the tag's exact server version, and installing the
+# extensions above can upgrade the server past the base image. Refuse an image
+# whose base or installed server is another version than the one it is
+# published under.
+RUN set -eu; \
+    if [ -z "${PG_SERVER_VERSION:-}" ]; then \
+        echo "PG_SERVER_VERSION is required" >&2; \
+        exit 1; \
+    fi; \
+    base_version="${PG_VERSION%%-*}"; \
+    installed_version="$(postgres --version | awk '{ print $3 }')"; \
+    if [ "${base_version}" != "${PG_SERVER_VERSION}" ] || [ "${installed_version}" != "${PG_SERVER_VERSION}" ]; then \
+        echo "verification image for PostgreSQL ${PG_SERVER_VERSION}: base image is ${base_version}, installed server is ${installed_version}" >&2; \
+        exit 1; \
+    fi

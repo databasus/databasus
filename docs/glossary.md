@@ -37,9 +37,14 @@ This is the project's common language. Shared concepts have one term in document
 | User | A person with an account on the instance: email, name, global role and status (`INVITED`, `ACTIVE` or `INACTIVE`). |
 | Session | A signed-in user's right to call the API, carried as a token the sign-in returns once. A session carries the user's password version; every successful password replacement ends all earlier sessions, independently of time. |
 | Password version | A random UUID assigned to each user and rotated atomically with every password replacement. Sessions and pending sign-ins are usable only with the current version. |
-| OAuth sign-in attempt | A single-use, time-limited browser record binding an external-provider callback to sign-in started in that tab. Unlike a server-side pending sign-in awaiting an emailed code, it binds OAuth state to the provider and redirect address and is consumed before code exchange. |
-| Pending sign-in | A password sign-in that waits for the code emailed to the user, when the instance requires two-factor sign-in. |
-| Instance settings | The settings an instance admin sets for the whole instance: open registration, member invitations, workspace creation by members and two-factor sign-in. |
+| OAuth sign-in attempt | A single-use, time-limited browser record binding an external-provider callback to sign-in started in that tab. Unlike a server-side pending sign-in awaiting a second factor, it binds OAuth state to the provider and redirect address and is consumed before code exchange. |
+| Pending sign-in | A password sign-in that waits for its second factor: the code emailed to the user, an app code from the user's authenticator app, or the authenticator setup the instance requires. |
+| Instance settings | The settings an instance admin sets for the whole instance: open registration, member invitations, workspace creation by members and the two-factor requirement. |
+| Two-factor requirement | The instance setting that says whether every password sign-in needs a second factor and which one: none, an emailed code or an authenticator app. It applies to administrators too. A user with an authenticator app is asked for an app code whatever the requirement says. |
+| Authenticator app | The app on a user's phone or password manager that holds the user's TOTP secret and shows a new six-digit code every 30 seconds. A user has at most one, and the secret is stored encrypted with the master key. |
+| App code | The six-digit code an authenticator app shows. Each one is accepted once, and wrong app and recovery codes count toward a per-account limit. |
+| Authenticator setup | Connecting an authenticator app: the instance issues a new secret, and the setup completes when the user enters a code the app computes from it. A setup expires and ends after five wrong codes. |
+| Recovery code | One of ten single-use codes issued when an app is connected, and again on request, that replaces an app code once. They are shown only in the answer that issues them. |
 | Sign-in options | What the sign-in page offers, such as the first registration on an instance without users. |
 | Invitation | A user with the status `INVITED`, created when a workspace adds an address that has no user. The user finishes the sign-up with that address. |
 | Password reset | Replacing a forgotten password with a code emailed to the user. |
@@ -94,7 +99,11 @@ This is the project's common language. Shared concepts have one term in document
 | Verification config | The settings of a database that decide when its backups are verified automatically and which outcomes notify. |
 | Verification trigger | What started a verification: a user, the interval schedule or a completed backup. |
 | Verification agent | The program on the user's machine that runs verifications. |
+| Verification image | The container image a verification restores a PostgreSQL backup into: a PostgreSQL server with the extensions backups commonly use. The agent pulls it from its verification image repository, the Databasus one or another its owner configures, and cleans up only that repository. |
+| Pinned PostgreSQL version | The exact PostgreSQL server version, such as 18.7, that one release of the verification agent restores into for a major version. A verification image of any other version is superseded. |
 | Assignment eligibility | Whether a verification agent has contacted the server recently enough to receive new work. Registration keeps the agent listed regardless of contact; capacity determines whether a particular verification fits its resource budget. |
+| Restore peak | The most disk a verification's restore is expected to occupy at once: the backup file, the restored database, a reserve for WAL and the empty cluster, and the largest indexes built at the same time, one per parallel restore job. |
+| Disk budget | The disk a verification may use on its agent, set from its restore peak. It is reserved from the assignment until the verification stops running, and the agent stops a restore that reaches it. |
 | Instance health | Whether this instance’s local dependencies, verification-agent freshness and periodic work pass their monitoring checks; distinct from a healthcheck of a user’s database. |
 | Healthcheck | A scheduled check that a user's database answers. |
 | Healthcheck config | The settings of a database that decide whether and how often it is checked, how many failed checks make it unavailable, whether status changes notify and how long attempts are kept. |

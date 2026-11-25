@@ -67,12 +67,17 @@ Databasus SHALL remove, on a regular check, the logical backups of each database
 
 ### Requirement: Deleting a backup removes it and its file
 
-Deleting a logical backup SHALL remove it from the backup list and SHALL request the deletion of its file and its metadata file, in one step. A backup that is running SHALL get `409` with `code` `already_running`, and a backup that a running restore reads SHALL get `409` with `code` `in_use`. Neither refusal SHALL change anything.
+Deleting a logical backup SHALL remove it from the backup list and SHALL request the deletion of its file and its metadata file, in one step. A completed, failed or cancelled backup SHALL be deletable, and the interface SHALL offer the delete action for each of them. A failed or cancelled backup whose files are already gone SHALL leave no pending file deletion behind. A backup that is running SHALL get `409` with `code` `already_running`, and a backup that a running restore reads SHALL get `409` with `code` `in_use`. Neither refusal SHALL change anything.
 
 #### Scenario: A restore reads the backup
 
 - **WHEN** a member deletes a backup while a restore of it is running
 - **THEN** the response is `409` with `code` `in_use`, and the backup is still listed
+
+#### Scenario: A failed backup is deleted
+
+- **WHEN** a member deletes a failed backup
+- **THEN** the response is `204`, the backup is no longer listed, and no deletion of its files stays pending after the next file deletion pass
 
 ### Requirement: A running backup can be cancelled
 

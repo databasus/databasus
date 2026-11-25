@@ -625,7 +625,7 @@ func requireTwoFactorAfterMailServerLoss(t *testing.T, app *apptest.App, admin a
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, readSettings.StatusCode(), string(readSettings.Body))
 
-	app.ExecuteSQL(t, "UPDATE users_settings SET is_two_factor_auth_required = TRUE")
+	app.ExecuteSQL(t, "UPDATE users_settings SET two_factor_requirement = 'EMAIL'")
 }
 
 // newTwoFactorApp builds an instance whose administrator turned the second factor on.
@@ -635,7 +635,7 @@ func newTwoFactorApp(t *testing.T, options ...apptest.Option) (*apptest.App, app
 	app := apptest.New(t, options...)
 	admin := app.CreateAdmin(t)
 	twoFactorUpdate := defaultSettingsUpdate()
-	twoFactorUpdate.IsTwoFactorAuthRequired = true
+	twoFactorUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementEMAIL
 
 	response := updateInstanceSettings(t, admin.Client, twoFactorUpdate)
 	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
@@ -652,6 +652,12 @@ func startTwoFactorSignIn(t *testing.T, app *apptest.App, email string) apiclien
 func startTwoFactorSignInWithAnswer(t *testing.T, app *apptest.App, email string) apiclient.SignInCodeRequired {
 	t.Helper()
 
+	return requireCodeRequired(t, signInWithTurnstileAnswer(t, app, email))
+}
+
+func signInWithTurnstileAnswer(t *testing.T, app *apptest.App, email string) *apiclient.SignInResponse {
+	t.Helper()
+
 	password := apptest.TestPassword
 	answer := apptest.TurnstileValidAnswer
 
@@ -662,7 +668,7 @@ func startTwoFactorSignInWithAnswer(t *testing.T, app *apptest.App, email string
 	})
 	require.NoError(t, err)
 
-	return requireCodeRequired(t, response)
+	return response
 }
 
 func requireCodeRequired(t *testing.T, response *apiclient.SignInResponse) apiclient.SignInCodeRequired {

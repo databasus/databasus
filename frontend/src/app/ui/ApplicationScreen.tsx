@@ -10,6 +10,7 @@ import {
   useInstanceBackupStatus,
   useRefreshInstanceBackupStatus,
 } from '@/entities/instance-backups';
+import { type InstanceSettings, TwoFactorRequirement } from '@/entities/users';
 import { CreateWorkspaceDialog } from '@/features/create-workspace';
 import { DatabasesPage } from '@/pages/databases';
 import {
@@ -47,6 +48,7 @@ export const ApplicationScreen = () => {
   const [isCreateWorkspaceDialogOpen, setShowCreateWorkspaceDialog] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isBackupSectionFocusPending, setIsBackupSectionFocusPending] = useState(false);
+  const [isAuthenticatorAppSetupRequested, setIsAuthenticatorAppSetupRequested] = useState(false);
 
   const handleCreateWorkspace = () => {
     if (!canCreateWorkspace || !isCurrent()) return;
@@ -123,6 +125,19 @@ export const ApplicationScreen = () => {
     setIsBackupSectionFocusPending(true);
     if (selectedTab !== 'databasus-settings')
       void navigate(getApplicationPath({ section: 'databasus-settings' }));
+  };
+
+  // An administrator who has just required the app and has none is taken to connect one, so their
+  // own next sign-in does not start with the setup.
+  const acceptSettings = (changedSettings: InstanceSettings) => {
+    startup.acceptSettings(changedSettings);
+
+    const isAppRequired =
+      changedSettings.twoFactorRequirement === TwoFactorRequirement.AUTHENTICATOR_APP;
+    if (!isAppRequired || !user || user.authenticatorAppConnectedAt !== null) return;
+
+    setIsAuthenticatorAppSetupRequested(true);
+    void navigate(getApplicationPath({ section: 'profile' }));
   };
 
   const isUsedMoreThan85Percent =
@@ -266,13 +281,22 @@ export const ApplicationScreen = () => {
                 isBackupSectionOpen={selectedTab === 'databasus-settings'}
                 onOpenBackupSection={openBackupSection}
               />
-              {selectedTab === 'profile' && <ProfilePage onUserChanged={startup.acceptUser} />}
+              {selectedTab === 'profile' && (
+                <ProfilePage
+                  isAuthenticatorAppRequired={
+                    globalSettings?.twoFactorRequirement === TwoFactorRequirement.AUTHENTICATOR_APP
+                  }
+                  onUserChanged={startup.acceptUser}
+                  isAuthenticatorAppSetupRequested={isAuthenticatorAppSetupRequested}
+                  onAuthenticatorAppSetupOpened={() => setIsAuthenticatorAppSetupRequested(false)}
+                />
+              )}
               {selectedTab === 'databasus-settings' && isAdmin && (
                 <InstanceSettingsPage
                   isRootAdmin={user?.isRootAdmin ?? false}
                   workspaces={workspaces}
                   onWorkspaceCreated={startup.addWorkspace}
-                  onSettingsChanged={startup.acceptSettings}
+                  onSettingsChanged={acceptSettings}
                 />
               )}
               {selectedTab === 'users' && isAdmin && <UsersPage />}

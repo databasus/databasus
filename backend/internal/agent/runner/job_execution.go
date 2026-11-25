@@ -71,12 +71,15 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 		}
 	}()
 
-	// Server-authoritative per-job disk budget (downloaded archive + restored
-	// DB + safe gap). The agent enforces it by watching the container's written
-	// bytes and aborting the instant the budget is reached — uniform on every
-	// storage driver, unlike a Docker --storage-opt cap.
+	// The server plans the parallel jobs and the disk budget together, as the restore peak of that
+	// many jobs. The agent enforces the budget by watching the container's written bytes and
+	// aborting the instant it is reached — uniform on every storage driver, unlike a Docker
+	// --storage-opt cap.
 	diskBudgetMb := int64(job.MaxContainerDiskMb)
-	diskBudgetFailMessage := fmt.Sprintf("restore exceeded the per-job disk budget of %d MB", diskBudgetMb)
+	parallelJobs := getAssignedParallelJobs(job)
+	diskBudgetFailMessage := getDiskBudgetFailMessage(diskBudgetMb, parallelJobs)
+	runLogger.InfoContext(ctx, "restore planned",
+		slog.Int("parallel_jobs", parallelJobs), slog.Int64("disk_budget_mb", diskBudgetMb))
 
 	var isDiskLimitHit atomic.Bool
 
@@ -301,7 +304,7 @@ func (r *Runner) restoreVerificationBackup(ctx context.Context, spec verificatio
 	}
 
 	isTimescaleDB := spec.Assignment.TimescaledbVersion != ""
-	parallelJobs := pgrestore.GetParallelJobs(r.capacity.CPUPerJob, isTimescaleDB)
+	parallelJobs := getAssignedParallelJobs(spec.Assignment)
 
 	// RunPgRestore returns Result by value and fills it when it fails with ErrRestoreFailed.
 	// nosemgrep: trailofbits.go.invalid-usage-of-modified-variable.invalid-usage-of-modified-variable
@@ -475,4 +478,23 @@ func (r *Runner) collectVerificationStats(
 	}
 
 	return stats, true
+}
+
+// The server picks the jobs so the restore peak fits the disk budget; the agent still applies the
+// tool's own limits, so a TimescaleDB restore runs one job whatever it is told.
+func getAssignedParallelJobs(job *agentclient.VerificationAssignment) int {
+	return pgrestore.GetParallelJobs(job.ParallelJobs, job.TimescaledbVersion != "")
+}
+
+func getDiskBudgetFailMessage(diskBudgetMb int64, parallelJobs int) string {
+	jobsLabel := "parallel jobs"
+	if parallelJobs == 1 {
+		jobsLabel = "parallel job"
+	}
+
+	return fmt.Sprintf(
+		"restore exceeded the per-job disk budget of %d MB with %d %s; "+
+			"raise --max-disk-gb or lower --max-cpu of the agent",
+		diskBudgetMb, parallelJobs, jobsLabel,
+	)
 }

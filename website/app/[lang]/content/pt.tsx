@@ -179,7 +179,7 @@ export default function Index() {
                 name: "Como o Databasus garante a segurança?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "O Databasus aplica segurança em três níveis: (1) Criptografia de dados sensíveis — todas as senhas, tokens e credenciais são criptografados com AES-256-GCM e guardados separadamente da base de dados; (2) Criptografia de backups — cada arquivo de backup é criptografado com uma chave única derivada de uma chave mestra, do ID do backup e de um salt aleatório, tornando os backups inúteis sem a sua chave de criptografia mesmo que alguém obtenha acesso ao armazenamento; (3) Acesso somente leitura à base de dados — o Databasus exige apenas permissões SELECT e faz verificações completas para garantir que não existem privilégios de escrita, evitando corrupção de dados mesmo que a ferramenta seja comprometida. O próprio login pode exigir um segundo fator: com ele ativado, depois da senha correta chega um código de seis dígitos ao e-mail da conta, enquanto o login pelo Google ou pelo GitHub continua contando com as verificações desses provedores. Antes de cada versão, verificações automáticas analisam código, dependências, segredos e imagens de contêineres. Os testes verificam ciclos completos de backup e restauração em contêineres reais de PostgreSQL, MySQL, MariaDB e MongoDB. As verificações obrigatórias precisam passar antes da publicação. Auditorias periódicas do Codex Security da OpenAI complementam essas verificações e são independentes do processo de publicação. Todas as operações rodam em contêineres sob o seu controle, em servidores seus, e como o código é aberto, a sua equipe de segurança pode auditar cada linha antes da implantação.",
+                  text: "O Databasus aplica segurança em três níveis: (1) Criptografia de dados sensíveis — todas as senhas, tokens e credenciais são criptografados com AES-256-GCM e guardados separadamente da base de dados; (2) Criptografia de backups — cada arquivo de backup é criptografado com uma chave única derivada de uma chave mestra, do ID do backup e de um salt aleatório, tornando os backups inúteis sem a sua chave de criptografia mesmo que alguém obtenha acesso ao armazenamento; (3) Acesso somente leitura à base de dados — o Databasus exige apenas permissões SELECT e faz verificações completas para garantir que não existem privilégios de escrita, evitando corrupção de dados mesmo que a ferramenta seja comprometida. O login pode exigir autenticação de dois fatores: um código enviado por e-mail ou um código de um aplicativo autenticador (TOTP). Antes de cada versão, verificações automáticas analisam código, dependências, segredos e imagens de contêineres. Os testes verificam ciclos completos de backup e restauração em contêineres reais de PostgreSQL, MySQL, MariaDB e MongoDB. As verificações obrigatórias precisam passar antes da publicação. Auditorias periódicas do Codex Security da OpenAI complementam essas verificações e são independentes do processo de publicação. Todas as operações rodam em contêineres sob o seu controle, em servidores seus, e como o código é aberto, a sua equipe de segurança pode auditar cada linha antes da implantação.",
                 },
               },
               {
@@ -1262,10 +1262,7 @@ export default function Index() {
                   mesmo que a ferramenta seja comprometida.
                   <br />
                   <br />
-                  O próprio login pode exigir um segundo fator: com ele ativado,
-                  depois da senha correta chega um código de seis dígitos ao
-                  e-mail da conta, enquanto o login pelo Google ou pelo GitHub
-                  continua contando com as verificações desses provedores.
+                  O login pode exigir autenticação de dois fatores: um código enviado por e-mail ou um código de um aplicativo autenticador (TOTP).
                   <br />
                   <br />
                   Antes de cada versão, verificações automáticas analisam código,

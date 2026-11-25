@@ -148,8 +148,13 @@ type VerificationAssignment struct {
 	BackupSizeMb float64            `json:"backupSizeMb"`
 
 	// Database AssignedDatabase
-	Database           AssignedDatabase   `json:"database"`
-	MaxContainerDiskMb float64            `json:"maxContainerDiskMb"`
+	Database AssignedDatabase `json:"database"`
+
+	// MaxContainerDiskMb The disk budget of the verification in megabytes: the restore peak planned for parallelJobs. The agent stops the restore when the container's disk reaches it.
+	MaxContainerDiskMb float64 `json:"maxContainerDiskMb"`
+
+	// ParallelJobs How many parallel jobs the restore runs with. The server picks the most that the agent's per-job CPU budget allows and whose restore peak fits the agent's free disk.
+	ParallelJobs       int                `json:"parallelJobs"`
 	TimescaledbVersion string             `json:"timescaledbVersion"`
 	VerificationID     openapi_types.UUID `json:"verificationId"`
 }

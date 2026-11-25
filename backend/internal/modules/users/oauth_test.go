@@ -16,6 +16,19 @@ const oauthRedirectURI = "http://localhost:3000/auth/callback"
 func TestSignInWithGitHub(t *testing.T) {
 	t.Parallel()
 
+	t.Run("issues a session without an app code to a user with an app under the app method", func(t *testing.T) {
+		t.Parallel()
+
+		app := apptest.New(t, apptest.WithGitHub())
+		admin := app.CreateAdmin(t)
+		app.ConnectAuthenticatorApp(t, admin)
+		setTwoFactorRequirement(t, admin, apiclient.TwoFactorRequirementAUTHENTICATORAPP)
+
+		session := requireGitHubSession(t, app, apptest.NewGitHubAccount(admin.Email))
+
+		assert.Equal(t, admin.UserID, session.UserId)
+	})
+
 	t.Run("makes the user an active admin when the instance has no user", func(t *testing.T) {
 		t.Parallel()
 
@@ -191,6 +204,19 @@ func TestSignInWithGitHub(t *testing.T) {
 
 func TestSignInWithGoogle(t *testing.T) {
 	t.Parallel()
+
+	t.Run("issues a session without an app code to a user with an app under the app method", func(t *testing.T) {
+		t.Parallel()
+
+		app := apptest.New(t, apptest.WithGoogle())
+		admin := app.CreateAdmin(t)
+		app.ConnectAuthenticatorApp(t, admin)
+		setTwoFactorRequirement(t, admin, apiclient.TwoFactorRequirementAUTHENTICATORAPP)
+
+		session := requireGoogleSession(t, app, apptest.NewGoogleAccount(admin.Email))
+
+		assert.Equal(t, admin.UserID, session.UserId)
+	})
 
 	t.Run("makes the user an active admin when the instance has no user", func(t *testing.T) {
 		t.Parallel()

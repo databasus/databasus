@@ -179,8 +179,8 @@ export default function RestoreVerificationPage() {
                 <li>
                   Disk capacity for each verification job covering the{" "}
                   <strong>backup file size</strong>, the{" "}
-                  <strong>database raw size</strong> and a{" "}
-                  <strong>safety gap</strong> on top.
+                  <strong>database raw size</strong>, a reserve and the{" "}
+                  <strong>largest indexes</strong> it builds at once.
                 </li>
                 <li>
                   At least 1 CPU core and 512 MB of RAM available per concurrent
@@ -320,11 +320,15 @@ export default function RestoreVerificationPage() {
                 GB. The floor is 1 CPU and 512 MB per job — if your budget
                 can&apos;t satisfy that floor, the agent advertises lower
                 concurrency. The disk budget is the easiest to get wrong: each
-                job needs enough space for the <strong>backup file size</strong>
-                , the <strong>database raw size</strong> and a{" "}
-                <strong>safety gap of up to 5 GB</strong> on top, so set{" "}
-                <code>--max-disk-gb</code> comfortably above that for your
-                largest database.
+                job needs space for the <strong>backup file size</strong>, the{" "}
+                <strong>database raw size</strong>, about{" "}
+                <strong>1.5 GB of reserve</strong> and its{" "}
+                <strong>largest indexes</strong>, one per parallel restore job,
+                because every index being built spills a sort about its own
+                size. Databasus lowers the number of parallel restore jobs until
+                all of that fits the agent&apos;s free disk, so a higher{" "}
+                <code>--max-cpu</code> needs more disk, and a larger{" "}
+                <code>--max-disk-gb</code> lets a large database restore faster.
               </p>
 
               <h3 id="manage">Manage the agent</h3>

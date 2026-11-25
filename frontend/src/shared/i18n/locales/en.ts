@@ -154,6 +154,14 @@ export const en = {
       'The server could not complete the request (HTTP {{status}}). Please try again later.',
     signInCodeIncorrect: 'The code is incorrect.',
     pendingSignInNotUsable: 'This sign-in can no longer be completed. Sign in again.',
+    pendingSignInNotResendable: 'This sign-in step does not send codes.',
+    secondFactorInvalid: 'The code is wrong or has already been used.',
+    tooManyWrongCodes:
+      'Too many wrong codes were entered for this account. Wait up to an hour and try again.',
+    authenticatorAppRequired:
+      'This instance requires an authenticator app, so it cannot be disconnected. You can replace it.',
+    authenticatorSetupNotUsable:
+      'This setup has expired or had too many wrong codes. Start connecting the app again.',
     signInCodeNotSent:
       'The instance could not send the sign-in code. Try again later or ask an administrator.',
     tooManySignInCodes:
@@ -295,10 +303,17 @@ export const en = {
         'When enabled, members (non-admin users) can create new workspaces. If not - only admins can create workspaces.',
     },
     twoFactorAuth: {
-      title: 'Enable two-factor sign-in',
+      title: 'Require 2FA',
       description:
-        "When enabled, a password sign-in also has to present a six-digit code sent to the account's email address. Sign-in through Google or GitHub is not covered.",
-      mailServerRequired: 'This needs a mail server. <docsLink>Configure SMTP</docsLink> first.',
+        'When enabled, every password sign-in, including that of administrators, also has to pass 2FA.',
+      method: 'Second factor',
+      methods: {
+        email: 'Code sent by email',
+        authenticatorApp: 'Authenticator app',
+      },
+      authenticatorAppExamples: 'For example, Google Authenticator, Microsoft Authenticator, etc.',
+      mailServerRequired:
+        'A code sent by email needs a mail server. <mailServerLink>Configure SMTP</mailServerLink> first.',
     },
     saving: 'Saving...',
     saveChanges: 'Save Changes',
@@ -971,6 +986,20 @@ export const en = {
       invalidCode: 'Code must be 6 digits',
       codeResent: 'A new code is on its way. The previous one no longer works.',
     },
+    signInAuthenticatorCode: {
+      title: 'Enter the app code',
+      description: 'Open your authenticator app and enter the six-digit code for Databasus.',
+      recoveryDescription: 'Enter one of the recovery codes you saved when you connected the app.',
+      submit: 'Sign in',
+      backToSignIn: 'Back to sign in',
+    },
+    signInAuthenticatorSetup: {
+      title: 'Connect an authenticator app',
+      description:
+        'This instance requires an authenticator app for signing in. Connect one now to continue.',
+      submit: 'Confirm',
+      backToSignIn: 'Back to sign in',
+    },
     signUp: {
       title: 'Sign up',
       namePlaceholder: 'John Doe',
@@ -1017,6 +1046,34 @@ export const en = {
         submit: 'Change password',
         signInRequired: 'Password changed. Sign in again with your new password.',
       },
+      authenticatorApp: {
+        title: 'Two-factor authentication (2FA)',
+        description:
+          'With an app connected, a password sign-in asks for a code from the app instead of an emailed code.',
+        notConnected: 'No authenticator app is connected.',
+        connectedAt: 'Connected: {{time}}.',
+        recoveryCodesLeft: 'Unused recovery codes: {{count}}.',
+        connect: 'Connect app',
+        replace: 'Replace app',
+        regenerate: 'Get new recovery codes',
+        disconnect: 'Disconnect app',
+        requiredByInstance:
+          'This instance requires an authenticator app, so you can replace the app but not disconnect it.',
+        currentCode: 'To continue, enter a current code from your app or an unused recovery code.',
+        connectTitle: 'Connect an authenticator app',
+        replaceTitle: 'Replace the authenticator app',
+        replaceDescription:
+          'After you confirm, the old app and the old recovery codes stop working.',
+        regenerateTitle: 'New recovery codes',
+        regenerateDescription: 'The previous recovery codes stop working.',
+        disconnectTitle: 'Disconnect the authenticator app',
+        disconnectDescription:
+          'Password sign-in will no longer ask for an app code, and the recovery codes stop working.',
+        confirm: 'Confirm',
+        done: 'Done',
+        connected: 'Authenticator app connected',
+        disconnected: 'Authenticator app disconnected',
+      },
     },
     list: {
       title: 'Databasus users',
@@ -1029,7 +1086,14 @@ export const en = {
         systemRole: 'System role',
         isActive: 'Is active?',
         created: 'Created',
+        authenticatorApp: 'Authenticator app',
       },
+      authenticatorAppConnected: 'Connected',
+      authenticatorAppNotConnected: 'Not connected',
+      resetAuthenticatorApp: 'Reset app',
+      resetAuthenticatorAppConfirmation:
+        'Reset the authenticator app of {{email}}? Their recovery codes stop working. If the instance requires an app, they connect a new one at their next sign-in.',
+      authenticatorAppReset: 'Authenticator app reset',
       roleLabel: 'Role:',
       activeLabel: 'Active:',
       viewAuditLogs: 'View audit logs',
@@ -2205,6 +2269,33 @@ export const en = {
       interrupted: 'The recovery was interrupted.',
     },
   },
+  authenticatorApp: {
+    setup: {
+      qrCodeAlt: 'QR code to scan with an authenticator app',
+      scan: 'Scan the QR code with an authenticator app, such as Google Authenticator, Microsoft Authenticator or 1Password. If this page was reloaded, scan the newest code.',
+      secret: 'Or enter this key in the app by hand',
+      copySecret: 'Copy key',
+      secretCopied: 'Key copied',
+      copyFailed: 'The browser did not allow copying. Type the key by hand.',
+    },
+    code: {
+      appCode: 'Code from the app',
+      recoveryCode: 'Recovery code',
+      useRecoveryCode: 'Use a recovery code instead',
+      useAppCode: 'Use a code from the app instead',
+      invalidAppCode: 'Code must be 6 digits',
+    },
+    recoveryCodes: {
+      title: 'Save your recovery codes',
+      description:
+        'Each code replaces an app code once, for example if you lose your phone. They are shown only now, so keep them somewhere safe, such as a password manager.',
+      copy: 'Copy codes',
+      copied: 'Codes copied',
+      copyFailed: 'The browser did not allow copying. Download the codes instead.',
+      download: 'Download',
+      saved: "I've saved the recovery codes",
+    },
+  },
   masterKey: {
     title: 'Master key',
     open: 'Download master key',
@@ -2219,6 +2310,8 @@ export const en = {
     codeRequired:
       'This instance requires two-factor sign-in, so confirm access to the key with a code sent to your email.',
     codeFailed: 'If the code keeps failing to arrive, copy the key from the server by hand.',
+    appCodeRequired:
+      'This instance requires two-factor sign-in, so confirm access with a code from your authenticator app or an unused recovery code.',
     proof: {
       sendCode: 'Email me a confirmation code',
       resendCode: 'Send a new code',

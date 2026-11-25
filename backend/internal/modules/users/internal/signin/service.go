@@ -13,25 +13,27 @@ import (
 	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users/internal/accounts"
+	"databasus-backend/internal/modules/users/internal/authenticator"
 	"databasus-backend/internal/modules/users/internal/oauth"
 	"databasus-backend/internal/modules/users/internal/settings"
 	"databasus-backend/internal/modules/users/internal/turnstile"
 )
 
 type Deps struct {
-	Repositories Repositories
-	Transactor   *database.Transactor
-	Clock        clock.Source
-	MasterKey    *crypto.MasterKey
-	Accounts     *accounts.Service
-	Settings     *settings.Service
-	AuditLog     *audit.Log
-	Mailer       mailer.Sender
-	RateLimiter  ratelimit.Counter
-	Turnstile    *turnstile.Client
-	GitHub       *oauth.GitHub
-	Google       *oauth.Google
-	Logger       *slog.Logger
+	Repositories  Repositories
+	Transactor    *database.Transactor
+	Clock         clock.Source
+	MasterKey     *crypto.MasterKey
+	Accounts      *accounts.Service
+	Authenticator *authenticator.Service
+	Settings      *settings.Service
+	AuditLog      *audit.Log
+	Mailer        mailer.Sender
+	RateLimiter   ratelimit.Counter
+	Turnstile     *turnstile.Client
+	GitHub        *oauth.GitHub
+	Google        *oauth.Google
+	Logger        *slog.Logger
 }
 
 type Service struct {
@@ -40,6 +42,7 @@ type Service struct {
 	clock          clock.Source
 	sessions       sessionTokens
 	accounts       *accounts.Service
+	authenticator  *authenticator.Service
 	settings       *settings.Service
 	auditLog       *audit.Log
 	mailer         mailer.Sender
@@ -57,6 +60,7 @@ func NewService(deps Deps) *Service {
 		clock:          deps.Clock,
 		sessions:       sessionTokens{masterKey: deps.MasterKey, clock: deps.Clock},
 		accounts:       deps.Accounts,
+		authenticator:  deps.Authenticator,
 		settings:       deps.Settings,
 		auditLog:       deps.AuditLog,
 		mailer:         deps.Mailer,
@@ -75,11 +79,14 @@ type Session struct {
 	Token  string
 }
 
-// PendingSignInView names the pending sign-in that the emailed code completes and the address the
-// code went to.
+// PendingSignInView names the pending sign-in, the address of its user and what it waits for. Setup
+// carries the new secret only for a pending sign-in that waits for an app setup, and only in the
+// answer of the password step that started it.
 type PendingSignInView struct {
 	PendingSignInID uuid.UUID
 	Email           string
+	Kind            PendingSignInKind
+	Setup           *authenticator.StartedAuthenticatorAppSetup
 }
 
 // SignInOutcome holds exactly one of a session and a pending sign-in.
@@ -102,7 +109,7 @@ func (s *Service) GetSignInOptions(ctx context.Context) (SignInOptions, error) {
 }
 
 // completeSignIn records the sign-in where access is granted: the password step with one factor,
-// the code step with two.
+// the second-factor step with two.
 func (s *Service) completeSignIn(ctx context.Context, user accounts.UserRecord) (Session, error) {
 	session, err := s.issueSession(user)
 	if err != nil {

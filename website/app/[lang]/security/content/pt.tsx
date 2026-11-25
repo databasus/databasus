@@ -43,7 +43,6 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   const encryptionPipeline = `PostgreSQL pg_dump → Compression → Encryption → Cloud Storage`;
-  const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
 
   return (
     <>
@@ -279,56 +278,7 @@ export default function SecurityPage() {
               </h2>
 
               <p>
-                Só a senha já abre todas as credenciais de bases de dados, as
-                chaves de armazenamento e os backups que a instância guarda, por
-                isso um administrador pode exigir um segundo fator no login por
-                senha. Com a opção ligada, a senha correta envia um código de
-                seis dígitos para o e-mail da conta e o login termina apenas
-                quando esse código é informado. O código para de funcionar dez
-                minutos depois do envio ou após cinco tentativas erradas, e
-                pedir outro cancela o anterior. Ligar a opção protege o próximo
-                login e mantém funcionando as sessões já abertas.
-              </p>
-
-              <p>
-                A configuração vale para o login por senha. Entrar pelo Google
-                ou pelo GitHub continua entregando um token direto, porque esses
-                provedores fazem as próprias verificações de vários fatores: uma
-                instância que queira o segundo fator para todo mundo
-                simplesmente não os configura.
-              </p>
-
-              <p>
-                Ela só pode ser ligada quando a instância tem servidor de e-mail
-                e todo administrador ativo tem um endereço de verdade, para que
-                ninguém ligue a opção e tranque a instância. Se o e-mail parar
-                de ser entregue depois, ninguém entra com senha, e isso é
-                proposital: um servidor de e-mail quebrado não pode rebaixar o
-                login para um fator em silêncio. Um operador com acesso ao
-                servidor desliga a opção de novo:
-              </p>
-
-              <div className="relative my-6">
-                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
-                  <code>{disableTwoFactorCommand}</code>
-                </pre>
-                <div className="absolute right-2 top-2">
-                  <CopyButton text={disableTwoFactorCommand} />
-                </div>
-              </div>
-
-              <p>
-                O comando informa o que mudou e registra isso no log de
-                auditoria, então uma instância que parou de pedir códigos
-                explica o motivo. Ele está documentado ao lado da recuperação de
-                senha na{" "}
-                <a
-                  href="/pt/password#disable-two-factor"
-                  className="text-blue-400 hover:text-blue-600"
-                >
-                  página de senha
-                </a>
-                .
+                Um administrador pode exigir autenticação de dois fatores no login por senha: um código enviado por e-mail ou um código de um aplicativo autenticador (TOTP). Se o segundo fator ficar inacessível, por exemplo porque o servidor de e-mail parou de funcionar ou um celular foi perdido, o console do servidor desativa a exigência ou redefine o aplicativo de uma conta, como descreve a <a href="/pt/password#disable-two-factor" className="text-blue-400 hover:text-blue-600">página de senha</a>.
               </p>
 
               <h2 id="security-and-reliability-engineering">

@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { isRestoredSignInExpected } from '@/entities/instance-backups';
-import { type PendingSignIn, userApi } from '@/entities/users';
+import { type PendingSignIn, type SignInAuthenticatorSetup, userApi } from '@/entities/users';
 import { RequestResetPasswordComponent } from '@/pages/auth/ui/RequestResetPasswordComponent';
 import { ResetPasswordComponent } from '@/pages/auth/ui/ResetPasswordComponent';
+import { SignInAuthenticatorCodeComponent } from '@/pages/auth/ui/SignInAuthenticatorCodeComponent';
+import { SignInAuthenticatorSetupComponent } from '@/pages/auth/ui/SignInAuthenticatorSetupComponent';
 import { SignInCodeComponent } from '@/pages/auth/ui/SignInCodeComponent';
 import { SignInComponent } from '@/pages/auth/ui/SignInComponent';
 import { SignUpComponent } from '@/pages/auth/ui/SignUpComponent';
@@ -25,15 +27,25 @@ export function AuthPage() {
   });
   const hasAnyUser = query.data ?? true;
   const [authMode, setAuthMode] = useState<
-    'signIn' | 'signUp' | 'requestReset' | 'resetPassword' | 'signInCode'
+    | 'signIn'
+    | 'signUp'
+    | 'requestReset'
+    | 'resetPassword'
+    | 'signInCode'
+    | 'signInAuthenticatorCode'
+    | 'signInAuthenticatorSetup'
   >('signIn');
   const [resetEmail, setResetEmail] = useState('');
   const [pendingSignIn, setPendingSignIn] = useState<PendingSignIn | undefined>(undefined);
+  const [authenticatorPendingSignInId, setAuthenticatorPendingSignInId] = useState<string>();
+  const [authenticatorSetup, setAuthenticatorSetup] = useState<SignInAuthenticatorSetup>();
   const isLoading = query.isPending;
   const failure = query.error ?? undefined;
 
   const returnToPasswordStep = () => {
     setPendingSignIn(undefined);
+    setAuthenticatorPendingSignInId(undefined);
+    setAuthenticatorSetup(undefined);
     setAuthMode('signIn');
   };
 
@@ -81,11 +93,31 @@ export function AuthPage() {
                     setPendingSignIn(newPendingSignIn);
                     setAuthMode('signInCode');
                   }}
+                  onAuthenticatorCodeRequired={(pendingSignInId) => {
+                    setAuthenticatorPendingSignInId(pendingSignInId);
+                    setAuthMode('signInAuthenticatorCode');
+                  }}
+                  onAuthenticatorSetupRequired={(setup) => {
+                    setAuthenticatorSetup(setup);
+                    setAuthMode('signInAuthenticatorSetup');
+                  }}
                 />
               ) : authMode === 'signInCode' && pendingSignIn ? (
                 <SignInCodeComponent
                   pendingSignIn={pendingSignIn}
                   onPendingSignInReplaced={setPendingSignIn}
+                  onPendingSignInLost={returnToPasswordStep}
+                  onSwitchToSignIn={returnToPasswordStep}
+                />
+              ) : authMode === 'signInAuthenticatorCode' && authenticatorPendingSignInId ? (
+                <SignInAuthenticatorCodeComponent
+                  pendingSignInId={authenticatorPendingSignInId}
+                  onPendingSignInLost={returnToPasswordStep}
+                  onSwitchToSignIn={returnToPasswordStep}
+                />
+              ) : authMode === 'signInAuthenticatorSetup' && authenticatorSetup ? (
+                <SignInAuthenticatorSetupComponent
+                  setup={authenticatorSetup}
                   onPendingSignInLost={returnToPasswordStep}
                   onSwitchToSignIn={returnToPasswordStep}
                 />

@@ -51,7 +51,6 @@ func NewService(deps Deps) *Service {
 	}
 }
 
-// ExportRequest carries the emailed code; only an instance that requires two-factor sign-in needs it.
 type ExportRequest struct {
 	Code *string
 }
@@ -72,13 +71,13 @@ func exportBinding() users.IdentityProofBinding {
 	return users.IdentityProofBinding{Purpose: users.IdentityProofPurposeMasterKeyExport, Subject: ""}
 }
 
-func (s *Service) RequestConfirmation(ctx context.Context, actor users.Actor) (time.Time, error) {
+func (s *Service) RequestConfirmation(ctx context.Context, actor users.Actor) (users.IdentityConfirmation, error) {
 	return s.users.SendIdentityCode(ctx, actor, exportBinding())
 }
 
 // CreateExport issues a 60-second single-use download token. Root admin's session is enough unless
-// the instance requires two-factor sign-in; then the emailed code is checked too. The audit event
-// names the export but never the code, the token or the key.
+// the instance requires two-factor sign-in; then root admin's app code or emailed code is checked
+// too. The audit event names the export but never the code, the token or the key.
 func (s *Service) CreateExport(ctx context.Context, actor users.Actor, request ExportRequest) (IssuedExport, error) {
 	rootAdmin, err := s.users.RequireRootAdmin(ctx, actor)
 	if err != nil {

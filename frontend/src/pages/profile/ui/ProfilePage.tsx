@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { USER_ROLE_LABEL_KEYS, type User, userApi } from '@/entities/users';
+import { AuthenticatorAppSection } from '@/pages/profile/ui/AuthenticatorAppSection';
 import { useSessionMutation } from '@/shared/api';
 import { useSessionQuery } from '@/shared/api';
 import { invalidateSession, useSessionGuard } from '@/shared/auth';
@@ -13,12 +14,20 @@ import { useFeedback } from '@/shared/lib/feedback';
 import { LoadFailure } from '@/shared/ui';
 
 interface Props {
+  isAuthenticatorAppRequired?: boolean;
+  isAuthenticatorAppSetupRequested?: boolean;
   onUserChanged?: (user: User) => void;
+  onAuthenticatorAppSetupOpened?: () => void;
 }
 
 const MIN_PASSWORD_LENGTH = 8;
 
-export function ProfilePage({ onUserChanged }: Props) {
+export function ProfilePage({
+  isAuthenticatorAppRequired = false,
+  isAuthenticatorAppSetupRequested = false,
+  onUserChanged,
+  onAuthenticatorAppSetupOpened,
+}: Props) {
   const changePasswordMutation = useSessionMutation({
     mutationFn: (parameters: Parameters<typeof userApi.changePassword>) =>
       userApi.changePassword(...parameters),
@@ -253,7 +262,7 @@ export function ProfilePage({ onUserChanged }: Props) {
 
                     <div className="mt-2 mb-1 text-xs font-semibold">{t('users.profile.role')}</div>
                     <div className="mb-4">
-                      <span className="inline-flex items-center rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-accent">
+                      <span className="text-xs font-medium text-accent">
                         {t(USER_ROLE_LABEL_KEYS[user.role])}
                       </span>
                     </div>
@@ -274,7 +283,7 @@ export function ProfilePage({ onUserChanged }: Props) {
                   </div>
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-10">
                   <Button
                     className="!h-auto min-h-8 max-w-full !whitespace-normal"
                     variant="outline"
@@ -284,6 +293,17 @@ export function ProfilePage({ onUserChanged }: Props) {
                     {t('users.profile.logout')}
                   </Button>
                 </div>
+
+                <AuthenticatorAppSection
+                  user={user}
+                  isAuthenticatorAppRequired={isAuthenticatorAppRequired}
+                  isSetupRequested={isAuthenticatorAppSetupRequested}
+                  onSetupOpened={onAuthenticatorAppSetupOpened}
+                  onUserChanged={(changedUser) => {
+                    setUser(changedUser);
+                    onUserChanged?.(changedUser);
+                  }}
+                />
 
                 <div className="max-w-xs">
                   <h3 className="mb-4 text-lg font-semibold">

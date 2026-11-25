@@ -185,9 +185,9 @@ AWS_REGION="us-east-2"`}</code>
 
               <img
                 src="/images/storages/neon-object-storage/databasus-neon-object-storage-form.png"
-                alt="Databasus 的 Neon Object Storage 表单，已粘贴 endpoint、区域和密钥，并填写了 bucket 名称"
-                width={1435}
-                height={897}
+                alt="Databasus 中尚未填写的 Neon Object Storage 表单，包含粘贴凭据的区域和手动填写的字段"
+                width={1440}
+                height={898}
                 className={SCREENSHOT_CLASS_NAME}
                 loading="lazy"
               />

@@ -13,6 +13,7 @@ type options struct {
 	shouldTestStorage      bool
 	shouldListAdmins       bool
 	shouldDisableTwoFactor bool
+	shouldResetTwoFactor   bool
 	shouldCreateUser       bool
 	newPassword            string
 	email                  string
@@ -51,11 +52,14 @@ func parseOptions(arguments []string, errorOutput io.Writer) (options, error) {
 	// The name carries a digit, unlike every other flag here, because it is the term an owner
 	// locked out by a dead mail server searches for.
 	flags.BoolVar(&parsedOptions.shouldDisableTwoFactor, "disable-2fa", false,
-		"Stop requiring an emailed code at sign-in")
+		"Stop requiring a second factor, an emailed code or an authenticator app, at sign-in")
+	flags.BoolVar(&parsedOptions.shouldResetTwoFactor, "reset-2fa", false,
+		"Remove the authenticator app and recovery codes of the account given by --email")
 	flags.BoolVar(&parsedOptions.shouldCreateUser, "create-user", false,
 		"Create an account with the given email, password and role")
 	flags.StringVar(&parsedOptions.newPassword, "new-password", "", "Set a new password for the user")
-	flags.StringVar(&parsedOptions.email, "email", "", "Email of the user to create or to reset password")
+	flags.StringVar(&parsedOptions.email, "email", "",
+		"Email of the account to create, to reset the password of, or to reset the authenticator app of")
 	flags.StringVar(&parsedOptions.newUserPassword, "password", "", "Password of the account --create-user creates")
 	flags.StringVar(
 		&parsedOptions.newUserRole,
@@ -108,6 +112,15 @@ func selectCommand(parsedOptions options) (selectedCommand, error) {
 		}), nil
 	case parsedOptions.shouldDisableTwoFactor:
 		return newConsoleCommand(app.ConsoleCommand{Kind: app.ConsoleCommandDisableTwoFactor}), nil
+	case parsedOptions.shouldResetTwoFactor:
+		if parsedOptions.email == "" {
+			return selectedCommand{}, ErrEmailMissing
+		}
+
+		return newConsoleCommand(app.ConsoleCommand{
+			Kind:  app.ConsoleCommandResetTwoFactor,
+			Email: parsedOptions.email,
+		}), nil
 	default:
 		return selectedCommand{kind: commandServe, console: app.ConsoleCommand{}}, nil
 	}

@@ -176,8 +176,8 @@ export default function NeonPage() {
               <img
                 src="/images/faq/neon/databasus-choose-neon.png"
                 alt="Ventana Add database de Databasus con el tipo Neon seleccionado"
-                width={1433}
-                height={895}
+                width={1440}
+                height={898}
                 className={SCREENSHOT_CLASS_NAME}
                 loading="lazy"
               />

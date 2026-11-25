@@ -39,9 +39,11 @@ type BackupResult struct {
 	// EncryptionHeader is nil for a backup stored without encryption.
 	EncryptionHeader *EncryptionHeader
 	// RawDatabaseSizeMb is 0 when the database's size could not be read before the dump.
-	RawDatabaseSizeMb  float64
-	TimescaledbVersion string
-	StoredSizeMb       float64
+	RawDatabaseSizeMb float64
+	// LargestIndexSizesMb is nil when the index sizes were not read, as SizeEstimate describes.
+	LargestIndexSizesMb []float64
+	TimescaledbVersion  string
+	StoredSizeMb        float64
 	// Receipt is what the publishing transaction spends to keep the stored file.
 	Receipt storages.WriteReceipt
 }
@@ -84,7 +86,7 @@ func (p *Pipeline) runBackup(ctx context.Context, spec BackupSpec) (BackupResult
 	}
 	defer dumpSource.Close()
 
-	rawSizeMb, _ := dumpSource.GetRawSizeMb(ctx)
+	sizeEstimate := dumpSource.GetSizeEstimate(ctx)
 	timescaledbVersion := dumpSource.GetTimescaleDBVersion(ctx)
 
 	result, err := p.streamDumpToStorage(ctx, backupStream{
@@ -96,7 +98,8 @@ func (p *Pipeline) runBackup(ctx context.Context, spec BackupSpec) (BackupResult
 		return BackupResult{}, err
 	}
 
-	result.RawDatabaseSizeMb = rawSizeMb
+	result.RawDatabaseSizeMb = sizeEstimate.RawDbSizeMb
+	result.LargestIndexSizesMb = sizeEstimate.LargestIndexSizesMb
 	result.TimescaledbVersion = timescaledbVersion
 
 	return result, nil
@@ -173,11 +176,12 @@ func (p *Pipeline) streamDumpToStorage(runCtx context.Context, stream backupStre
 	stream.spec.OnProgress(storedSizeMb)
 
 	return BackupResult{
-		EncryptionHeader:   encryptionHeader,
-		RawDatabaseSizeMb:  0,
-		TimescaledbVersion: "",
-		StoredSizeMb:       storedSizeMb,
-		Receipt:            <-storageWrite.write.Receipts,
+		EncryptionHeader:    encryptionHeader,
+		RawDatabaseSizeMb:   0,
+		LargestIndexSizesMb: nil,
+		TimescaledbVersion:  "",
+		StoredSizeMb:        storedSizeMb,
+		Receipt:             <-storageWrite.write.Receipts,
 	}, nil
 }
 

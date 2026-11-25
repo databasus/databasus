@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -106,6 +106,9 @@ func TestBackupAndRestorePostgresql(t *testing.T) {
 			})
 			t.Run("restores a table without its rows when its data is excluded", func(t *testing.T) {
 				testPostgresqlExcludedTableDataLeftOut(t, endpoint)
+			})
+			t.Run("records the largest indexes without those of a table whose data is excluded", func(t *testing.T) {
+				testPostgresqlLargestIndexSizesRecorded(t, endpoint)
 			})
 			t.Run("matches the exclusion patterns the way pg_dump does", func(t *testing.T) {
 				testPostgresqlExclusionPatterns(t, endpoint)
@@ -657,6 +660,42 @@ func testPostgresqlExcludedTableDataLeftOut(t *testing.T, endpoint containers.En
 	assert.Equal(t, 2, countPostgresqlRows(t, restored.restoredDB, neighbourTable))
 	server.requireRawSizeLeavesOut(t, restored.backup, emptiedTable,
 		"the recorded raw size must not count the table whose data is excluded")
+}
+
+func testPostgresqlLargestIndexSizesRecorded(t *testing.T, endpoint containers.Endpoint) {
+	t.Helper()
+
+	server := connectToPostgresql(t, endpoint, postgresqlPlainConnection)
+	schemaName := "index_sizes_" + enginetest.NewUniqueSuffix()
+
+	server.execute(t, fmt.Sprintf(`
+		CREATE SCHEMA %[1]s;
+		CREATE TABLE %[1]s.logs (id SERIAL PRIMARY KEY, payload TEXT NOT NULL);
+		CREATE INDEX logs_payload_idx ON %[1]s.logs (payload);
+		INSERT INTO %[1]s.logs (payload) SELECT md5(g::text) FROM generate_series(1, 40000) g;
+		CREATE TABLE %[1]s.orders (id SERIAL PRIMARY KEY, data TEXT NOT NULL);
+		INSERT INTO %[1]s.orders (data) SELECT md5(g::text) FROM generate_series(1, 2000) g;
+	`, schemaName))
+	server.cleanUp(t, fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
+
+	var ordersIndexSizeMb float64
+	require.NoError(t, server.admin.GetContext(t.Context(), &ordersIndexSizeMb,
+		"SELECT pg_relation_size(format('%I.orders_pkey', $1::text)::regclass) / (1024.0 * 1024.0)", schemaName))
+
+	tm := enginetest.NewTeam(t)
+	database := tm.CreateDatabase(
+		t,
+		server.newScopedSettings([]string{schemaName}, nil, []string{schemaName + ".logs"}),
+	)
+	backup := tm.BackUp(t, database.Id, apiclient.BackupEncryptionNONE)
+
+	var recordedIndexSizesMb []pq.Float64Array
+	tm.App.QuerySQL(t, &recordedIndexSizesMb,
+		"SELECT backup_largest_index_sizes_mb FROM backups_logical WHERE id = ?", backup.Id)
+
+	require.Len(t, recordedIndexSizesMb, 1)
+	require.Len(t, recordedIndexSizesMb[0], 1, "only the index of the table with its rows is recorded")
+	assert.InDelta(t, ordersIndexSizeMb, recordedIndexSizesMb[0][0], 0.0001)
 }
 
 func testPostgresqlExclusionPatterns(t *testing.T, endpoint containers.Endpoint) {

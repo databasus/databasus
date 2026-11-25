@@ -252,28 +252,6 @@ export default function AdvancedConfigPage() {
                 Il s&apos;agit du serveur de messagerie de l&apos;instance. Les canaux de notification par e-mail, qui signalent les sauvegardes, ont leurs propres paramètres SMTP dans le formulaire de chaque canal : un canal de notification qui délivre ses e-mails ne dit donc rien de ce serveur. Pour vérifier le serveur de messagerie de l&apos;instance, ouvrez <strong>Databasus settings → Mail server</strong> et cliquez sur <strong>Send test email</strong>. Le message part vers votre propre adresse et, si la livraison échoue, vous voyez la réponse du serveur de messagerie.
               </p>
 
-              <div className="bg-[#1f2937]/50 border border-[#ffffff20] border-l-[3px] my-4 border-l-red-500 rounded-lg px-4 py-4 flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-red-500 mt-0.5 shrink-0"
-                >
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <path d="M12 9v4M12 17h.01" />
-                </svg>
-                <div>
-                  <p className="text-gray-300 my-0!">
-                    <strong>Si votre relais ne propose pas STARTTLS, définissez <code>SMTP_SECURITY=none</code> avant la mise à jour.</strong> Sur tout port autre que 465, le mode par défaut est <code>starttls</code>, qui refuse de continuer sans chiffrement : un tel relais ne reçoit donc rien tant que la variable n&apos;est pas définie. Si l&apos;instance exige le code de connexion envoyé par e-mail, personne ne peut se connecter par mot de passe tant que les e-mails ne partent pas. Pour retrouver l&apos;accès, désactivez le second facteur avec <code>docker exec -it databasus ./main --disable-2fa</code> (voir <a href="/fr/password/#disable-two-factor" className="text-blue-400 hover:text-blue-300">Cesser de demander un code à la connexion</a>).
-                  </p>
-                </div>
-              </div>
-
               <table>
                 <thead>
                   <tr>

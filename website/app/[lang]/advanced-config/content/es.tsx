@@ -251,28 +251,6 @@ export default function AdvancedConfigPage() {
                 Este es el servidor de correo de la instancia. Los canales de notificación por correo, que informan sobre las copias de seguridad, tienen su propia configuración SMTP en el formulario de cada canal. Por eso, que un canal de notificación entregue correo no dice nada de este servidor. Para comprobar el servidor de correo de la instancia, abra <strong>Databasus settings → Mail server</strong> y pulse <strong>Send test email</strong>. El mensaje llega a su propia dirección y, si la entrega falla, verá la respuesta del servidor de correo.
               </p>
 
-              <div className="bg-[#1f2937]/50 border border-[#ffffff20] border-l-[3px] my-4 border-l-red-500 rounded-lg px-4 py-4 flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-red-500 mt-0.5 shrink-0"
-                >
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <path d="M12 9v4M12 17h.01" />
-                </svg>
-                <div>
-                  <p className="text-gray-300 my-0!">
-                    <strong>Si su relé no admite STARTTLS, defina <code>SMTP_SECURITY=none</code> antes de actualizar.</strong> En cualquier puerto distinto del 465 el modo predeterminado es <code>starttls</code>, que no continúa sin cifrado, así que ese relé no recibirá nada hasta que defina la variable. Si la instancia exige el código de acceso por correo, nadie podrá entrar con contraseña mientras el correo no se entregue. Para recuperar el acceso, desactive el segundo factor con <code>docker exec -it databasus ./main --disable-2fa</code> (consulte <a href="/es/password/#disable-two-factor" className="text-blue-400 hover:text-blue-300">Dejar de pedir un código al iniciar sesión</a>).
-                  </p>
-                </div>
-              </div>
-
               <table>
                 <thead>
                   <tr>
