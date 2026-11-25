@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,8 +14,6 @@ import (
 )
 
 const livenessTimeout = 30 * time.Second
-
-var versionPattern = regexp.MustCompile(`PostgreSQL (\d+)`)
 
 // Source is the engine's handle on one PostgreSQL cluster backed up physically.
 type Source struct {
@@ -117,22 +114,6 @@ func (s *Source) connectReplication(ctx context.Context, applicationName string)
 	}
 
 	return pgconn.ConnectConfig(ctx, connConfig)
-}
-
-func parseVersion(rawServerVersion string) (pgshared.Version, error) {
-	matches := versionPattern.FindStringSubmatch(rawServerVersion)
-	if len(matches) < 2 {
-		return "", fmt.Errorf("%w from: %s", ErrUnreadableVersion, rawServerVersion)
-	}
-
-	switch matches[1] {
-	case "17":
-		return pgshared.Version17, nil
-	case "18":
-		return pgshared.Version18, nil
-	default:
-		return "", fmt.Errorf("%w, detected %s", ErrUnsupportedVersion, matches[1])
-	}
 }
 
 func closeConn(ctx context.Context, conn *pgx.Conn, logger *slog.Logger) {

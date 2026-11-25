@@ -80,6 +80,10 @@ func NewManager(deps Deps) (*Manager, error) {
 	}, nil
 }
 
+func (m *Manager) GetPinnedPostgresMajors() []string {
+	return m.pinnedVersions.GetMajors()
+}
+
 func (m *Manager) StartupSelfCheck(ctx context.Context) error {
 	if err := m.engine.Ping(ctx); err != nil {
 		return fmt.Errorf("docker daemon unreachable: %w", err)

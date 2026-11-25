@@ -198,7 +198,7 @@ export default function DatabasusVsWalGPage() {
                   bekerja dengan cara yang sama pada semua database yang didukung.
                 </li>
                 <li>
-                  <strong>Dukungan versi</strong>: Mendukung PostgreSQL versi 12 hingga 18, dengan
+                  <strong>Dukungan versi</strong>: Mendukung PostgreSQL versi 12 hingga 19, dengan
                   optimasi khusus tiap versi.
                 </li>
                 <li>

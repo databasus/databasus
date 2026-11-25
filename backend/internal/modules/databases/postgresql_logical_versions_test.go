@@ -17,7 +17,7 @@ func TestGetPostgresqlLogicalVersions(t *testing.T) {
 		func(t *testing.T) {
 			t.Parallel()
 
-			postgresServer := containers.StartPostgres(t, "postgres:18")
+			postgresServer := containers.StartPostgres(t, "postgres:19")
 			tm := newTeam(t)
 			savedDatabase := tm.createDatabase(
 				t,
@@ -32,7 +32,7 @@ func TestGetPostgresqlLogicalVersions(t *testing.T) {
 			)
 
 			versions := tm.app.GetPostgresqlLogicalVersions(t, []uuid.UUID{savedDatabase.Id, mysqlID, uuid.New()})
-			assert.Equal(t, map[uuid.UUID]string{savedDatabase.Id: "18"}, versions)
+			assert.Equal(t, map[uuid.UUID]string{savedDatabase.Id: "19"}, versions)
 			assert.Empty(t, tm.app.GetPostgresqlLogicalVersions(t, nil))
 		},
 	)

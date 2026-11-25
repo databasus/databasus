@@ -16,6 +16,7 @@ FROM docker.io/library/postgres:15@sha256:5a407822929c3789ff5154d3d35bd7e2090318
 FROM docker.io/library/postgres:16@sha256:63e83b5a3dc36a917dccb76fe1bd2ac51f1ec9c1deb47ff20d4f04233bf6eae9 AS postgres-16
 FROM docker.io/library/postgres:17@sha256:846a7ddaa67a4b354ae1d21087b683901aa6113a4ed626d3787cfbf6c85e3e07 AS postgres-17
 FROM docker.io/library/postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553 AS postgres-18
+FROM docker.io/library/postgres:19@sha256:aaa10f7ba7328b4a221a6c3184d83eef885bd16bf1f6de864757863156b0a4d1 AS postgres-19
 
 FROM postgres-${PG_MAJOR}
 
@@ -31,12 +32,13 @@ COPY vectorchord.sha256 /opt/vectorchord.sha256
 # Extensions whose CREATE EXTENSION works once the files are present, plus the
 # Tier-2 monitoring extensions that additionally need shared_preload_libraries
 # (set below). The official image already configures the apt.postgresql.org repo
-# these packages come from. Every entry must be installable from PGDG apt for all
-# majors 12-18. pg_uuidv7 and DocumentDB are installed separately because PGDG
-# only packages them for majors 13-18 and 15-18 respectively, so a PG 12 dump
-# that uses pg_uuidv7 still fails to restore. A missing package fails the build
-# because the agent tolerates missing extensions at restore time and could
-# otherwise verify an incomplete restore.
+# these packages come from. Every entry must be installable from PGDG apt for
+# every major the image builds. The conditions below add the packages PGDG builds
+# only for some majors: pg_uuidv7 from 13, DocumentDB for 15-18, and rum,
+# mysql_fdw and tds_fdw up to 18, which PGDG has not built for 19 yet. A dump
+# that uses an extension its major lacks here still fails to restore it. A
+# missing package fails the build because the agent tolerates missing extensions
+# at restore time and could otherwise verify an incomplete restore.
 #
 # Intentionally NOT bundled: topn (Citus), pg_hashids, anonymizer
 # (postgresql_anonymizer) and pg_stat_monitor (Percona). PGDG apt does not
@@ -47,7 +49,6 @@ postgresql-${PG_MAJOR}-postgis-3 \
 postgresql-${PG_MAJOR}-pgrouting \
 postgresql-${PG_MAJOR}-h3 \
 postgresql-${PG_MAJOR}-pgvector \
-postgresql-${PG_MAJOR}-rum \
 postgresql-${PG_MAJOR}-partman \
 postgresql-${PG_MAJOR}-repack \
 postgresql-${PG_MAJOR}-hypopg \
@@ -58,8 +59,6 @@ postgresql-${PG_MAJOR}-pgaudit \
 postgresql-${PG_MAJOR}-ip4r \
 postgresql-${PG_MAJOR}-semver \
 postgresql-${PG_MAJOR}-http \
-postgresql-${PG_MAJOR}-mysql-fdw \
-postgresql-${PG_MAJOR}-tds-fdw \
 postgresql-${PG_MAJOR}-pg-stat-kcache \
 postgresql-${PG_MAJOR}-pg-qualstats \
 postgresql-${PG_MAJOR}-pg-wait-sampling \
@@ -79,35 +78,32 @@ ARG PRELOAD_LIBRARIES="pg_stat_statements,pg_cron,pg_stat_kcache,pg_qualstats,pg
 RUN set -eux; \
     version_specific_extension_packages=""; \
     version_specific_preload_libraries=""; \
-    case "${PG_MAJOR}" in \
-        13|14|15|16|17|18) \
-            version_specific_extension_packages="postgresql-${PG_MAJOR}-pg-uuidv7" \
-            ;; \
-    esac; \
-    case "${PG_MAJOR}" in \
-        15|16|17|18) \
-            version_specific_extension_packages="${version_specific_extension_packages} postgresql-${PG_MAJOR}-documentdb"; \
-            version_specific_preload_libraries=",pg_documentdb_core,pg_documentdb" \
-            ;; \
-    esac; \
+    if [ "${PG_MAJOR}" -ge 13 ]; then \
+        version_specific_extension_packages="postgresql-${PG_MAJOR}-pg-uuidv7"; \
+    fi; \
+    if [ "${PG_MAJOR}" -le 18 ]; then \
+        version_specific_extension_packages="${version_specific_extension_packages} postgresql-${PG_MAJOR}-rum postgresql-${PG_MAJOR}-mysql-fdw postgresql-${PG_MAJOR}-tds-fdw"; \
+    fi; \
+    if [ "${PG_MAJOR}" -ge 15 ] && [ "${PG_MAJOR}" -le 18 ]; then \
+        version_specific_extension_packages="${version_specific_extension_packages} postgresql-${PG_MAJOR}-documentdb"; \
+        version_specific_preload_libraries=",pg_documentdb_core,pg_documentdb"; \
+    fi; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         ${EXTENSION_PACKAGES} ${version_specific_extension_packages}; \
-    case "${PG_MAJOR}" in \
-        14|15|16|17|18) \
-            apt-get install -y --no-install-recommends ca-certificates curl; \
-            curl --fail --location --silent --show-error \
-                --output /tmp/vchord.deb \
-                "https://github.com/tensorchord/VectorChord/releases/download/${VCHORD_VERSION}/postgresql-${PG_MAJOR}-vchord_${VCHORD_VERSION}-1_${TARGETARCH}.deb"; \
-            vchord_file="postgresql-${PG_MAJOR}-vchord_${VCHORD_VERSION}-1_${TARGETARCH}.deb"; \
-            vchord_sha256="$(awk -v name="${vchord_file}" '$2 == name { print $1 }' /opt/vectorchord.sha256)"; \
-            test "${#vchord_sha256}" -eq 64; \
-            printf '%s  %s\n' "${vchord_sha256}" /tmp/vchord.deb | sha256sum --check --strict; \
-            apt-get install -y --no-install-recommends /tmp/vchord.deb; \
-            rm /tmp/vchord.deb; \
-            version_specific_preload_libraries="${version_specific_preload_libraries},vchord" \
-            ;; \
-    esac; \
+    if [ "${PG_MAJOR}" -ge 14 ] && [ "${PG_MAJOR}" -le 18 ]; then \
+        apt-get install -y --no-install-recommends ca-certificates curl; \
+        curl --fail --location --silent --show-error \
+            --output /tmp/vchord.deb \
+            "https://github.com/tensorchord/VectorChord/releases/download/${VCHORD_VERSION}/postgresql-${PG_MAJOR}-vchord_${VCHORD_VERSION}-1_${TARGETARCH}.deb"; \
+        vchord_file="postgresql-${PG_MAJOR}-vchord_${VCHORD_VERSION}-1_${TARGETARCH}.deb"; \
+        vchord_sha256="$(awk -v name="${vchord_file}" '$2 == name { print $1 }' /opt/vectorchord.sha256)"; \
+        test "${#vchord_sha256}" -eq 64; \
+        printf '%s  %s\n' "${vchord_sha256}" /tmp/vchord.deb | sha256sum --check --strict; \
+        apt-get install -y --no-install-recommends /tmp/vchord.deb; \
+        rm /tmp/vchord.deb; \
+        version_specific_preload_libraries="${version_specific_preload_libraries},vchord"; \
+    fi; \
     rm -rf /var/lib/apt/lists/*; \
     printf "shared_preload_libraries = '%s'\n" \
         "${PRELOAD_LIBRARIES}${version_specific_preload_libraries}" \

@@ -116,7 +116,7 @@ Databasus performs a real restore to confirm backups are usable, not just intact
 
 ### 💾 **Supported databases**
 
-- **PostgreSQL**: 14, 15, 16, 17 and 18 (physical and logical)
+- **PostgreSQL**: 12 to 19 (logical), 17 to 19 (physical)
 - **MySQL**: 5.7, 8.0, 8.4, 9 and 26 (logical only)
 - **MariaDB**: 5.5, 10, 11, 12 and 13 (logical only)
 - **MongoDB**: 4.2+, 5, 6, 7, 8 and 9 (logical only)

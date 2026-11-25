@@ -3,6 +3,7 @@ package e2e_test
 import (
 	"context"
 	"io"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -58,6 +59,33 @@ func (a *agentProcess) provideVerificationImage(t *testing.T, engine *client.Cli
 	tagImage(t, engine, pinnedImage, agentImage)
 
 	return agentImage
+}
+
+// provideLocallyBuiltVerificationImage builds the pinned version's image from the recipe and tags
+// it into the agent's repository. It serves a major whose image no release has published yet, so
+// the catalog holds no digest for it. docker buildx skips the recipe's unused base stages, which the
+// Engine API's classic builder would pull one by one.
+func (a *agentProcess) provideLocallyBuiltVerificationImage(t *testing.T, engine *client.Client, major string) {
+	t.Helper()
+
+	agentImage := a.verificationImageRepository + ":" + getPinnedPostgresVersion(t, major)
+	build := exec.CommandContext(
+		t.Context(),
+		"docker", "buildx", "build", "--load",
+		"--tag", agentImage,
+		"--build-arg", "PG_MAJOR="+major,
+		"--build-arg", "PG_SERVER_VERSION="+getPinnedPostgresVersion(t, major),
+		"../../../cmd/verification-agent/images/postgres",
+	)
+	output, err := build.CombinedOutput()
+	require.NoError(t, err, string(output))
+
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), time.Minute)
+		defer cancel()
+
+		_, _ = engine.ImageRemove(ctx, agentImage, client.ImageRemoveOptions{Force: false})
+	})
 }
 
 func ensureLocalImage(t *testing.T, engine *client.Client, image string) {

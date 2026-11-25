@@ -28,7 +28,7 @@ func TestPatroniFixtureLifecycle(t *testing.T) {
 		})
 	}
 
-	for _, image := range []string{"postgres:17", "postgres:18"} {
+	for _, image := range []string{"postgres:17", "postgres:18", "postgres:19"} {
 		t.Run("elects the replica after primary loss with "+image, func(t *testing.T) {
 			t.Parallel()
 

@@ -83,6 +83,22 @@ func TestTestDatabase(t *testing.T) {
 			assert.Zero(t, recorder.getAcceptedCount())
 		})
 
+	t.Run("reports a successful connection and returns version 19 with a PostgreSQL 19 server", func(t *testing.T) {
+		postgres19Server := containers.StartPostgres(t, "postgres:19")
+		tm := newTeam(t)
+		savedDatabase := tm.createDatabase(
+			t,
+			newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgres19Server)),
+		)
+
+		testResult := testSavedDatabase(t, tm.owner, savedDatabase.Id)
+		readDatabase := tm.readDatabase(t, savedDatabase.Id)
+
+		assert.True(t, testResult.IsConnected)
+		assert.Nil(t, testResult.Error)
+		assert.Equal(t, new(apiclient.PostgresqlVersionN19), getLogicalSettings(t, readDatabase).Version)
+	})
+
 	t.Run("returns 401 unauthenticated without a session", func(t *testing.T) {
 		tm := newTeam(t)
 		savedDatabase := tm.createDatabase(
@@ -122,6 +138,63 @@ func TestTestPhysicalDatabase(t *testing.T) {
 		require.NotNil(t, testResult.Reason)
 		assert.Equal(t, apiclient.DatabaseConnectionFailureNOREPLICATIONPRIVILEGE, *testResult.Reason)
 	})
+}
+
+func TestCreateLogicalDatabaseVersions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns 400 naming the version and the supported range and creates nothing with a PostgreSQL 11 server",
+		func(t *testing.T) {
+			t.Parallel()
+			postgres11Server := containers.StartPostgres(t, "postgres:11")
+			tm := newTeam(t)
+
+			response, err := tm.owner.Client.CreateDatabaseWithResponse(t.Context(),
+				newCreation(tm, newPostgresqlLogicalSettings(t, newPostgresqlContainerTarget(postgres11Server))))
+
+			require.NoError(t, err)
+			requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+				apiclient.ProblemCodeDatabaseConnectionFailed)
+			assert.Contains(t, response.ApplicationproblemJSON400.Detail, "found PostgreSQL 11")
+			assert.Contains(t, response.ApplicationproblemJSON400.Detail, "supported versions are PostgreSQL 12 to 19")
+			assert.Empty(t, listDatabases(t, tm.owner, tm.workspace.Id))
+		})
+}
+
+func TestCreatePhysicalDatabaseVersions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("creates the database and returns version 19 with a PostgreSQL 19 source", func(t *testing.T) {
+		t.Parallel()
+		physicalServer := containers.StartPhysicalPostgres(t, "postgres:19")
+		tm := newTeam(t)
+
+		createdDatabase := tm.createDatabase(t,
+			newPostgresqlPhysicalSettings(t, physicalServer, apiclient.PhysicalBackupTypeFULLINCREMENTAL))
+
+		assert.Equal(t, new(apiclient.PostgresqlVersionN19), getPhysicalSettings(t, createdDatabase).Version)
+	})
+
+	t.Run("returns 400 with a logical backup suggestion and creates nothing with a PostgreSQL 16 source",
+		func(t *testing.T) {
+			t.Parallel()
+			physicalServer := containers.StartPhysicalPostgres(t, "postgres:16", containers.WithoutSummarizer())
+			tm := newTeam(t)
+
+			response, err := tm.owner.Client.CreateDatabaseWithResponse(t.Context(),
+				newCreation(tm, newPostgresqlPhysicalSettings(t, physicalServer, apiclient.PhysicalBackupTypeFULL)))
+
+			require.NoError(t, err)
+			requireProblem(t, response.StatusCode(), response.Body, http.StatusBadRequest,
+				apiclient.ProblemCodeDatabaseConnectionFailed)
+			assert.Contains(
+				t,
+				response.ApplicationproblemJSON400.Detail,
+				"physical backups need PostgreSQL 17 or later",
+			)
+			assert.Contains(t, response.ApplicationproblemJSON400.Detail, "use a logical backup")
+			assert.Empty(t, listDatabases(t, tm.owner, tm.workspace.Id))
+		})
 }
 
 func testSavedDatabase(t *testing.T, session apptest.Session, databaseID uuid.UUID) apiclient.DatabaseTestResult {

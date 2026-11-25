@@ -39,11 +39,11 @@ func TestInspectCluster(t *testing.T) {
 		})
 	})
 
-	t.Run("returns unsupported version error when cluster runs postgres 16", func(t *testing.T) {
+	t.Run("returns the too old error when cluster runs postgres 16", func(t *testing.T) {
 		server := testServer{endpoint: containers.StartPostgres(t, "postgres:16"), image: "postgres:16", version: ""}
 
 		_, err := server.newSource(getAdminRole()).InspectCluster(t.Context(), newTestLogger(t))
 
-		require.ErrorIs(t, err, ErrUnsupportedVersion)
+		require.ErrorIs(t, err, ErrVersionTooOldForPhysicalBackup)
 	})
 }

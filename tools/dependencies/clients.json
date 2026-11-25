@@ -986,6 +986,130 @@
           "mode": 493
         }
       ]
+    },
+    {
+      "bundle": "postgresql-19",
+      "version": "19.0-2.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-19/postgresql-client-19_19.0-2.pgdg12+1_amd64.deb",
+      "sha256": "8533e4c815190d7db715d200fadbdcfd215a6226746d051097b85d5366fe6bbf",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-19/bin/pg_basebackup",
+          "member": "usr/lib/postgresql/19/bin/pg_basebackup",
+          "sha256": "271d1a1684754e760c6084e5f4975ea55669fbdcd984f6a6782610dc64f6c582",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-19/bin/pg_combinebackup",
+          "member": "usr/lib/postgresql/19/bin/pg_combinebackup",
+          "sha256": "bbf235e789a7e3169cdca9aeaa082e2ee3c34d55be1264bd36f16d612391c9c8",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-19/bin/pg_dump",
+          "member": "usr/lib/postgresql/19/bin/pg_dump",
+          "sha256": "a68098f1886b760d20eace08f42c7df80962785af6e4e9d08472aa654db353b3",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-19/bin/pg_receivewal",
+          "member": "usr/lib/postgresql/19/bin/pg_receivewal",
+          "sha256": "135c9fc722db1be7dab258f16f79fc57479a5e63b2fd06ef9f506f526fcaccd3",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-19/bin/pg_restore",
+          "member": "usr/lib/postgresql/19/bin/pg_restore",
+          "sha256": "14203721b1689c51b933beab94ae7a3e519c958fd0c72d86ce0bce04bf0a1f96",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-19/bin/psql",
+          "member": "usr/lib/postgresql/19/bin/psql",
+          "sha256": "ed8a7902aee09a9d925bfb85f339f883b49a29abbc62fe7032db7efa4378b8a7",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-19",
+      "version": "19.0-2.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-19/postgresql-client-19_19.0-2.pgdg12+1_arm64.deb",
+      "sha256": "b276bf9c06ced1b8de2e8c462a3b1db449b742b4877c4a00d10815f7112e15c2",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-19/bin/pg_basebackup",
+          "member": "usr/lib/postgresql/19/bin/pg_basebackup",
+          "sha256": "715313cc70179308615f5eb5cdd87bc7e265fe9fab49e739fa7beeb8ab2f9f57",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-19/bin/pg_combinebackup",
+          "member": "usr/lib/postgresql/19/bin/pg_combinebackup",
+          "sha256": "6d81f9d672b0e6bcc7f4d553ad56593b682260178cfd2a2945f1fdc16929db0f",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-19/bin/pg_dump",
+          "member": "usr/lib/postgresql/19/bin/pg_dump",
+          "sha256": "c26c3aa2f6cbd6b6469e14185e89f5ed2af583d4eb492a4761ca5afe7ea4b1c6",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-19/bin/pg_receivewal",
+          "member": "usr/lib/postgresql/19/bin/pg_receivewal",
+          "sha256": "f55f4d89b7f0a845b3b1015b756febbd032fdf6db4d16cb3309254ede8c7d631",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-19/bin/pg_restore",
+          "member": "usr/lib/postgresql/19/bin/pg_restore",
+          "sha256": "d1cb9b101a242bcfa037f1bdcc34d83450b16c1e26d49eb1ae0a8842e14cf82f",
+          "mode": 493
+        },
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-19/bin/psql",
+          "member": "usr/lib/postgresql/19/bin/psql",
+          "sha256": "35d9ab3bf7524f503f6459f3c18f5bcee38ba6f00e1409d5879c4e468423bfb5",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-19",
+      "version": "19.0-2.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "x64",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-19/postgresql-19_19.0-2.pgdg12+1_amd64.deb",
+      "sha256": "6e223e6f176aa4057d8cea708efeb53d75a4d39f593be1788e2d548326f6405d",
+      "files": [
+        {
+          "path": "assets/tools/x64/postgresql/postgresql-19/bin/pg_waldump",
+          "member": "usr/lib/postgresql/19/bin/pg_waldump",
+          "sha256": "d2fd3dab9d28a0f4ca1d479f863ffad4441555987f1087b1708507e2e2af601b",
+          "mode": 493
+        }
+      ]
+    },
+    {
+      "bundle": "postgresql-19",
+      "version": "19.0-2.pgdg12+1",
+      "build_family": "pgdg-debian12",
+      "architecture": "arm",
+      "url": "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-19/postgresql-19_19.0-2.pgdg12+1_arm64.deb",
+      "sha256": "34ee84741d61a512a2e04042d0a470bdd0fa0973e5b6a0c5ca9436ff1dd8320c",
+      "files": [
+        {
+          "path": "assets/tools/arm/postgresql/postgresql-19/bin/pg_waldump",
+          "member": "usr/lib/postgresql/19/bin/pg_waldump",
+          "sha256": "aed1392193a3cccb5cbff50e668cf91dc2ec8a48f6eac4c10b07ba0f3363ab3a",
+          "mode": 493
+        }
+      ]
     }
   ]
 }

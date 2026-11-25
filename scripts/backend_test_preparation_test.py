@@ -145,6 +145,8 @@ class BackendTestPreparationTest(unittest.TestCase):
                     prepared.calls,
                     [
                         "sudo apt-get update -qq",
+                        "sudo apt-get install -y -qq postgresql-common",
+                        "sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y",
                         "sudo apt-get install -y -qq dpkg-dev libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd",
                         "dpkg-architecture -qDEB_HOST_MULTIARCH",
                         "sudo ln -sf /usr/lib/test-architecture-linux-gnu/libncurses.so.6 /usr/lib/test-architecture-linux-gnu/libncurses.so.5",

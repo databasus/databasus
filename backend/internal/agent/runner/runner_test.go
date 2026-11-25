@@ -52,16 +52,17 @@ func newTestRunner(t *testing.T,
 	t.Helper()
 	verificationRunner := NewRunner(
 		Deps{
-			DiagnosticSecrets: nil,
-			APIClient:         apiClient,
-			Capacity:          testCapacity(),
-			Pool:              NewPool(2),
-			Spawner:           spawner,
-			Restorer:          restorer,
-			StatsCollector:    stats,
-			Heartbeat:         reg,
-			Logger:            slog.New(slog.DiscardHandler),
-			Group:             newTestGroup(t),
+			DiagnosticSecrets:      nil,
+			VerifiedPostgresMajors: getTestVerifiedPostgresMajors(),
+			APIClient:              apiClient,
+			Capacity:               testCapacity(),
+			Pool:                   NewPool(2),
+			Spawner:                spawner,
+			Restorer:               restorer,
+			StatsCollector:         stats,
+			Heartbeat:              reg,
+			Logger:                 slog.New(slog.DiscardHandler),
+			Group:                  newTestGroup(t),
 		},
 	)
 	verificationRunner.backupDownloadBackoffFn = func(int) time.Duration { return 0 }
@@ -97,6 +98,29 @@ func TestExecuteJob(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode)
+	})
+	t.Run("reports failed without a restore when the release names no image for the major", func(t *testing.T) {
+		apiClient := &fakeAPI{}
+		spawner := okSpawner()
+		r := newTestRunner(t, apiClient, spawner, &fakeRestorer{}, &fakeStats{}, newFakeRegistrar())
+
+		job := postgresJob()
+		job.Database.PostgresqlLogical = &agentclient.AssignedPostgresql{Version: "20"}
+
+		r.executeJob(t.Context(), job)
+
+		report, ok := apiClient.lastReport()
+		require.True(t, ok)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
+		assert.Nil(t, report.PgRestoreExitCode)
+		assert.Zero(t, spawner.spawnCount.Load())
+		require.NotNil(t, report.FailMessage)
+		assert.Equal(
+			t,
+			"this agent release cannot verify PostgreSQL 20 backups; it verifies PostgreSQL 16, 17, 18. "+
+				"A newer agent release may add PostgreSQL 20",
+			*report.FailMessage,
+		)
 	})
 	t.Run("reports failed without exit code when container creation fails", func(t *testing.T) {
 		apiClient := &fakeAPI{}

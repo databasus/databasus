@@ -149,8 +149,13 @@ func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAs
 }
 
 func (r *Runner) prepareVerificationContainer(ctx context.Context, spec verificationJobSpec) (JobContainer, bool) {
-	pgMajor, err := pgMajorFromDatabase(spec.Assignment.Database)
+	pgMajor, err := r.getPgMajor(spec.Assignment.Database)
 	if err != nil {
+		message := fmt.Sprintf("resolve pg major: %v", err)
+		if _, isUnverifiedMajor := errors.AsType[*unverifiedPostgresMajorError](err); isUnverifiedMajor {
+			message = err.Error()
+		}
+
 		r.reportFailure(
 			ctx,
 			failureReport{
@@ -158,7 +163,7 @@ func (r *Runner) prepareVerificationContainer(ctx context.Context, spec verifica
 				Secrets:        spec.DiagnosticSecrets,
 				VerificationID: spec.Assignment.VerificationID,
 				RestoreResult:  nil,
-				Message:        fmt.Sprintf("resolve pg major: %v", err),
+				Message:        message,
 				Logger:         spec.Logger,
 			},
 		)

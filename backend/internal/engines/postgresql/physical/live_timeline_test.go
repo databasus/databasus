@@ -150,7 +150,7 @@ func TestReadLiveTimeline(t *testing.T) {
 
 		inspection := server.openInspection(t, getAdminRole())
 		_, err := inspection.InspectCluster(t.Context())
-		require.ErrorIs(t, err, ErrUnsupportedVersion)
+		require.ErrorIs(t, err, ErrVersionTooOldForPhysicalBackup)
 
 		timeline, systemIdentifier, err := inspection.ReadLiveTimeline(t.Context())
 		require.NoError(t, err)

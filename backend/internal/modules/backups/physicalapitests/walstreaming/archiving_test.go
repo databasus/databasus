@@ -14,7 +14,7 @@ import (
 func TestArchivePhysicalWal(t *testing.T) {
 	t.Parallel()
 
-	for _, version := range []string{"17", "18"} {
+	for _, version := range []string{"17", "18", "19"} {
 		t.Run(
 			"archives complete segments and records the backup time when PostgreSQL "+version+" streams WAL",
 			func(t *testing.T) {

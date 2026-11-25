@@ -219,7 +219,7 @@ export default function DatabasusVsWalGPage() {
                   ：界面、工作流和功能在所有受支持的数据库上保持一致。
                 </li>
                 <li>
-                  <strong>版本支持</strong>：支持 PostgreSQL 12 到 18
+                  <strong>版本支持</strong>：支持 PostgreSQL 12 到 19
                   的各个版本，并针对不同版本做了优化。
                 </li>
                 <li>

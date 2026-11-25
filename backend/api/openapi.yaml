@@ -6135,7 +6135,7 @@ components:
       x-engine-values: true
       readOnly: true
       description: The major version the server reported at the last save
-      enum: ["12", "13", "14", "15", "16", "17", "18"]
+      enum: ["12", "13", "14", "15", "16", "17", "18", "19"]
     PostgresqlLogicalSettings:
       type: object
       description: One PostgreSQL database backed up with pg_dump

@@ -87,7 +87,7 @@ export default function Index() {
               "Мониторинг состояния баз данных",
               "Self-hosted развертывание через Docker",
               "Open source и бесплатно",
-              "Поддержка PostgreSQL 12-18",
+              "Поддержка PostgreSQL 12-19",
               "Сжатие бекапов и шифрование AES-256-GCM",
               "Поддержка PostgreSQL, MySQL, MariaDB и MongoDB",
               "Политики хранения: по сроку, по количеству, GFS и по объему",
@@ -866,7 +866,7 @@ export default function Index() {
 
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">
                 PostgreSQL — основная база данных Databasus. Поддерживаются все
-                версии с 12 по 18
+                версии с 12 по 19
               </p>
 
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">

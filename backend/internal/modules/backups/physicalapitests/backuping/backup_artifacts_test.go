@@ -14,7 +14,7 @@ import (
 func TestPhysicalBackupArtifacts(t *testing.T) {
 	t.Parallel()
 
-	for _, version := range []string{"17", "18"} {
+	for _, version := range []string{"17", "18", "19"} {
 		t.Run(
 			"publishes a full and two incremental artifacts with their manifests when PostgreSQL "+version+" is healthy",
 			func(t *testing.T) {

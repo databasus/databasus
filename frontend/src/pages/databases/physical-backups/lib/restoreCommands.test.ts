@@ -26,6 +26,12 @@ describe('container paths', () => {
     expect(containerVolumeDir('18')).toBe('/var/lib/postgresql');
   });
 
+  it('uses the version-specific PGDATA and volume root for PostgreSQL 19', () => {
+    expect(containerDataDir('19')).toBe('/var/lib/postgresql/19/docker');
+    expect(containerVolumeDir('19')).toBe('/var/lib/postgresql');
+    expect(clusterDataDir('./out', '19')).toBe('./out/19/docker');
+  });
+
   it('builds the cluster under the output dir mirroring the image layout', () => {
     expect(clusterDataDir('./out', '17')).toBe('./out/data');
     expect(clusterDataDir('./out', '18')).toBe('./out/18/docker');

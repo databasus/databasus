@@ -10,9 +10,9 @@ Layout (one subtree per arch, identical shape):
 
 ```
 assets/tools/<arch>/
-  postgresql/postgresql-{12,13,14,15,16,17,18}/bin/
+  postgresql/postgresql-{12,13,14,15,16,17,18,19}/bin/
     pg_dump, pg_restore, psql
-  postgresql/postgresql-{17,18}/bin/
+  postgresql/postgresql-{17,18,19}/bin/
     pg_basebackup, pg_receivewal, pg_combinebackup, pg_waldump
   mysql/mysql-{5.7,8.0,8.4,9,26}/bin/
     mysql, mysqldump
@@ -28,8 +28,8 @@ assets/tools/<arch>/
 
 | GOOS / GOARCH     | key   | size    |
 |-------------------|-------|---------|
-| `linux` / `amd64` | `x64` | ~157 MB |
-| `linux` / `arm64` | `arm` | ~146 MB |
+| `linux` / `amd64` | `x64` | ~217 MB |
+| `linux` / `arm64` | `arm` | ~195 MB |
 
 A directory name is a release line, not a patch level: `mysql-26` holds one
 26.x build and serves every MySQL 26.x server, `mariadb-13.0` one 13.0.x build
@@ -48,6 +48,7 @@ Bundled PostgreSQL minors (identical on both arches, Debian bookworm pgdg):
 | 16    | 16.16 | `16.16-1.pgdg12+1`                |
 | 17    | 17.12 | `17.12-1.pgdg12+1`                |
 | 18    | 18.7  | `18.7-1.pgdg12+2`                 |
+| 19    | 19.0  | `19.0-2.pgdg12+1`                 |
 
 Majors 12, 13 and 14 are past upstream EOL, so those minors are the last ones
 that will ever exist. Keep every binary within one major on the same package build —
@@ -107,8 +108,8 @@ Notes:
   refused at the connection test on an arm64 deployment.
 
 Shared libraries the binaries need from the runtime image
-(`debian:bookworm-slim`, glibc 2.36; every bundled binary targets glibc 2.28
-or lower, except the MongoDB tools, whose `ubuntu2204` build needs glibc 2.34):
+(`debian:bookworm-slim`, glibc 2.36; the MySQL clients target glibc 2.28 or
+lower, and the PostgreSQL and MariaDB clients and the MongoDB tools need 2.34):
 
 | library                             | needed by                                    |
 |-------------------------------------|----------------------------------------------|
@@ -119,7 +120,7 @@ or lower, except the MongoDB tools, whose `ubuntu2204` build needs glibc 2.34):
 | `libncurses.so.5`, `libtinfo.so.5`  | the MySQL 5.7 interactive client only         |
 | `libreadline.so.8`                  | `psql` for PostgreSQL 13 and later            |
 | `libedit.so.2`                      | every `mariadb` interactive client, and `psql` for PostgreSQL 12 |
-| `libpq.so.5`                        | the PostgreSQL clients                        |
+| `libpq.so.5`                        | the PostgreSQL clients; at least as new as the newest bundled major |
 | `libgssapi_krb5.so.2`               | the MongoDB tools                             |
 
 The MySQL 26 clients are the exception for OpenSSL: they call symbols from
@@ -144,7 +145,7 @@ To refresh a tool set, verify its recorded source archive, extract the selected
 programs and update the source records with the resulting file hashes.
 For PostgreSQL the source
 is `postgresql-client-<major>` from `apt.postgresql.org` for `bookworm`; the
-PostgreSQL 17 and 18 `pg_waldump` binaries come from the matching
+PostgreSQL 17, 18 and 19 `pg_waldump` binaries come from the matching
 `postgresql-<major>` server package at the same pinned patch level. Both use
 `amd64` and `arm64`, matching the `debian:bookworm-slim` runtime base in the
 Dockerfile. The exact package URLs, archive hashes and extracted-file hashes
