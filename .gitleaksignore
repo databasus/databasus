@@ -28,3 +28,7 @@ ef33df9f4a03e825d2872d7323cc683888502f8a:app/sponsorship/tiers.ts:generic-api-ke
 69e56917a1ad395448cd5c2545f1a1c28eb7f0f1:backend/internal/util/logger/redaction_test.go:generic-api-key:136
 cb37d67af34ae7682f18b65978d42aab82855e9d:backend/internal/features/notifiers/controller_test.go:generic-api-key:1850
 a809dc8a9c1dc99f1adb42c37d3cb68dd96a5627:backend/internal/features/storages/models/s3/model.go:generic-api-key:198
+
+# The base32 form of the published RFC 6238 test seed "12345678901234567890", used as a TOTP test vector.
+8ebd8ece8008d20b8d7bb0304f0c18bcff93836d:backend/internal/lib/totp/code_test.go:generic-api-key:15
+9e75db2535abd7959625779c907199072719e0bf:backend/internal/lib/totp/code_test.go:generic-api-key:15

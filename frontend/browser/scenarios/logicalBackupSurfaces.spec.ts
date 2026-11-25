@@ -57,7 +57,8 @@ for (const context of visualContexts) {
       const dictionary = DICTIONARIES[context.locale];
       const deletion = page
         .getByRole('button', { name: dictionary.backups.list.actions.deleteBackup, exact: true })
-        .filter({ visible: true });
+        .filter({ visible: true })
+        .first();
       await deletion.focus();
       await page.keyboard.press('Enter');
       const confirmation = page.getByRole('dialog', {

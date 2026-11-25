@@ -27,6 +27,10 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
+          # GHSA-qx49-fqc8-xw99 affects the OAuth client of the MCP Python SDK. Every semgrep
+          # release pins mcp==1.29.0, and CI runs only `semgrep scan`, which never acts as an
+          # MCP client, so the vulnerable code is unreachable.
+          allow-ghsas: GHSA-qx49-fqc8-xw99
           base-ref: ${{ steps.release-baseline.outputs.commit }}
           head-ref: ${{ github.sha }}
           comment-summary-in-pr: never
