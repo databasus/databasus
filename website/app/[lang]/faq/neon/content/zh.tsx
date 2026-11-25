@@ -161,8 +161,8 @@ export default function NeonPage() {
               <img
                 src="/images/faq/neon/databasus-choose-neon.png"
                 alt="Databasus 的 Add database 窗口，已选择 Neon 类型"
-                width={1433}
-                height={895}
+                width={1440}
+                height={898}
                 className={SCREENSHOT_CLASS_NAME}
                 loading="lazy"
               />

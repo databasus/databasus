@@ -194,9 +194,9 @@ AWS_REGION="us-east-2"`}</code>
 
               <img
                 src="/images/storages/neon-object-storage/databasus-neon-object-storage-form.png"
-                alt="Formulir Neon Object Storage di Databasus dengan endpoint, region dan kunci yang sudah ditempel serta nama bucket yang diketik"
-                width={1435}
-                height={897}
+                alt="Formulir Neon Object Storage yang masih kosong di Databasus, dengan blok untuk menempel kredensial dan kolom untuk diisi manual"
+                width={1440}
+                height={898}
                 className={SCREENSHOT_CLASS_NAME}
                 loading="lazy"
               />

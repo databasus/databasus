@@ -216,9 +216,9 @@ AWS_REGION="us-east-2"`}</code>
 
               <img
                 src="/images/storages/neon-object-storage/databasus-neon-object-storage-form.png"
-                alt="Neon Object Storage form of Databasus with the pasted endpoint, region and keys and the typed bucket name"
-                width={1435}
-                height={897}
+                alt="Empty Neon Object Storage form of Databasus with the block for pasting credentials and the fields for manual entry"
+                width={1440}
+                height={898}
                 className={SCREENSHOT_CLASS_NAME}
                 loading="lazy"
               />

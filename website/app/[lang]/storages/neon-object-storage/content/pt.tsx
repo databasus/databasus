@@ -194,9 +194,9 @@ AWS_REGION="us-east-2"`}</code>
 
               <img
                 src="/images/storages/neon-object-storage/databasus-neon-object-storage-form.png"
-                alt="Formulário do Neon Object Storage no Databasus com endpoint, região e chaves colados e o nome do bucket digitado"
-                width={1435}
-                height={897}
+                alt="Formulário vazio do Neon Object Storage no Databasus, com o bloco para colar as credenciais e os campos para preencher manualmente"
+                width={1440}
+                height={898}
                 className={SCREENSHOT_CLASS_NAME}
                 loading="lazy"
               />
