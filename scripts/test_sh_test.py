@@ -175,12 +175,6 @@ databasus-backend/internal/lib/removed
 databasus-backend/e2e/upgrade
 """
 
-STUB_FEDORA_SOURCE = """
-apply_libedit_shim() {
-    :
-}
-"""
-
 
 def get_package_limit(go_selection: list[str]) -> int:
     return int(
@@ -211,7 +205,6 @@ class TestScriptTestCase(unittest.TestCase):
         (self.checkout / "backend").mkdir()
         shutil.copy(REPOSITORY_ROOT / "scripts" / "test.sh", self.checkout / "scripts" / "test.sh")
         (self.checkout / "backend" / "test-slow-packages.txt").write_text(SLOW_PACKAGE_LIST)
-        (self.checkout / "scripts" / "fedora.sh").write_text(STUB_FEDORA_SOURCE)
 
         self.lock_directory = self.workspace / "locks"
         self.lock_directory.mkdir()

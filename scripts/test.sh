@@ -2,7 +2,6 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-source "$root/scripts/fedora.sh"
 
 is_full_run=false
 if [[ "${1:-}" == --full ]]; then
@@ -123,8 +122,6 @@ trap 'exit 143' TERM
 
 DATABASUS_TEST_ROOT_RUN_ID=$DATABASUS_TEST_RUN_ID
 export DATABASUS_TEST_ROOT_RUN_ID
-
-apply_libedit_shim
 
 cd "$root"
 docker compose up -d --no-recreate backend-db-test

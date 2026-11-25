@@ -73,24 +73,14 @@ The check SHALL fail when Docker does not answer, when the Docker daemon runs ro
 - **WHEN** Docker answers but the Docker Compose plugin is missing
 - **THEN** the Docker Compose check fails and names the missing plugin
 
-### Requirement: The check verifies that the client tool bundles can start
+### Requirement: The check verifies that the client tool bundles find their libraries
 
-The check SHALL fail when a client tool bundle of the machine's architecture holds a program that needs a shared library the system cannot provide. It SHALL look up libraries the same way the project's run and test commands start those programs, including the library compatibility step those commands apply, and SHALL name each program and missing library.
+The check SHALL fail when a client tool bundle of the machine's architecture holds a program that needs a shared library the system cannot provide. It SHALL look up libraries as the dynamic loader finds them in the caller's environment, without creating aliases for missing ones, and SHALL name each program and missing library.
 
 #### Scenario: A system library is missing
 
 - **WHEN** a program of a client tool bundle needs a shared library that is not installed
 - **THEN** the client tool bundles check fails and names the program and the missing library
-
-#### Scenario: The run and test commands provide a library
-
-- **WHEN** the system lacks a library under its expected name, and the run and test commands provide it through their compatibility step
-- **THEN** the client tool bundles check passes
-
-#### Scenario: The compatibility step cannot run
-
-- **WHEN** the compatibility step cannot provide the library because the system has no version of it at all
-- **THEN** the check still runs, fails and names each program that needs the library
 
 ### Requirement: The check verifies that the pinned tools are installed
 

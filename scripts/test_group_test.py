@@ -254,8 +254,6 @@ class ShardFixture(unittest.TestCase):
         self.calls = self.workspace / "calls"
         self.calls.touch()
 
-        (self.workspace / "scripts").mkdir()
-        (self.workspace / "scripts/fedora.sh").write_text("apply_libedit_shim() { :; }\n")
         for name in ("test-group-packages", "test-group-tests"):
             shutil.copy(ROOT / "mise-tasks/backend" / name, self.workspace / name)
 

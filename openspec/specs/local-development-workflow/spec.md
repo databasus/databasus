@@ -1,7 +1,7 @@
 # local-development-workflow Specification
 
 ## Purpose
-Defines the commands a developer or an agent uses on a local Fedora host to run Databasus, run the backend suite and check a commit, and what each command stops or leaves running when it is interrupted.
+Defines the commands a developer or an agent uses in the Ubuntu development VM to run Databasus, run the backend suite and check a commit, and what each command stops or leaves running when it is interrupted.
 
 ## Requirements
 
@@ -74,7 +74,7 @@ The repository SHALL provide `mise run run`. It SHALL start the development data
 
 #### Scenario: Developer starts the app
 
-- **WHEN** a developer runs `mise run run` on a Fedora host
+- **WHEN** a developer runs `mise run run` in the Ubuntu development VM
 - **THEN** the development database, the shared test fixtures, the WAL backup source, its load generator, the backend, the frontend and the website start
 - **AND** the window lists the database, the load generator, the backend, the frontend, the website and the seed as separate processes with their own output
 
@@ -134,14 +134,20 @@ When a developer interrupts `mise run run` with Ctrl+C, the backend and the fron
 
 ### Requirement: One command runs the routine backend suite
 
-The repository SHALL provide `mise run test`. It SHALL assume a Fedora host and, when `libedit` is installed on that host, SHALL make the bundled database clients startable without any further manual step. When `libedit` is missing, it SHALL stop before running tests and name the package to install. It SHALL start the shared test PostgreSQL server and no other development service, pull the database engine and object storage images the backend tests reference, and then run every test package of the backend module except the upgrade test with its comparison helper and the end-to-end packages under `internal/agent/e2e` and `internal/modules/backups/e2e`, each test that asks for a migrated internal database getting one as that capability describes. A migration test that asks for an empty internal database SHALL get one with no migration applied and SHALL apply the migrations it needs itself, and packages that need no database SHALL open none. A package in a new directory of the module SHALL join this run without any change to the selection. It SHALL NOT prepare internal databases ahead of the tests. It SHALL NOT run the Docker filesystem suite. Its exit status SHALL be non-zero when any step or any test fails.
+The repository SHALL provide `mise run test`. It SHALL run in the Ubuntu development VM and SHALL start the bundled database clients with the shared libraries that the VM provides under their own names, without creating aliases for missing ones. It SHALL start the shared test PostgreSQL server and no other development service, pull the database engine and object storage images the backend tests reference, and then run every test package of the backend module except the upgrade test with its comparison helper and the end-to-end packages under `internal/agent/e2e` and `internal/modules/backups/e2e`, each test that asks for a migrated internal database getting one as that capability describes. A migration test that asks for an empty internal database SHALL get one with no migration applied and SHALL apply the migrations it needs itself, and packages that need no database SHALL open none. A package in a new directory of the module SHALL join this run without any change to the selection. It SHALL NOT prepare internal databases ahead of the tests. It SHALL NOT run the Docker filesystem suite. Its exit status SHALL be non-zero when any step or any test fails.
 
-#### Scenario: Developer runs the suite on Fedora
+#### Scenario: Developer runs the suite in the VM
 
-- **WHEN** a developer runs `mise run test` on a Fedora host with a `.env` file
+- **WHEN** a developer runs `mise run test` in the Ubuntu development VM with a `.env` file
 - **THEN** every selected backend test package runs, and each test that asks for a migrated internal database gets one with every migration of the checkout applied
 - **AND** a migration test that asks for an empty internal database gets one with no migration applied, and packages that need no database open none
 - **AND** tests that start a bundled database client do not fail on a missing shared library
+
+#### Scenario: Developer runs the suite on Fedora
+
+- **WHEN** a developer runs `mise run test` directly on a Fedora host, where `libedit` exists only as `libedit.so.0`
+- **THEN** `mise run test` creates no library alias directory and passes the caller's `LD_LIBRARY_PATH` to the tests unchanged
+- **AND** tests that start a bundled database client can fail on the missing `libedit.so.2`, as a consequence of the host's libraries rather than of the command
 
 #### Scenario: Only the test PostgreSQL server starts
 
@@ -318,7 +324,7 @@ The repository SHALL pin the exact versions of a defined tool set, so that two h
 
 #### Scenario: New host setup
 
-- **WHEN** a developer installs the pinned tools on a new Fedora host and runs `mise run lint`
+- **WHEN** a developer installs the pinned tools in a new Ubuntu development VM and runs `mise run lint`
 - **THEN** every tool from the pinned set that the task calls resolves to its pinned version
 
 #### Scenario: The version manager is too old

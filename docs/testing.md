@@ -186,11 +186,9 @@ PostgreSQL permits sequence gaps. Recovery checks therefore prevent ID reuse wit
 
 The [physical suites](../backend/internal/modules/backups/e2e/postgresqlphysical) and their [shared fixtures](../backend/internal/app/apptest/physicaltest) own the detailed scenario matrix.
 
-Run the schema and sequence scenarios from the repository root with the pinned tools and the [libedit shim](#commands):
+Run the schema and sequence scenarios from the repository root with the pinned tools:
 
 ```sh
-source scripts/fedora.sh
-apply_libedit_shim
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -run '^TestRestorePhysicalSchemaAndSequences' \
   ./internal/modules/backups/e2e/postgresqlphysical/pg17 \
   ./internal/modules/backups/e2e/postgresqlphysical/pg18
@@ -211,8 +209,6 @@ Missing tools and build failures fail the suite rather than skip scenarios. The 
 Run the complete matrix from the repository root:
 
 ```sh
-source scripts/fedora.sh
-apply_libedit_shim
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 15m \
   ./internal/modules/backups/e2e/postgresqlphysical/patroni
 ```
@@ -243,8 +239,6 @@ Missing prerequisites fail the suite rather than skip scenarios. The [fixture RE
 Run the complete matrix from the repository root:
 
 ```sh
-source scripts/fedora.sh
-apply_libedit_shim
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 15m \
   ./internal/modules/backups/e2e/postgresqlphysical/cnpg
 ```
@@ -286,7 +280,7 @@ These tests prove that a Databasus backup brings back a working instance on a se
 
 The tests run the candidate application image, the image under test, in containers. When no image is supplied, they build it from the checkout. They remove only their own containers and volumes.
 
-[Commands](#commands) lists the run, which needs the libedit shim.
+[Commands](#commands) lists the run.
 
 ## Verification agent end-to-end tests
 
@@ -509,7 +503,7 @@ To repeat one failing test, call its Go or frontend runner directly. This takes 
 | One frontend browser UI shard                         | `pnpm --dir frontend test:browser --project=ui --shard=1/3`                       |
 | Update browser visual references                       | `pnpm --dir frontend test:browser --project=ui --update-references`              |
 | Upgrade test                                           | `mise run backend:test-upgrade`                                                  |
-| Databasus recovery-cycle tests                         | `go -C backend test -count=1 -timeout 20m ./internal/modules/instancebackups/e2e/...`, with the libedit shim below |
+| Databasus recovery-cycle tests                         | `go -C backend test -count=1 -timeout 20m ./internal/modules/instancebackups/e2e/...` |
 | Filesystem tests                                       | `mise run test-filesystem`                                                       |
 | Browser end-to-end suite alone                         | `mise run e2e:browser`                                                           |
 | Its parts that need no Docker daemon                   | `mise run e2e:unit`                                                              |
@@ -518,18 +512,14 @@ To repeat one failing test, call its Go or frontend runner directly. This takes 
 | One backend remainder shard                            | See the race-enabled shard command below |
 | Review hook tests                                      | `python3 -m unittest discover -s .agent-hooks -p '*_test.py'`                    |
 
-The bundled PostgreSQL clients link `libedit.so.2`. The Ubuntu development VM has it. A Fedora host has only `libedit.so.0`, and the shim adds the missing name. Where the library is present, the shim does nothing.
-
-Parallel test binaries also collide on the name of the Ryuk reaper, the container Testcontainers starts to remove a test process's leftovers. The full command that repeats a backend test is therefore:
+Parallel test binaries collide on the name of the Ryuk reaper, the container Testcontainers starts to remove a test process's leftovers. The full command that repeats a backend test is therefore:
 
 ```sh
 cd backend
-source ../scripts/fedora.sh
-apply_libedit_shim
 TESTCONTAINERS_RYUK_DISABLED=true go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...
 ```
 
-To repeat one backend remainder shard with CI concurrency and race detection, prepare the libedit shim as above. Then run from the repository root:
+To repeat one backend remainder shard with CI concurrency and race detection, run from the repository root:
 
 ```sh
 packages=$(mise run --quiet backend:test-group-packages other-1-of-3)

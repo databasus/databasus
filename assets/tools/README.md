@@ -130,9 +130,7 @@ binaries, and the loader picks them before the image's copies.
 
 `libedit.so.2` is not installed explicitly in the `Dockerfile`: it reaches the
 image as a dependency of `postgresql-common`. A change that drops that package
-takes the MariaDB interactive client with it. It is also the one soname a
-non-Debian development host is missing — Fedora ships the upstream
-`libedit.so.0` — which is what `mise run run` and `mise run test` shim around.
+takes the MariaDB interactive client with it.
 
 Exact release versions, vendor build families, archive URLs, SHA256 checksums and committed-file hashes for both
 architectures are recorded in `tools/dependencies/clients.json`. The offline

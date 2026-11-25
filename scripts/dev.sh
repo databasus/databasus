@@ -2,7 +2,6 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-source "$root/scripts/fedora.sh"
 
 readonly backend_port=4005
 readonly test_fixtures=(test-logical-postgres-16)
@@ -43,8 +42,6 @@ free_backend_port() {
         fi
     done
 }
-
-apply_libedit_shim
 
 trap stop_services EXIT
 docker compose -f "$root/docker-compose.yml" up -d "${own_services[@]}" "${test_fixtures[@]}"

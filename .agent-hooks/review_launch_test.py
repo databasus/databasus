@@ -14,7 +14,6 @@ def write_doctor_with_passing_environment(repository: fixtures.HookRepository) -
     doctor_script = repository.root / "scripts/doctor.sh"
     repository.write("scripts/doctor.sh", (REPOSITORY_ROOT / "scripts/doctor.sh").read_text())
     doctor_script.chmod(0o755)
-    repository.write("scripts/fedora.sh", "apply_libedit_shim() { :; }\n")
     repository.write(
         "scripts/development_environment_check.py", "print('Development environment:')\n"
     )
