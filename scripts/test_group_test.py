@@ -254,8 +254,6 @@ class ShardFixture(unittest.TestCase):
         self.calls = self.workspace / "calls"
         self.calls.touch()
 
-        (self.workspace / "scripts").mkdir()
-        (self.workspace / "scripts/fedora.sh").write_text("apply_libedit_shim() { :; }\n")
         for name in ("test-group-packages", "test-group-tests"):
             shutil.copy(ROOT / "mise-tasks/backend" / name, self.workspace / name)
 
@@ -338,7 +336,7 @@ class ClusterSuite:
 
 
 CLUSTER_SUITES = (
-    ClusterSuite(name="patroni", test_prefix="TestPatroni", scenario_test_count=10),
+    ClusterSuite(name="patroni", test_prefix="TestPatroni", scenario_test_count=15),
     ClusterSuite(name="cnpg", test_prefix="TestCNPG", scenario_test_count=12),
 )
 
@@ -421,7 +419,7 @@ sys.exit(subprocess.call(["bash", os.environ["PACKAGE_SELECTOR"]], env={**os.env
         backup_tests = {
             test
             for test in scenario_tests
-            if re.fullmatch(suite.test_prefix + r"\w+Postgres1[78]", test)
+            if re.fullmatch(suite.test_prefix + r"\w+Postgres\d+", test)
         }
         self.assertEqual(len(backup_tests), suite.scenario_test_count)
         self.assertEqual(scenario_tests - weighted_tests, set())

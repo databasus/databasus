@@ -32,23 +32,23 @@ When the launcher cannot find the version manager, when the hook exits with an e
 - **WHEN** the hook process exits with a non-zero code
 - **THEN** the agent stops, and the user sees which hook action failed, its exit code, and that `mise run doctor` checks the environment
 
-### Requirement: The environment check reports every tool the hooks need
+### Requirement: mise run doctor reports the hook tools and the development environment
 
-The repository SHALL have a command, `mise run doctor [--client <codex|claude>]`, that reports the selected review client and, one line per tool, whether the hooks can find Python, git, OpenSpec and the selected client's CLI. It SHALL use the client-selection rules of this capability and MUST NOT require the other client's CLI. The command SHALL run through the same launcher as the hooks, and SHALL exit with a non-zero code when a required tool is missing or the client cannot be selected. The version manager runs that command, so when the version manager itself cannot be found, the launcher run directly with the doctor action SHALL report that and exit with a non-zero code. Finding a CLI SHALL NOT be reported as proof that its authentication or model access works.
+The repository SHALL have a command, `mise run doctor [--client <codex|claude>]`. Its first part, the hook tool check, reports the selected review client and, one line per tool, whether the hooks can find Python, git, OpenSpec and the selected client's CLI. It SHALL use the client-selection rules of this capability and MUST NOT require the other client's CLI. The hook tool check SHALL run through the same launcher as the hooks, and the launcher's doctor action SHALL cover the hook tool check only. After it, `mise run doctor`, not the launcher, SHALL run the development environment check and print its report, even when the hook tool check fails. The command SHALL exit with a non-zero code when a required tool is missing, the client cannot be selected or the development environment check fails. The version manager runs that command, so when the version manager itself cannot be found, the launcher run directly with the doctor action SHALL report that and exit with a non-zero code. Finding a CLI SHALL NOT be reported as proof that its authentication or model access works.
 
 #### Scenario: Every tool is present
 
-- **WHEN** the user runs the environment check with a selected client and every required tool installed
+- **WHEN** the user runs `mise run doctor` with a selected client, every required tool installed and every development environment prerequisite met
 - **THEN** the selected client and each required tool's path are reported and the command exits with code 0 without claiming that the client is authenticated or can reach its model
 
 #### Scenario: Only Codex is installed
 
-- **WHEN** the environment check selects Codex and Python, git, OpenSpec and Codex are available but Claude Code is absent
+- **WHEN** `mise run doctor` selects Codex, Python, git, OpenSpec and Codex are available, Claude Code is absent and every development environment prerequisite is met
 - **THEN** the command exits with code 0 without requiring Claude Code
 
 #### Scenario: Only Claude Code is installed
 
-- **WHEN** the environment check selects Claude Code and Python, git, OpenSpec and Claude Code are available but Codex is absent
+- **WHEN** `mise run doctor` selects Claude Code, Python, git, OpenSpec and Claude Code are available, Codex is absent and every development environment prerequisite is met
 - **THEN** the command exits with code 0 without requiring Codex
 
 #### Scenario: No reviewer CLI
@@ -60,6 +60,16 @@ The repository SHALL have a command, `mise run doctor [--client <codex|claude>]`
 
 - **WHEN** the version manager cannot be found and the user starts the launcher's doctor action directly
 - **THEN** the command reports that the version manager was not found and exits with a non-zero code
+
+#### Scenario: Broken development environment
+
+- **WHEN** the user runs `mise run doctor`, every required tool is installed but a development environment prerequisite is missing
+- **THEN** the command reports the tools, then the development environment report with the failed prerequisite, and exits with a non-zero code
+
+#### Scenario: Missing tool and broken environment
+
+- **WHEN** the user runs `mise run doctor`, the selected client's CLI is absent and a development environment prerequisite is missing
+- **THEN** the command reports both problems in one run and exits with a non-zero code
 
 ### Requirement: Codex runs the same review hooks as Claude Code
 

@@ -1,6 +1,7 @@
 package container
 
 import (
+	"log/slog"
 	"strconv"
 	"testing"
 
@@ -11,14 +12,14 @@ import (
 func TestLoadPinnedPostgresVersions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("pins a release of its own major for every major from 12 to 18", func(t *testing.T) {
+	t.Run("pins a release of its own major for every major from 12 to 19", func(t *testing.T) {
 		t.Parallel()
 
 		pinnedVersions, err := LoadPinnedPostgresVersions()
 		require.NoError(t, err)
 
-		expectedMajors := make([]string, 0, 7)
-		for major := 12; major <= 18; major++ {
+		expectedMajors := make([]string, 0, 8)
+		for major := 12; major <= 19; major++ {
 			expectedMajors = append(expectedMajors, strconv.Itoa(major))
 		}
 
@@ -81,4 +82,22 @@ func newTestPinnedVersions(t *testing.T) PinnedPostgresVersions {
 	require.NoError(t, err)
 
 	return pinnedVersions
+}
+
+func TestGetPinnedPostgresMajors(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns the majors the pinned versions name", func(t *testing.T) {
+		t.Parallel()
+
+		manager, err := NewManager(
+			Deps{Engine: nil, AgentID: "agent", EngineImageRepo: "", Logger: slog.New(slog.DiscardHandler)},
+		)
+		require.NoError(t, err)
+
+		pinnedVersions, err := LoadPinnedPostgresVersions()
+		require.NoError(t, err)
+
+		assert.Equal(t, pinnedVersions.GetMajors(), manager.GetPinnedPostgresMajors())
+	})
 }

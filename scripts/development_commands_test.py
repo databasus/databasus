@@ -43,7 +43,7 @@ class DevelopmentCommandsTest(unittest.TestCase):
         user_commands = {
             "run",
             "test",
-            "test-full",
+            "test-change",
             "lint",
             "format",
             "doctor",
@@ -54,6 +54,7 @@ class DevelopmentCommandsTest(unittest.TestCase):
         removed_commands = {
             "dev",
             "full",
+            "test-full",
             "pull-testcontainers",
             "backend:generate-api",
             "backend:clean-testcontainers",

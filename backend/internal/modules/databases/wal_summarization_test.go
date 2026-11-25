@@ -21,7 +21,7 @@ func TestPhysicalDatabaseWalSummarization(t *testing.T) {
 		apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,
 	}
 
-	for _, image := range []string{"postgres:17", "postgres:18"} {
+	for _, image := range []string{"postgres:17", "postgres:18", "postgres:19"} {
 		server := containers.StartPhysicalPostgres(t, image, containers.WithoutSummarizer())
 
 		for _, backupType := range incrementalBackupTypes {

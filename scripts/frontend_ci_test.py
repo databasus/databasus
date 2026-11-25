@@ -207,7 +207,7 @@ class FrontendCiTest(unittest.TestCase):
         self.assertNotIn("continue-on-error", release)
 
         self.assertNotIn("test-frontend-browser-e2e", self.workflow)
-        self.assertNotIn("mise run test-full", self.workflow)
+        self.assertNotRegex(self.workflow, r"mise run test(-full)?(\s|$)")
         self.assertEqual(self.workflow.count("mise run e2e:browser"), 1)
 
     def test_browser_end_to_end_suite_installs_only_through_the_pinned_uv_and_its_lockfile(
@@ -230,8 +230,9 @@ class FrontendCiTest(unittest.TestCase):
 
         self.assertNotIn("e2e", tasks)
         self.assertTrue(tasks["e2e:browser"]["hide"])
-        self.assertEqual(tasks["test-full"]["run"], "scripts/test.sh --full")
+        self.assertNotIn("test-full", tasks)
         self.assertEqual(tasks["test"]["run"], "scripts/test.sh")
+        self.assertEqual(tasks["test-change"]["run"], 'scripts/test.sh --change "$usage_change"')
 
     def test_detects_runtime_drift_and_mutable_dependency_installs(self) -> None:
         for mutation_index, changed in enumerate(

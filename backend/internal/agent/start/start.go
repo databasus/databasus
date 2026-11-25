@@ -88,16 +88,17 @@ func RunDaemon(ctx context.Context, cfg *config.Config, agentVersion string, isD
 	heartbeater := heartbeat.NewHeartbeater(apiClient, capacity, log)
 	verificationRunner := runner.NewRunner(
 		runner.Deps{
-			DiagnosticSecrets: []string{cfg.Token},
-			APIClient:         apiClient,
-			Capacity:          capacity,
-			Pool:              pool,
-			Spawner:           containerManagerSpawner{containerManager: containerManager},
-			Restorer:          restore.NewRestorer(log),
-			StatsCollector:    verifier.NewVerifier(log),
-			Heartbeat:         heartbeater,
-			Logger:            log,
-			Group:             group,
+			DiagnosticSecrets:      []string{cfg.Token},
+			VerifiedPostgresMajors: containerManager.GetPinnedPostgresMajors(),
+			APIClient:              apiClient,
+			Capacity:               capacity,
+			Pool:                   pool,
+			Spawner:                containerManagerSpawner{containerManager: containerManager},
+			Restorer:               restore.NewRestorer(log),
+			StatsCollector:         verifier.NewVerifier(log),
+			Heartbeat:              heartbeater,
+			Logger:                 log,
+			Group:                  group,
 		},
 	)
 

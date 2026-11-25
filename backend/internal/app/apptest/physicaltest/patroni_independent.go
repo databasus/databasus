@@ -49,7 +49,7 @@ func RunPatroniIndependentRecovery(t *testing.T, spec PatroniIndependentSpec) {
 		fmt.Sprintf("ALTER SYSTEM SET primary_conninfo = 'host=%s port=5432 user=replicator password=testpassword'", previous.Node),
 		"ALTER SYSTEM SET restore_command = 'false'",
 		"ALTER SYSTEM SET recovery_target_time = '2001-01-01 00:00:00+00'",
-		"ALTER SYSTEM SET recovery_target_xid = '1'",
+		"ALTER SYSTEM SET recovery_target_xid = '3'",
 		"ALTER SYSTEM SET recovery_target_action = 'pause'",
 	} {
 		_, err := connection.Exec(t.Context(), statement)

@@ -306,6 +306,13 @@
       },
       "reference": "docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372"
     },
+    "postgres:11": {
+      "platforms": {
+        "linux-arm64": "sha256:5f779b362610ac16f249be1e75c92894f99fa15a140d1f126d828c6212e740d9",
+        "linux-x64": "sha256:fdfb434d69d7884d6366840279dc3e721d1bd67cc1d02d51aeea7497f323fc5e"
+      },
+      "reference": "docker.io/library/postgres:11@sha256:5d2aa4a7b5f9bdadeddcf87cf7f90a176737a02a30d917de4ab2e6a329bd2d45"
+    },
     "postgres:12": {
       "platforms": {
         "linux-arm64": "sha256:9fc57848f07313edb7e40e2f659b5e7ac7f59fe70885dff51f0c0b4e7b16d4d7",
@@ -361,6 +368,13 @@
         "linux-x64": "sha256:c7fedce47eff6a78cb35dad6b627f0d684107f75ab15c0870e40c093766ba452"
       },
       "reference": "docker.io/library/postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553"
+    },
+    "postgres:19": {
+      "platforms": {
+        "linux-arm64": "sha256:7a2d71c02bf63a2296900a86e9a2c889a3eea22f9004e1ea343ceb4586aa57e6",
+        "linux-x64": "sha256:3fb624f672a1cb628d0bdc0f533cffad31345421eedf16ab1f85ed1ea0d07d2e"
+      },
+      "reference": "docker.io/library/postgres:19@sha256:aaa10f7ba7328b4a221a6c3184d83eef885bd16bf1f6de864757863156b0a4d1"
     },
     "postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553": {
       "platforms": {

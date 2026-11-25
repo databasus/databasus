@@ -213,7 +213,7 @@ While no system identifier mismatch is unresolved, an immediate replacement FULL
 
 ### Requirement: Promotion recovery works with the provisioned backup role
 
-On PostgreSQL 17 and 18, a source standby promoted while Databasus uses its provisioned backup role SHALL have its new timeline history archived and cataloged. The chain that existed before promotion SHALL restore committed rows from before promotion and after promotion, before any backup on the promoted timeline completes. After an incremental backup on the promoted timeline extends that chain, its restore SHALL include rows written after that incremental backup.
+On PostgreSQL 17, 18 and 19, a source standby promoted while Databasus uses its provisioned backup role SHALL have its new timeline history archived and cataloged. The chain that existed before promotion SHALL restore committed rows from before promotion and after promotion, before any backup on the promoted timeline completes. After an incremental backup on the promoted timeline extends that chain, its restore SHALL include rows written after that incremental backup.
 
 #### Scenario: Recovery after promotion on each supported version
 
@@ -262,7 +262,7 @@ When an unchanged source address moves from a primary to its real physical repli
 
 ### Requirement: Patroni sources recover through an unchanged primary address
 
-On PostgreSQL 17 and 18, Databasus SHALL support a source whose primary is selected by Patroni and exposed through a stable HAProxy address. When that address changes from the primary to its promoted physical replica, Databasus SHALL reconnect without an operator changing its address, restarting Databasus or restarting its backup modules. The same-cluster identity, the rules for continuing a chain along the timeline line and the replacement-FULL fallback SHALL apply after every switch.
+On PostgreSQL 17, 18 and 19, Databasus SHALL support a source whose primary is selected by Patroni and exposed through a stable HAProxy address. When that address changes from the primary to its promoted physical replica, Databasus SHALL reconnect without an operator changing its address, restarting Databasus or restarting its backup modules. The same-cluster identity, the rules for continuing a chain along the timeline line and the replacement-FULL fallback SHALL apply after every switch.
 
 #### Scenario: Initial recovery through the primary address
 
@@ -280,7 +280,7 @@ On PostgreSQL 17 and 18, Databasus SHALL support a source whose primary is selec
 
 ### Requirement: Patroni crash recovery preserves transactions replayed by the elected replica
 
-For a durability-enabled source on PostgreSQL 17 and 18, recovery after a Patroni failover SHALL preserve control transactions committed on the former primary and replayed by the replica before that replica is elected. This guarantee SHALL NOT include acknowledged transactions that never reached the elected replica.
+For a durability-enabled source on PostgreSQL 17, 18 and 19, recovery after a Patroni failover SHALL preserve control transactions committed on the former primary and replayed by the replica before that replica is elected. This guarantee SHALL NOT include acknowledged transactions that never reached the elected replica.
 
 #### Scenario: Abrupt loss after confirmed replica replay
 
@@ -291,7 +291,7 @@ For a durability-enabled source on PostgreSQL 17 and 18, recovery after a Patron
 
 ### Requirement: Patroni switches during transfer preserve physical backup failure semantics
 
-On PostgreSQL 17 and 18, a Patroni switch while a physical backup is actively transmitting SHALL NOT publish a partial copy as a completed backup. The interrupted operation SHALL reach a terminal result and follow the existing identity-recheck and retry policies, the rules for continuing a chain along the timeline line and the replacement-FULL fallback. Detecting an active backup record alone SHALL NOT establish that the switch interrupted data transfer.
+On PostgreSQL 17, 18 and 19, a Patroni switch while a physical backup is actively transmitting SHALL NOT publish a partial copy as a completed backup. The interrupted operation SHALL reach a terminal result and follow the existing identity-recheck and retry policies, the rules for continuing a chain along the timeline line and the replacement-FULL fallback. Detecting an active backup record alone SHALL NOT establish that the switch interrupted data transfer.
 
 #### Scenario: A switchover interrupts a FULL transfer
 
@@ -317,7 +317,7 @@ On PostgreSQL 17 and 18, a Patroni switch while a physical backup is actively tr
 
 ### Requirement: External physical slots respect the selected Patroni ownership mode
 
-On PostgreSQL 17 and 18, a source configured to ignore the exact name and physical type of Databasus's external slot SHALL preserve that slot through Patroni management cycles, including cycles while the consumer is disconnected. Ignoring a slot SHALL NOT establish that its state has been transferred to another node. If a slot is absent or its required WAL has been lost, Databasus SHALL either resume from WAL that remains available under the existing slot recovery policy or expose the broken stream through its existing health diagnostics. Creating a new slot SHALL NOT establish continuity for a missing WAL interval.
+On PostgreSQL 17, 18 and 19, a source configured to ignore the exact name and physical type of Databasus's external slot SHALL preserve that slot through Patroni management cycles, including cycles while the consumer is disconnected. Ignoring a slot SHALL NOT establish that its state has been transferred to another node. If a slot is absent or its required WAL has been lost, Databasus SHALL either resume from WAL that remains available under the existing slot recovery policy or expose the broken stream through its existing health diagnostics. Creating a new slot SHALL NOT establish continuity for a missing WAL interval.
 
 #### Scenario: Patroni ignores an inactive external slot
 
@@ -344,7 +344,7 @@ On PostgreSQL 17 and 18, a source configured to ignore the exact name and physic
 
 ### Requirement: Patroni timeline history is published for the recovery storage
 
-After each Patroni switch on PostgreSQL 17 and 18, Databasus SHALL validate and publish the promoted timeline's history with its catalog entry in the storage used by the chain that continues across the switch. Archive-based recovery that crosses the switch SHALL include and use that history.
+After each Patroni switch on PostgreSQL 17, 18 and 19, Databasus SHALL validate and publish the promoted timeline's history with its catalog entry in the storage used by the chain that continues across the switch. Archive-based recovery that crosses the switch SHALL include and use that history.
 
 #### Scenario: History after the second switchover
 
@@ -517,7 +517,7 @@ Databasus SHALL acquire FULL backups, INCREMENTAL backups, WAL and required time
 
 ### Requirement: WAL reception continues after a failover that lost the former primary's tail
 
-On PostgreSQL 17 and 18, when Databasus archived WAL of the former timeline beyond the fork point's LSN at which the promoted node's history leaves it, WAL reception SHALL resume on the promoted timeline from the fork point without an operator action. The former timeline's WAL beyond the fork point SHALL NOT be treated as the continuation of the line. Archiving SHALL NOT report a gap between the fork point and the promoted timeline's WAL when that WAL is archived.
+On PostgreSQL 17, 18 and 19, when Databasus archived WAL of the former timeline beyond the fork point's LSN at which the promoted node's history leaves it, WAL reception SHALL resume on the promoted timeline from the fork point without an operator action. The former timeline's WAL beyond the fork point SHALL NOT be treated as the continuation of the line. Archiving SHALL NOT report a gap between the fork point and the promoted timeline's WAL when that WAL is archived.
 
 #### Scenario: The standby missed the former primary's last writes
 

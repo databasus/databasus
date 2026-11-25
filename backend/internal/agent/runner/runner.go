@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -35,10 +36,6 @@ const (
 	inContainerArchiveDir = "/tmp"
 )
 
-func getSupportedMajors() []string {
-	return []string{"12", "13", "14", "15", "16", "17", "18"}
-}
-
 type SpawnRequest struct {
 	PgMajor            string
 	CPUPerJob          int
@@ -60,26 +57,30 @@ type Runner struct {
 	heartbeat               Registrar
 	connAlive               func(ctx context.Context, conn dbconn.Conn) bool
 	diagnosticSecrets       []string
+	verifiedPostgresMajors  []string
 	hasRun                  atomic.Bool
 	log                     *slog.Logger
 }
 
 type Deps struct {
 	DiagnosticSecrets []string
-	APIClient         APIClient
-	Capacity          config.Capacity
-	Pool              *Pool
-	Spawner           Spawner
-	Restorer          Restorer
-	StatsCollector    StatsCollector
-	Heartbeat         Registrar
-	Logger            *slog.Logger
-	Group             *background.Group
+	// VerifiedPostgresMajors are the majors this agent release names a restore image for.
+	VerifiedPostgresMajors []string
+	APIClient              APIClient
+	Capacity               config.Capacity
+	Pool                   *Pool
+	Spawner                Spawner
+	Restorer               Restorer
+	StatsCollector         StatsCollector
+	Heartbeat              Registrar
+	Logger                 *slog.Logger
+	Group                  *background.Group
 }
 
 func NewRunner(deps Deps) *Runner {
 	return &Runner{
 		diagnosticSecrets:       slices.Clone(deps.DiagnosticSecrets),
+		verifiedPostgresMajors:  getNumericallySortedMajors(deps.VerifiedPostgresMajors),
 		group:                   deps.Group,
 		diskWatchInterval:       3 * time.Second,
 		backupDownloadBackoffFn: backupDownloadBackoff,
@@ -346,7 +347,7 @@ func (r *Runner) sendReport(
 	}
 }
 
-func pgMajorFromDatabase(db agentclient.AssignedDatabase) (string, error) {
+func (r *Runner) getPgMajor(db agentclient.AssignedDatabase) (string, error) {
 	if db.Type != "POSTGRES_LOGICAL" {
 		return "", fmt.Errorf("unsupported database type %q (v1 is Postgres only)", db.Type)
 	}
@@ -355,11 +356,24 @@ func pgMajorFromDatabase(db agentclient.AssignedDatabase) (string, error) {
 		return "", errors.New("assignment missing postgresql version")
 	}
 
-	if !slices.Contains(getSupportedMajors(), db.PostgresqlLogical.Version) {
-		return "", fmt.Errorf("unsupported postgres major %q", db.PostgresqlLogical.Version)
+	pgMajor := db.PostgresqlLogical.Version
+	if !slices.Contains(r.verifiedPostgresMajors, pgMajor) {
+		return "", &unverifiedPostgresMajorError{major: pgMajor, verifiedMajors: r.verifiedPostgresMajors}
 	}
 
-	return db.PostgresqlLogical.Version, nil
+	return pgMajor, nil
+}
+
+func getNumericallySortedMajors(majors []string) []string {
+	sortedMajors := slices.Clone(majors)
+	slices.SortFunc(sortedMajors, func(firstMajor, secondMajor string) int {
+		firstNumber, _ := strconv.Atoi(firstMajor)
+		secondNumber, _ := strconv.Atoi(secondMajor)
+
+		return firstNumber - secondNumber
+	})
+
+	return sortedMajors
 }
 
 func backupDownloadBackoff(attempt int) time.Duration {

@@ -11,7 +11,7 @@ func (source patroniSource) prepareInheritedConfiguration(t *testing.T, spec Pat
 
 	node := source.Fixture.GetNode(source.Fixture.GetIdentity(t).Node)
 	configurationFile := "/var/lib/postgresql/patroni/postgresql.auto.conf"
-	configuration := "\nrecovery_target_xid '1'\n"
+	configuration := "\nrecovery_target_xid '3'\n"
 	if !spec.ShouldUseExternalConfig && spec.Mode != "backup" {
 		configuration += "hba_file '/source/pg_hba.conf'\nident_file '/source/pg_ident.conf'\n"
 	}

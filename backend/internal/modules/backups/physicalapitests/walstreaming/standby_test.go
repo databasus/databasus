@@ -15,7 +15,7 @@ import (
 func TestPhysicalWalSourceInRecovery(t *testing.T) {
 	t.Parallel()
 
-	for _, version := range []string{"17", "18"} {
+	for _, version := range []string{"17", "18", "19"} {
 		t.Run(
 			"reports unavailable source positions when PostgreSQL "+version+" is replaced by its standby",
 			func(t *testing.T) {

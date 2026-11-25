@@ -78,7 +78,7 @@ export default function Index() {
               "Pemantauan ketersediaan database",
               "Self-hosted melalui Docker",
               "Open source dan gratis",
-              "Mendukung PostgreSQL 12-18",
+              "Mendukung PostgreSQL 12-19",
               "Kompresi backup dan enkripsi AES-256-GCM",
               "Mendukung PostgreSQL, MySQL, MariaDB, dan MongoDB",
               "Kebijakan retensi: jangka waktu, jumlah, GFS, dan batas ukuran",
@@ -712,7 +712,7 @@ export default function Index() {
               </h3>
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">
                 PostgreSQL adalah database utama yang didukung Databasus. Semua versi dari 12 hingga
-                18 didukung
+                19 didukung
               </p>
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">
                 PostgreSQL terkelola juga didukung, termasuk{" "}

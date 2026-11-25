@@ -117,7 +117,7 @@ Databasus melakukan restore sungguhan untuk memastikan backup bisa dipakai, buka
 
 ### 💾 **Database yang didukung**
 
-- **PostgreSQL**: 14, 15, 16, 17 dan 18 (fisik dan logis)
+- **PostgreSQL**: 12 hingga 19 (logis), 17 hingga 19 (fisik)
 - **MySQL**: 5.7, 8.0, 8.4, 9 dan 26 (hanya logis)
 - **MariaDB**: 5.5, 10, 11, 12 dan 13 (hanya logis)
 - **MongoDB**: 4.2+, 5, 6, 7, 8 dan 9 (hanya logis)

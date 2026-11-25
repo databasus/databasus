@@ -45,6 +45,7 @@ func getPostgresqlVersions() []struct {
 		{"PostgreSQL 16", "16", "postgres:16"},
 		{"PostgreSQL 17", "17", "postgres:17"},
 		{"PostgreSQL 18", "18", "postgres:18"},
+		{"PostgreSQL 19", "19", "postgres:19"},
 	}
 }
 

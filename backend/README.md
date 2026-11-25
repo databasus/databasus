@@ -14,9 +14,13 @@ The backend runs under [air](.air.toml), which rebuilds and restarts it when a G
 
 > go run ./cmd/seed_dev
 
-To run tests:
+To run every test, as a person:
 
 > mise run test
+
+To run the tests an OpenSpec change's test plan selects:
+
+> mise run test-change <change>
 
 Before commit:
 

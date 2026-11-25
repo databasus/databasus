@@ -23,6 +23,7 @@ from review_state import Finding
 from reviewer_call import MiseCall, ReviewerCall, is_mise_call, is_reviewer_call
 
 HOOK_PATH = Path(__file__).resolve().parent / "review_gate.py"
+REPOSITORY_ROOT = HOOK_PATH.parent.parent
 CHANGE_NAME = "add-widgets"
 PROPOSAL_NAME = "add-gadgets"
 STUB_NAMES = ("codex", "claude", "openspec", "golangci-lint", "pnpm", "npm", "mise")
@@ -238,6 +239,14 @@ LAUNCHER_PATH = HOOK_PATH.parent / "run.sh"
 LAUNCHER_COMMANDS = ("bash", "mktemp", "tail", "tr", "rm")
 
 
+def make_test_plan(*selection_lines: str, fence: str = "tests") -> str:
+    selection = "".join(f"{line}\n" for line in selection_lines)
+    return f"# Test plan\n\n## Impact\n\n## Not selected\n\n## Selection\n\n```{fence}\n{selection}```\n"
+
+
+DEFAULT_TEST_PLAN = make_test_plan("suite review-hooks")
+
+
 class HookRepository:
     # A missing tool or an isolated PATH takes the machine's PATH away, so a copy installed there
     # stays out of reach; only git is linked in.
@@ -295,6 +304,9 @@ class HookRepository:
         self.git("config", "user.name", "test")
 
         self.write("README.md", "test repository\n")
+        self.write(
+            "scripts/test_plan.py", (REPOSITORY_ROOT / "scripts" / "test_plan.py").read_text()
+        )
         self.write_change(spec_names=("widgets",), tasks="- [x] 1.1 Build\n- [ ] 1.2 Verify\n")
 
         self.git("add", ".")
@@ -314,11 +326,19 @@ class HookRepository:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
 
-    def write_change(self, spec_names: Sequence[str], tasks: str, name: str = CHANGE_NAME) -> None:
+    def write_change(
+        self,
+        spec_names: Sequence[str],
+        tasks: str,
+        name: str = CHANGE_NAME,
+        test_plan: str | None = DEFAULT_TEST_PLAN,
+    ) -> None:
         change_dir = f"openspec/changes/{name}"
         self.write(f"{change_dir}/proposal.md", "# Proposal\n")
         self.write(f"{change_dir}/design.md", "# Design\n")
         self.write(f"{change_dir}/tasks.md", f"# Tasks\n\n{tasks}")
+        if test_plan is not None:
+            self.write(f"{change_dir}/tests.md", test_plan)
         for spec_name in spec_names:
             self.write(f"{change_dir}/specs/{spec_name}/spec.md", f"# {spec_name}\n")
 
@@ -326,14 +346,23 @@ class HookRepository:
         self,
         spec_names: Sequence[str] = ("gadgets",),
         tasks: str = "- [ ] 1.1 Build\n- [ ] 1.2 Verify\n",
+        test_plan: str | None = DEFAULT_TEST_PLAN,
     ) -> None:
-        self.write_change(spec_names=spec_names, tasks=tasks, name=PROPOSAL_NAME)
-
-    def complete_tasks(self, name: str = CHANGE_NAME, verification_section: str = "") -> None:
-        self.write(
-            f"openspec/changes/{name}/tasks.md",
-            f"# Tasks\n\n- [x] 1.1 Build\n- [x] 1.2 Verify\n{verification_section}",
+        self.write_change(
+            spec_names=spec_names, tasks=tasks, name=PROPOSAL_NAME, test_plan=test_plan
         )
+
+    def complete_tasks(
+        self, name: str = CHANGE_NAME, test_plan: str | None = DEFAULT_TEST_PLAN
+    ) -> None:
+        self.write(
+            f"openspec/changes/{name}/tasks.md", "# Tasks\n\n- [x] 1.1 Build\n- [x] 1.2 Verify\n"
+        )
+        test_plan_path = self.root / "openspec" / "changes" / name / "tests.md"
+        if test_plan is None:
+            test_plan_path.unlink(missing_ok=True)
+        else:
+            self.write(f"openspec/changes/{name}/tests.md", test_plan)
 
     def set_reviewer_result(self, result: Mapping[str, object]) -> None:
         if "ok" in result and "findings" in result:
@@ -463,11 +492,6 @@ class HookRepository:
 
 def finding(category: str, summary: str, file: str = "src/widgets.py:10") -> Finding:
     return {"category": category, "file": file, "summary": summary}
-
-
-def verification_section(*lines: str, fence: str = "sh") -> str:
-    body = "".join(f"{line}\n" for line in lines)
-    return f"\n## Change verification\n\n```{fence}\n{body}```\n"
 
 
 def is_process_gone(pid: int) -> bool:
@@ -1153,150 +1177,51 @@ class FullReviewBudgetTest(unittest.TestCase):
                     self.assertLess(review_gate.FULL_REVIEW_BUDGET_SECONDS, timeout_seconds, gate)
 
 
-class ChangeVerificationParsingTest(unittest.TestCase):
+class TestPlanCheckTest(unittest.TestCase):
     def setUp(self) -> None:
-        temporary_dir = tempfile.TemporaryDirectory(prefix="review-gate-verification-test-")
+        temporary_dir = tempfile.TemporaryDirectory(prefix="review-gate-test-plan-test-")
         self.addCleanup(temporary_dir.cleanup)
         self.change_dir = Path(temporary_dir.name) / CHANGE_NAME
         self.change_dir.mkdir()
 
-    def parse(self, section: str) -> list[review_gate.Check]:
-        (self.change_dir / "tasks.md").write_text(f"# Tasks\n\n- [x] 1.1 Build\n{section}")
-        return review_gate.parse_change_verification(self.change_dir)
+    def check(self, test_plan: str) -> None:
+        (self.change_dir / "tests.md").write_text(test_plan)
+        review_gate.check_test_plan(REPOSITORY_ROOT, self.change_dir)
 
-    def assert_rejected(self, section: str, reason: str) -> None:
-        with self.assertRaises(review_gate.ChangeVerificationError) as context:
-            self.parse(section)
+    def assert_rejected(self, test_plan: str | None, reason: str) -> None:
+        with self.assertRaises(review_gate.TestPlanError) as context:
+            if test_plan is None:
+                review_gate.check_test_plan(REPOSITORY_ROOT, self.change_dir)
+            else:
+                self.check(test_plan)
         message = str(context.exception)
+        self.assertIn(f"The test plan of `{CHANGE_NAME}` is not valid", message)
         self.assertIn(reason, message)
-        self.assertIn(f"`{CHANGE_NAME}/tasks.md`", message)
-        self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, message)
+        self.assertIn("Allowed selectors", message)
 
-    def test_accepts_the_full_run_without_execution(self) -> None:
-        with mock.patch.object(
-            review_gate.subprocess, "run", side_effect=AssertionError("must not run")
-        ):
-            checks = self.parse(verification_section("mise run test"))
-        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "test"))])
-
-    def test_rejects_removed_narrow_commands(self) -> None:
-        commands = (
-            "mise run backend:test-package ./internal/features/intervals/...",
-            "mise run backend:test-group physical-api-1-of-3",
-            "mise run agent:test",
-            "pnpm --dir frontend test",
-            "mise run test-filesystem",
-        )
-        for command in commands:
-            with self.subTest(command=command):
-                self.assert_rejected(
-                    verification_section(command), f"`{command}` is not an allowed command"
-                )
-
-    def test_rejects_old_just_form(self) -> None:
-        self.assert_rejected(
-            verification_section("just test-package ./internal/features/intervals/..."),
-            "`just test-package ./internal/features/intervals/...` is not an allowed command",
-        )
-
-    def test_rejects_shell_operator_after_the_full_run(self) -> None:
-        self.assert_rejected(
-            verification_section("mise run test && rm -rf /tmp/x"),
-            "`mise run test && rm -rf /tmp/x` does not match the form `mise run test`",
-        )
-
-    def test_rejects_arguments_after_the_full_run(self) -> None:
-        self.assert_rejected(
-            verification_section("mise run test ./x"), "does not match the form `mise run test`"
-        )
-
-    def test_rejects_shell_substitution_in_the_full_run(self) -> None:
-        self.assert_rejected(
-            verification_section("mise run test;rm"), "`mise run test;rm` is not an allowed command"
-        )
-
-    def test_accepts_exact_isolated_browser_form_without_execution(self) -> None:
-        with mock.patch.object(
-            review_gate.subprocess, "run", side_effect=AssertionError("must not run")
-        ):
-            checks = self.parse(
-                verification_section("pnpm --dir frontend test:browser --project=ui")
-            )
-        self.assertEqual(
-            checks,
-            [review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=ui"))],
-        )
-
-    def test_accepts_exact_browser_suite_form_without_execution(self) -> None:
-        with mock.patch.object(
-            review_gate.subprocess, "run", side_effect=AssertionError("must not run")
-        ):
-            checks = self.parse(verification_section("mise run e2e:browser"))
-        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "e2e:browser"))])
-
-    def test_rejects_unbounded_browser_forms_and_shell_arguments(self) -> None:
-        commands = (
-            "pnpm --dir frontend test:browser",
-            "pnpm --dir frontend test:browser --project=other",
-            "pnpm --dir frontend test:browser --project ui",
-            "pnpm --dir frontend test:browser --project=ui --headed",
-            "pnpm --dir frontend test:browser --project=e2e",
-            "mise run e2e",
-            "mise run test-full",
-            "mise run e2e:browser --headed",
-            "mise run e2e:browser;touch",
-            "mise run e2e:browser ./x",
-            "pnpm --dir frontend arbitrary-script --project=ui",
-            "pnpm --dir frontend test:browser --project=ui;touch",
-            "pnpm --dir frontend test:browser --project=ui && touch /tmp/x",
-            "pnpm --dir frontend test:browser --project=$(touch)",
-        )
-        for command in commands:
-            with self.subTest(command=command):
-                with self.assertRaises(review_gate.ChangeVerificationError):
-                    self.parse(verification_section(command))
-
-    def test_accepts_every_allowed_form_and_skips_empty_and_comment_lines(self) -> None:
-        checks = self.parse(
-            verification_section(
-                "# everything",
-                "mise run test",
-                "",
-                "pnpm --dir frontend test:browser --project=ui",
-                "mise run e2e:browser",
+    def test_accepts_selectors_and_none(self) -> None:
+        self.check(
+            make_test_plan(
+                "backend ./internal/modules/notifiers/...",
+                "frontend src/features/edit-notifier -t 'shows the error'",
+                "suite e2e-browser",
             )
         )
+        self.check(make_test_plan("none"))
 
-        self.assertEqual(
-            checks,
-            [
-                review_gate.Check(".", ("mise", "run", "test")),
-                review_gate.Check(
-                    ".", ("pnpm", "--dir", "frontend", "test:browser", "--project=ui")
-                ),
-                review_gate.Check(".", ("mise", "run", "e2e:browser")),
-            ],
-        )
+    def test_rejects_a_missing_plan(self) -> None:
+        self.assert_rejected(None, "the change has no test plan")
 
-    def test_rejects_section_with_only_bash_fenced_block(self) -> None:
-        self.assert_rejected(
-            verification_section("mise run test", fence="bash"),
-            "the section has no ```sh code block",
-        )
+    def test_rejects_a_selection_of_the_whole_test_set(self) -> None:
+        self.assert_rejected(make_test_plan("backend ./..."), "selects the whole test set")
 
-    def test_rejects_unclosed_block(self) -> None:
-        self.assert_rejected(
-            "\n## Change verification\n\n```sh\nmise run test\n",
-            "the ```sh code block is not closed",
-        )
+    def test_rejects_commands_without_running_them(self) -> None:
+        marker = self.change_dir / "ran"
+        self.assert_rejected(make_test_plan(f"mise run test && touch {marker}"), "never commands")
+        self.assertFalse(marker.exists())
 
-    def test_rejects_block_without_commands(self) -> None:
-        self.assert_rejected(
-            verification_section("# nothing yet", ""), "the ```sh code block holds no command"
-        )
-
-    def test_returns_no_commands_without_section(self) -> None:
-        self.assertEqual(self.parse(""), [])
+    def test_rejects_a_selection_fenced_as_shell(self) -> None:
+        self.assert_rejected(make_test_plan("suite scripts", fence="sh"), "has no selection")
 
 
 class PlanGateTest(unittest.TestCase):
@@ -1767,9 +1692,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
         repository.set_stub("golangci-lint", {"exit_code": 1, "output": "must not run"})
         repository.complete_tasks(
-            verification_section=verification_section(
-                "mise run test", "pnpm --dir frontend test:browser --project=ui"
-            )
+            test_plan=make_test_plan("backend ./internal/features/widgets", "suite browser-ui")
         )
 
         response = repository.stop("implementation")
@@ -1778,11 +1701,11 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
         self.assertEqual(repository.check_calls(), [])
         self.assertEqual(len(repository.reviewer_calls()), 4)
 
-    def test_starts_reviewers_without_checks_when_change_has_no_verification_section(self) -> None:
+    def test_starts_reviewers_without_checks_when_the_plan_selects_nothing(self) -> None:
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
-        repository.complete_tasks()
+        repository.complete_tasks(test_plan=make_test_plan("none"))
 
         response = repository.stop("implementation")
 
@@ -1790,14 +1713,15 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
         self.assertEqual(repository.check_calls(), [])
         self.assertEqual(len(repository.reviewer_calls()), 4)
 
-    def test_runs_no_shared_verification_command_when_two_changes_name_it(self) -> None:
+    def test_runs_no_selected_test_when_two_changes_select_the_same_suite(self) -> None:
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
-        repository.complete_tasks(verification_section=verification_section("mise run test"))
+        repository.complete_tasks(test_plan=make_test_plan("suite scripts"))
         repository.write_change(
             spec_names=("gizmos",),
-            tasks="- [x] 1.1 Build\n" + verification_section("mise run test"),
+            tasks="- [x] 1.1 Build\n",
             name="add-gizmos",
+            test_plan=make_test_plan("suite scripts"),
         )
 
         response = repository.stop("implementation")
@@ -1806,17 +1730,28 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
         self.assertEqual(repository.check_calls(), [])
         self.assertEqual(len(repository.reviewer_calls()), 8)
 
-    def test_blocks_turn_before_reviewers_when_verification_section_is_malformed(self) -> None:
+    def test_blocks_turn_before_reviewers_when_the_test_plan_is_malformed(self) -> None:
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
-        repository.complete_tasks(verification_section=verification_section("mise run agent:test"))
+        repository.complete_tasks(test_plan=make_test_plan("mise run agent:test"))
 
         response = repository.stop("implementation")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`mise run agent:test` is not an allowed command", response["reason"])
-        self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, response["reason"])
+        self.assertIn("`mise run agent:test` is not a selector", response["reason"])
+        self.assertIn("Allowed selectors", response["reason"])
         self.assertEqual(repository.check_calls(), [])
+        self.assertEqual(repository.reviewer_calls(), [])
+
+    def test_blocks_turn_before_reviewers_when_the_change_has_no_test_plan(self) -> None:
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
+        repository.complete_tasks(test_plan=None)
+
+        response = repository.stop("implementation")
+
+        self.assertEqual(response["decision"], "block")
+        self.assertIn("the change has no test plan", response["reason"])
         self.assertEqual(repository.reviewer_calls(), [])
 
     def test_runs_no_hook_tests_when_change_touches_hooks(self) -> None:
@@ -1970,50 +1905,21 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
             tests_role,
         )
         self.assertIn("waits for a condition up to a limit instead of a fixed pause", tests_role)
-        self.assertIn(
-            "Select verification commands according to the scope rule in `AGENTS.md` and `docs/testing.md#checking-work`.",
-            tests_role,
-        )
-        self.assertIn(
-            "For a small, localized change, accept targeted package or screen tests named in the task's own verification",
-            tests_role,
-        )
-        self.assertIn(
-            "Do not require `mise run test` solely because ordinary tests were added or changed.",
-            tests_role,
-        )
-        self.assertIn(
-            "When the scope rule requires `mise run test`, the change names it in its `## Change verification` section.",
-            tests_role,
-        )
-        self.assertIn(
-            "A task that changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests in its own verification.",
-            tests_role,
-        )
-        self.assertIn(
-            "No section or task verification runs `mise run test-full`, which agents run only on the user's direct request.",
-            tests_role,
-        )
-        self.assertIn(
-            "A verification that runs `mise run test-full` is a `missing_test` finding that asks for the specific commands instead.",
-            tests_role,
-        )
-        self.assertIn(
-            "Naming `mise run test-full` as something a task adds or edits, with a verification that runs another command, is never a finding.",
-            tests_role,
-        )
-        self.assertIn("and so is a task that leaves out its own command.", tests_role)
-        self.assertIn(
-            "a change that adds or changes scenarios of the browser end-to-end suite in `e2e/browser/scenarios` also names `mise run e2e:browser` there",
-            tests_role,
-        )
-        self.assertIn(
-            "A section that leaves out the command it owes is a `missing_test` finding", tests_role
-        )
-        self.assertIn(
-            "such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead",
-            tests_role,
-        )
+        for sentence in (
+            "Check the test plan in `tests.md` against",
+            'by the rules of the "Test plans" section of `docs/testing.md`.',
+            "Every backend package, frontend test file and suite the",
+            "otherwise the oldest and the newest supported version.",
+            "A change to browser end-to-end scenarios selects `suite e2e-browser`",
+            "A change to the verification agent selects `backend ./internal/agent/e2e/...`",
+            "a change to `.agent-hooks/` `suite review-hooks`",
+            "Each gap is a `missing_test` finding that names the area, package or selector.",
+            "A task verification that runs `mise run test`, which only a person runs, or the Go test command over the whole backend module is a `missing_test` finding that asks for the specific tests instead.",
+            "Naming `mise run test` as something a task adds or edits, with a verification that runs another command, is never a finding.",
+        ):
+            self.assertIn(sentence, tests_role)
+        for removed in ("Change verification", "test-full", "scope rule"):
+            self.assertNotIn(removed, tests_role)
 
     def test_blocks_turn_with_budget_reason_when_third_wave_of_reviewers_does_not_fit(self) -> None:
         repository = HookRepository(self)
@@ -2279,10 +2185,7 @@ class ManualReviewTest(unittest.TestCase):
         for name in ("golangci-lint", "pnpm", "npm", "mise"):
             repository.set_stub(name, {"exit_code": 1, "output": "must not run"})
         repository.complete_tasks(
-            verification_section=verification_section(
-                "mise run test",
-                "mise run e2e:browser",
-            )
+            test_plan=make_test_plan("backend ./internal/features/widgets", "suite e2e-browser")
         )
 
         process = self.run_review(repository)
@@ -2696,28 +2599,39 @@ class ProposalGateValidationTest(unittest.TestCase):
         self.assertIn("must include at least one scenario", response["reason"])
         self.assertEqual(repository.reviewer_calls(), [])
 
-    def test_blocks_turn_without_running_command_when_verification_section_has_forbidden_command(
+    def test_blocks_turn_without_running_command_when_the_test_plan_holds_a_command(
         self,
     ) -> None:
         repository = HookRepository(self)
         repository.submit_prompt("Write a spec")
         repository.write_proposal(
-            tasks="- [ ] 1.1 Build\n"
-            + verification_section("mise run backend:test-package ./internal/lib/...")
+            test_plan=make_test_plan("mise run backend:test-package ./internal/lib/...")
         )
 
         response = repository.stop("proposal")
 
         self.assertEqual(response["decision"], "block")
         self.assertIn(
-            "`mise run backend:test-package ./internal/lib/...` is not an allowed command",
+            "`mise run backend:test-package ./internal/lib/...` is not a selector",
             response["reason"],
         )
-        self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, response["reason"])
+        self.assertIn("Allowed selectors", response["reason"])
         self.assertEqual(repository.calls("mise"), [])
         self.assertEqual(
             [call["arguments"][0] for call in repository.calls("openspec")], ["status"]
         )
+        self.assertEqual(repository.reviewer_calls(), [])
+
+    def test_blocks_a_complete_proposal_without_a_test_plan_before_reviewers(self) -> None:
+        repository = HookRepository(self)
+        repository.submit_prompt("Write a spec")
+        repository.write_proposal(test_plan=None)
+
+        response = repository.stop("proposal")
+
+        self.assertEqual(response["decision"], "block")
+        self.assertIn("the change has no test plan", response["reason"])
+        self.assertEqual(repository.calls("mise"), [])
         self.assertEqual(repository.reviewer_calls(), [])
 
 
@@ -2845,7 +2759,7 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         )
         self.assertIn("the task order can be followed", call["prompt"])
 
-    def test_tasks_reviewer_prompt_requires_verification_section_for_tested_packages_except_hook_tests(
+    def test_tasks_reviewer_prompt_checks_the_test_plan_against_the_design_and_tasks(
         self,
     ) -> None:
         repository = HookRepository(self)
@@ -2862,54 +2776,21 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
             prompt.index("### Role: tasks") : prompt.index("### Role: repeat review")
         ]
 
-        self.assertIn(
-            "Select verification commands according to the scope rule in `AGENTS.md` and `docs/testing.md#checking-work`.",
-            tasks_role,
-        )
-        self.assertIn(
-            "For a small, localized change, accept targeted package or screen tests named in the task's own verification",
-            tasks_role,
-        )
-        self.assertIn(
-            "Do not require `mise run test` solely because ordinary tests were added or changed.",
-            tasks_role,
-        )
-        self.assertIn(
-            "When the scope rule requires `mise run test`, the change has a `## Change verification` section that names it.",
-            tasks_role,
-        )
-        self.assertIn(
-            "Running `mise run test` in a task or in the section is never a finding.", tasks_role
-        )
-        self.assertIn(
-            "a section that leaves out the command it owes, is a `tasks` finding that asks for it",
-            tasks_role,
-        )
-        self.assertIn(
-            "A task that changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests in its own verification.",
-            tasks_role,
-        )
-        self.assertIn(
-            "No section or task verification runs `mise run test-full`, which agents run only on the user's direct request.",
-            tasks_role,
-        )
-        self.assertIn(
-            "A verification that runs `mise run test-full` is a `tasks` finding that asks for the specific commands instead.",
-            tasks_role,
-        )
-        self.assertIn(
-            "Naming `mise run test-full` as something a task adds or edits, with a verification that runs another command, is never a finding.",
-            tasks_role,
-        )
-        self.assertIn("and so is a task that leaves out its own command.", tasks_role)
-        self.assertIn(
-            "a change adding or changing scenarios of the browser end-to-end suite in `e2e/browser/scenarios` also names `mise run e2e:browser` there",
-            tasks_role,
-        )
-        self.assertIn(
-            "such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead",
-            tasks_role,
-        )
+        for sentence in (
+            "Check the test plan in `tests.md` against",
+            'by the rules of the "Test plans" section of `docs/testing.md`.',
+            "Every backend package, frontend test file and suite the",
+            "otherwise the oldest and the newest supported version.",
+            "A change to browser end-to-end scenarios selects `suite e2e-browser`",
+            "A change to the verification agent selects `backend ./internal/agent/e2e/...`",
+            "a change to `.agent-hooks/` `suite review-hooks`",
+            "Each gap is a `tasks` finding that names the area, package or selector.",
+            "A task verification that runs `mise run test`, which only a person runs, or the Go test command over the whole backend module is a `tasks` finding that asks for the specific tests instead.",
+            "Naming `mise run test` as something a task adds or edits, with a verification that runs another command, is never a finding.",
+        ):
+            self.assertIn(sentence, tasks_role)
+        for removed in ("Change verification", "test-full", "scope rule"):
+            self.assertNotIn(removed, tasks_role)
 
     def test_blocks_turn_with_budget_reason_when_third_wave_of_reviewers_does_not_fit(self) -> None:
         repository = HookRepository(self)

@@ -63,6 +63,19 @@ func TestDump(t *testing.T) {
 		assert.Equal(t, []string{"-Z", "5"}, pgDump.GetLastArgs(t)[len(pgDump.GetLastArgs(t))-2:])
 	})
 
+	for _, version := range []pgshared.Version{pgshared.Version17, pgshared.Version18} {
+		t.Run("compresses with zstd on PostgreSQL "+string(version), func(t *testing.T) {
+			t.Parallel()
+			clientTools := pgshared.ClientTools{Root: t.TempDir()}
+			pgDump := writeStubTool(t, clientTools, version, pgshared.ExecutablePgDump, toolstub.Spec{})
+
+			err := newStubSource("orders").Dump(t.Context(), newStubDumpSpec(clientTools, version), &bytes.Buffer{})
+
+			require.NoError(t, err)
+			assert.Equal(t, "--compress=zstd:5", pgDump.GetLastArgs(t)[len(pgDump.GetLastArgs(t))-1])
+		})
+	}
+
 	t.Run("points at the password file when the server asks for a password pg_dump lacks", func(t *testing.T) {
 		t.Parallel()
 		clientTools := pgshared.ClientTools{Root: t.TempDir()}

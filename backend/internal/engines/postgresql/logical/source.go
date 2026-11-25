@@ -4,16 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"regexp"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 )
-
-// Some builds omit the minor version: "PostgreSQL 16 maintained by ...".
-var versionPattern = regexp.MustCompile(`PostgreSQL (\d+)`)
 
 // Source is the engine's handle on one logical PostgreSQL database.
 type Source struct {
@@ -114,17 +110,7 @@ func detectVersion(ctx context.Context, conn *pgx.Conn) (pgshared.Version, error
 		return "", fmt.Errorf("failed to query database version: %w", err)
 	}
 
-	matches := versionPattern.FindStringSubmatch(versionText)
-	if len(matches) < 2 {
-		return "", fmt.Errorf("%w from: %s", ErrUnreadableVersion, versionText)
-	}
-
-	switch majorVersion := matches[1]; majorVersion {
-	case "12", "13", "14", "15", "16", "17", "18":
-		return pgshared.Version(majorVersion), nil
-	default:
-		return "", fmt.Errorf("%w: %s", ErrUnsupportedVersion, majorVersion)
-	}
+	return parseVersion(versionText)
 }
 
 func closeConn(ctx context.Context, conn *pgx.Conn, logger *slog.Logger) {

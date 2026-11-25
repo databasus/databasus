@@ -4,7 +4,4 @@
 #MISE dir="backend"
 set -euo pipefail
 
-# shellcheck source=scripts/fedora.sh
-source ../scripts/fedora.sh
-apply_libedit_shim
 TESTCONTAINERS_RYUK_DISABLED=true go test ${CI:+-race} -count=1 -timeout 30m ./internal/agent/e2e/...

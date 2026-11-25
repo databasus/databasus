@@ -9,15 +9,16 @@ or the Kubernetes API to choose a primary.
 ## The address Databasus connects to
 
 The address must route SQL and replication connections to the current primary.
-CNPG's `<cluster>-rw` Kubernetes Service does that: it selects the pods labelled
-`cnpg.io/cluster=<cluster>` and `cnpg.io/instanceRole=primary`, and the CNPG
+CNPG's `<cluster>-rw` Kubernetes Service does that. It selects the pods labelled
+`cnpg.io/cluster=<cluster>` and `cnpg.io/instanceRole=primary`. The CNPG
 operator moves that label when the primary changes.
 
 - **Databasus inside the Kubernetes cluster.** Use the `-rw` Kubernetes Service,
   for example `<cluster>-rw.<namespace>.svc` on port 5432.
 - **Databasus outside the Kubernetes cluster.** Expose a Kubernetes Service with
-  the same selector. The verified setup uses a NodePort Kubernetes Service, and
-  Databasus connects to a node address and the allocated node port:
+  the same selector. The verified setup uses a NodePort Kubernetes Service,
+  which opens one port on every Kubernetes node. Databasus connects to a node
+  address and the allocated node port:
 
 ```yaml
 apiVersion: v1
@@ -38,14 +39,15 @@ spec:
 ```
 
 Never point Databasus at a single pod or at the `-r` or `-ro` Kubernetes
-Services: they do not follow the primary.
+Services, because they do not follow the primary.
 
 ## The backup role
 
 Declare Databasus's role in the `Cluster` manifest instead of creating it
 through Databasus. CNPG's superuser access can stay disabled, because Databasus
-needs no administrative role. The role logs in with replication rights and
-belongs to a `NOLOGIN` group that may force a WAL segment switch:
+needs no administrative role. The role logs in with replication rights. It
+belongs to a `NOLOGIN` group, which cannot log in itself. The group may force a
+WAL segment switch:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -91,19 +93,28 @@ spec:
 ```
 
 The secret named in `passwordSecret` is a `kubernetes.io/basic-auth` secret with
-the role's `username` and `password`. The grant goes to the group because the
-bootstrap SQL runs before CNPG creates the managed role. A function
-grant belongs to one database: `postInitSQL` runs in the `postgres` database and
-`postInitApplicationSQL` in the application database, so the example grants
-`pg_switch_wal()` in both. Make the grant at least in the database Databasus
-connects to. CNPG runs these statements only when it creates the cluster; on an
-existing cluster, run them once yourself.
+the role's `username` and `password`.
 
-The HBA rules reject the role on any connection without TLS and accept it over
-TLS with SCRAM authentication. The role cannot read server files or ordinary
-application tables, and its privileges replicate with the PostgreSQL catalog,
-so they stay the same after a promotion. Databasus's readiness check reports the
-missing `pg_switch_wal()` grant if the role lacks it.
+The grant goes to the group because the bootstrap SQL runs before CNPG creates
+the managed role. A function grant belongs to one database:
+
+- `postInitSQL` runs in the `postgres` database.
+- `postInitApplicationSQL` runs in the application database.
+
+The example therefore grants `pg_switch_wal()` in both. Make the grant at least
+in the database Databasus connects to.
+
+CNPG runs these statements only when it creates the cluster. On an existing
+cluster, run them once yourself.
+
+The HBA rules decide which clients PostgreSQL accepts and how they
+authenticate. They reject the role on any connection without TLS and accept it
+over TLS with SCRAM authentication.
+
+The role cannot read server files or ordinary application tables. Its
+privileges replicate with the PostgreSQL catalog, so they stay the same after a
+promotion. Databasus's readiness check reports the missing `pg_switch_wal()`
+grant if the role lacks it.
 
 Add the address as a PostgreSQL physical database in Databasus with that role's
 credentials.
@@ -115,13 +126,16 @@ certificate verified. Set the database's SSL mode to `verify-full` and give
 Databasus the certificate authority that issued the server certificate.
 
 With `verify-full`, the server certificate must name the address Databasus
-connects to: the `-rw` Kubernetes Service name for a client inside the
-Kubernetes cluster, or the node address or host name for a client outside it.
+connects to:
+
+- For a client inside the Kubernetes cluster, the `-rw` Kubernetes Service name.
+- For a client outside it, the node address or host name.
+
 CNPG's generated server certificates name only the in-cluster Kubernetes Service
 names. The verified setup supplies its own certificate authority and server
 certificate through `certificates.serverCASecret` and
-`certificates.serverTLSSecret`, and the certificate names both the in-cluster
-names and the address Databasus uses.
+`certificates.serverTLSSecret`. That certificate names both the in-cluster names
+and the address Databasus uses.
 
 Databasus refuses connections if the server certificate has an untrusted issuer
 or does not name the address. Backups and WAL reception then fail.
@@ -135,7 +149,7 @@ Physical incremental backups need data checksums and WAL summaries. Set
 
 CNPG replicates asynchronously unless you configure synchronous replication. A
 successful client commit alone does not prove that the standby has received
-it, and data not replayed on the promoted standby can be lost when the primary
+it. Data not replayed on the promoted standby can be lost when the primary
 changes.
 
 ## Databasus's replication slot
@@ -166,7 +180,7 @@ Keep synchronization enabled and make sure no exclusion pattern matches the
 saved slot name.
 
 `wal_keep_size` makes every PostgreSQL node keep at least that much WAL
-regardless of slots, which leaves more WAL available to a recreated slot after
+regardless of slots. That leaves more WAL available to a recreated slot after
 promotion. CNPG's default is 512 MB. It does not replace the slot.
 
 A recreated slot protects future WAL but cannot recover segments recycled before
@@ -175,22 +189,29 @@ even after a new slot or a later full backup.
 
 ## Backup chains and recovery
 
-A switchover or failover starts a new PostgreSQL timeline. WAL reception
-reconnects through the same address and archives the new timeline's history.
-The next incremental backup continues the existing chain on the new timeline,
-which matters for CNPG because a rolling update switches the primary. That
-needs `summarize_wal = on` on every PostgreSQL node; without WAL summaries on
-the promoted node, Databasus records the incremental as `CHAIN_BROKEN` /
-`TIMELINE_SWITCH_DETECTED` and requests one replacement full backup.
+A switchover or failover starts a new PostgreSQL timeline, a new branch of the
+WAL history. WAL reception reconnects through the same address and archives the
+new timeline's history.
 
-An incremental interrupted by a switch ends with `ERROR` /
-`FAILOVER_DURING_BACKUP` and gets no immediate replacement; an interrupted full
-backup gets one. If the source address remains unavailable when an interrupted
-backup fails, the next backup waits for its schedule.
+The next incremental backup continues the existing chain on the new timeline.
+This matters for CNPG because a rolling update switches the primary. The
+continuation needs `summarize_wal = on` on every PostgreSQL node. Without WAL
+summaries on the promoted node, Databasus records the incremental as
+`CHAIN_BROKEN` / `TIMELINE_SWITCH_DETECTED` and requests one replacement full
+backup.
+
+A switch can interrupt a running backup:
+
+- An interrupted incremental ends with `ERROR` / `FAILOVER_DURING_BACKUP` and
+  gets no immediate replacement.
+- An interrupted full backup gets one.
+
+If the source address remains unavailable when an interrupted backup fails, the
+next backup waits for its schedule.
 
 A target after the promotion restores from the chain across the fork point once
-the new timeline's history is published, also before any backup completes on
-the new timeline. [Physical backup
+the new timeline's history is published. This works even before any backup
+completes on the new timeline. [Physical backup
 operations](../openspec/specs/physical-backups/operations/spec.md) define the
 exact coverage and failure behavior, including the reported errors.
 
@@ -203,8 +224,8 @@ cluster or the former archive.
 Start the restored data directory with PostgreSQL of the same major version,
 for example the official `postgres:17` or `postgres:18` image. CNPG's images
 have no entrypoint that starts PostgreSQL without CNPG's instance manager.
-Keep the source and recovery environments' C library collations compatible;
-the verified setup uses the same Debian release for both.
+Keep the source and recovery environments' C library collations compatible.
+The verified setup uses the same Debian release for both.
 
 The recovery script prepares the copied configuration for the target location.
 The restored server uses the copied authentication rules.
@@ -221,9 +242,9 @@ unix_socket_directories = '/controller/run'
 log_directory = '/controller/log'
 ```
 
-Resolve the reported paths before starting the restored server.
-Give each a value for that host in `postgresql.auto.conf` inside the restored
-data directory, which overrides the copied files:
+Resolve the reported paths before starting the restored server. Give each a
+value for that host in `postgresql.auto.conf` inside the restored data
+directory. That file overrides the copied files:
 
 ```text
 ssl = off
@@ -232,8 +253,8 @@ log_directory = 'log'
 ```
 
 Instead of `ssl = off`, you can point the TLS settings at the target host's own
-certificates. With TLS off, the copied `hostssl` rules match no connection, so
-review the restored `pg_hba.conf` and choose the target's own access policy.
+certificates. With TLS off, the copied `hostssl` rules match no connection.
+Review the restored `pg_hba.conf` and choose the target's own access policy.
 None of this changes the source's TLS or access rules.
 
 ## Verified environment
@@ -241,10 +262,16 @@ None of this changes the source's TLS or access rules.
 Verification uses single-node k3s on rootful Docker on Linux, with the primary
 exposed through a NodePort Kubernetes Service. The [fixture
 README](../backend/internal/lib/testcontainers/testdata/cnpg/README.md) records
-the pinned versions; [testing guidance](testing.md#cloudnativepg-physical-backup-tests)
+the pinned versions. The [testing guidance](testing.md#cloudnativepg-physical-backup-tests)
 gives the command and prerequisites.
 
-These results do not establish the behavior of other Kubernetes distributions,
-managed Kubernetes services, multi-node or multi-zone clusters, network
-partitions, CNPG's own backup integrations, replica clusters, poolers or other
-CNPG configuration variants.
+These results do not establish the behavior of:
+
+- other Kubernetes distributions
+- managed Kubernetes services
+- multi-node or multi-zone clusters
+- network partitions
+- CNPG's own backup integrations
+- replica clusters
+- poolers
+- other CNPG configuration variants

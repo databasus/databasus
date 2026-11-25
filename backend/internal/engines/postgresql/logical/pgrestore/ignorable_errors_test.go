@@ -149,6 +149,23 @@ func TestHasOnlyIgnorableErrorsForVerification(t *testing.T) {
 
 		assert.True(t, hasOnlyVerificationIgnorableErrors(missingAuxExtensionsStderr))
 	})
+	t.Run("returns true when the PostgreSQL 19 image lacks rum", func(t *testing.T) {
+		t.Parallel()
+
+		missingRumStderr := `pg_restore: error: could not execute query: ERROR:  extension "rum" is not available
+HINT:  The extension must first be installed on the system where PostgreSQL is running.
+Command was: CREATE EXTENSION IF NOT EXISTS rum WITH SCHEMA public;
+
+
+pg_restore: error: could not execute query: ERROR:  extension "rum" does not exist
+Command was: COMMENT ON EXTENSION rum IS 'RUM index access method';
+
+
+pg_restore: warning: errors ignored on restore: 2
+`
+
+		assert.True(t, hasOnlyVerificationIgnorableErrors(missingRumStderr))
+	})
 	t.Run("returns false when cascade data errors are present", func(t *testing.T) {
 		t.Parallel()
 

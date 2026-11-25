@@ -116,7 +116,7 @@ Databasus effectue une vraie restauration pour confirmer que les sauvegardes son
 
 ### 💾 **Bases de données prises en charge**
 
-- **PostgreSQL** : 14, 15, 16, 17 et 18 (physique et logique)
+- **PostgreSQL** : de 12 à 19 (logique), de 17 à 19 (physique)
 - **MySQL** : 5.7, 8.0, 8.4, 9 et 26 (logique uniquement)
 - **MariaDB** : 5.5, 10, 11, 12 et 13 (logique uniquement)
 - **MongoDB** : 4.2+, 5, 6, 7, 8 et 9 (logique uniquement)

@@ -115,12 +115,20 @@ func (c *fakeContainer) Terminate(context.Context) error {
 	return nil
 }
 
+// getTestVerifiedPostgresMajors deliberately lists 18 before 16, so a test sees the runner sort them.
+func getTestVerifiedPostgresMajors() []string {
+	return []string{"18", "16", "17"}
+}
+
 type fakeSpawner struct {
-	container JobContainer
-	err       error
+	container  JobContainer
+	err        error
+	spawnCount atomic.Int32
 }
 
 func (s *fakeSpawner) Spawn(_ context.Context, _ SpawnRequest) (JobContainer, error) {
+	s.spawnCount.Add(1)
+
 	if s.err != nil {
 		return nil, s.err
 	}

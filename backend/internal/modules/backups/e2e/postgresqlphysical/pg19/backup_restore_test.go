@@ -1,0 +1,138 @@
+package pg19_test
+
+import (
+	"testing"
+
+	"databasus-backend/internal/app/apptest/physicaltest"
+)
+
+func TestRestorePhysicalBackupChain(t *testing.T) {
+	t.Parallel()
+
+	t.Run(
+		"recovers rows written before the full backup with only a full backup",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunFullOnly(t, "postgres:19")
+		},
+	)
+	t.Run(
+		"recovers rows of every backup with a full backup and two incrementals",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunFullAndIncrementals(t, "postgres:19")
+		},
+	)
+}
+
+func TestRestorePhysicalBackupToTargetTime(t *testing.T) {
+	t.Parallel()
+
+	t.Run(
+		"recovers rows up to the target and drops later ones with streamed wal",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunTargetTime(t, "postgres:19")
+		},
+	)
+	t.Run(
+		"returns 409 target_time_unreachable for the restore token when a wal gap lies before the target",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunWalGap(t, "postgres:19")
+		},
+	)
+	t.Run(
+		"keeps a target past the full backup restorable after the orphan sweep",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunOrphanSweep(t, "postgres:19")
+		},
+	)
+}
+
+func TestRestorePhysicalBackupOnHost(t *testing.T) {
+	t.Parallel()
+
+	t.Run(
+		"serves the restored rows through the image entrypoint after a host restore",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunHostRestore(t, "postgres:19")
+		},
+	)
+	t.Run(
+		"replays to the target through the image entrypoint after a host restore",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunHostTargetTime(t, "postgres:19")
+		},
+	)
+	t.Run(
+		"refuses to restore when the output directory holds a postgresql directory",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunMisaimedDirectory(t, "postgres:19")
+		},
+	)
+}
+
+func TestPhysicalBackupAfterPromotion(t *testing.T) {
+	t.Parallel()
+
+	t.Run(
+		"catalogs the new timeline history on the database after the standby is promoted",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunTimelineHistory(t, "postgres:19")
+		},
+	)
+	t.Run(
+		"continues the chain on the new timeline and restores across the promotion",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunPromotionContinuesChain(t, "postgres:19")
+		},
+	)
+	t.Run(
+		"resumes reception at the fork point when the standby missed the former primary's tail",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunPromotionAfterLostTail(t, "postgres:19")
+		},
+	)
+	t.Run(
+		"replaces the chain once when the promoted standby has no wal summaries",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunPromotionWithoutSummaries(t, "postgres:19")
+		},
+	)
+}
+
+func TestPhysicalBackupReplicationSlot(t *testing.T) {
+	t.Parallel()
+
+	t.Run(
+		"creates the slot when wal streaming starts and drops it when the database is deleted",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunSlotLifecycle(t, "postgres:19")
+		},
+	)
+	t.Run(
+		"drops the slot when a database that streamed wal is deleted",
+		func(t *testing.T) {
+			t.Parallel()
+			physicaltest.RunDeleteStreamingDatabase(t, "postgres:19")
+		},
+	)
+}
+
+func TestPhysicalFullHistoryAfterPromotion(t *testing.T) {
+	t.Parallel()
+	t.Run("restores the promoted full when no continuous wal receiver runs", func(t *testing.T) {
+		t.Parallel()
+		physicaltest.RunFullHistoryAfterPromotion(t, "postgres:19")
+	})
+}

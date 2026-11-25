@@ -40,15 +40,27 @@ The hook that runs when the agent finishes a turn SHALL start the full proposal 
 - **THEN** it starts its own full review because the stored acceptance belongs to a different review client
 
 ### Requirement: OpenSpec validation runs first
-Before starting reviewers the hook SHALL check the format of the change's "Change verification" section by the rules the full implementation review applies to it, without running its commands, and then run strict OpenSpec validation of the change. When the section's format is wrong or validation fails, the hook SHALL block the turn and pass the agent the reason or the end of the validation output. Reviewers MUST NOT start in that case.
+Before starting reviewers the hook SHALL check the format of the change's test plan by the rules the full implementation review applies to it, without running anything it selects, and then run strict OpenSpec validation of the change. When the plan is missing, its format is wrong or validation fails, the hook SHALL block the turn and pass the agent the reason or the end of the validation output. Reviewers MUST NOT start in that case.
 
 #### Scenario: A requirement without a scenario
 - **WHEN** a delta spec has a requirement without a scenario and validation fails
 - **THEN** the turn is blocked, the agent gets the validation output, and no reviewer starts
 
 #### Scenario: A forbidden command in the verification section
-- **WHEN** the change's "Change verification" section contains `mise run backend:test-package ./internal/lib/...`
-- **THEN** the turn is blocked with the reason and the list of allowed forms, the command does not run, and no reviewer starts
+- **WHEN** the selection of the change's test plan contains `mise run backend:test-package ./internal/lib/...`
+- **THEN** the turn is blocked with the reason and the list of allowed selector forms, nothing runs, and no reviewer starts
+
+#### Scenario: A forbidden selector in the test plan
+- **WHEN** the selection of the change's test plan contains `backend ./...`
+- **THEN** the turn is blocked with the reason and the list of allowed selector forms, nothing runs, and no reviewer starts
+
+#### Scenario: A change on the old schema without a test plan
+- **WHEN** a change created with `spec-driven` has every artifact of that schema but no `tests.md`, and the agent finishes a turn
+- **THEN** the turn is blocked with the reason the test plan check gives, nothing runs, and no reviewer starts
+
+#### Scenario: A change without a test plan
+- **WHEN** a change created with the project's schema has a proposal, design, delta specs and tasks but no `tests.md`
+- **THEN** OpenSpec reports the planning as incomplete, and the full proposal review does not start
 
 ### Requirement: What the full proposal review checks
 The full proposal review SHALL run several read-only reviewers in parallel, on the same models as the full implementation review: one per delta spec of the change, and one each for necessity, architecture, names, consistency of the proposal and design, and the task list. Each reviewer SHALL check only its own role, so that one reviewer's findings do not crowd out another's.
@@ -63,7 +75,7 @@ The names reviewer SHALL check every name the proposal, design and delta specs i
 
 The consistency reviewer SHALL check that the decisions agree with each other and with the proposal, and that the facts the proposal and design state about the code are true.
 
-The task reviewer SHALL check that a task with a test covers every scenario, that every task has a verification, and that the task order is feasible. The task reviewer SHALL also check that a change whose tasks add or change tests in a backend package or a verification agent package outside the end-to-end ones, or the frontend has a "Change verification" section, and that the section runs the tests of every such package the tasks' verifications name. The end-to-end packages are the ones named in the next sentence. It SHALL also check that a change that adds or changes scenarios of the browser end-to-end suite in `e2e/browser/scenarios` names `mise run e2e:browser` in that section, that a task changing tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile` names the command that repeats those tests, and that no section or task verification runs `mise run test-full`. Tests that no allowed command form runs, such as the hook tests, SHALL name an explicit verification command in their task instead of this section.
+The task reviewer SHALL check that a task with a test covers every scenario, that every task has a verification, and that the task order is feasible. The task reviewer SHALL also check the test plan against the proposal, the design and the tasks: every area the change touches appears in the impact map, every test package, frontend test file and suite the tasks add or change tests in is selected, each exclusion gives a reason that holds, engine versions follow the version rule of the `change-test-plans` capability, and a change to end-to-end code selects the suites that capability names. It SHALL also check that no task verification runs `mise run test` or the Go test command over the whole backend module.
 
 #### Scenario: A change with two delta specs
 - **WHEN** the full proposal review starts for a change with two delta specs
@@ -91,38 +103,46 @@ The task reviewer SHALL check that a task with a test covers every scenario, tha
 
 #### Scenario: The task reviewer's role
 - **WHEN** the hook starts the task reviewer
-- **THEN** its prompt names the role and requires checking that a task with a test covers every scenario, every task has a verification, the task order is feasible, and the "Change verification" section covers the tested packages outside the end-to-end ones
+- **THEN** its prompt names the role and requires checking that a task with a test covers every scenario, every task has a verification, the task order is feasible, and the test plan covers what the change touches
 
 #### Scenario: Tests without a verification section
-- **WHEN** the tasks add tests to a backend package and the change has no "Change verification" section
-- **THEN** the task reviewer returns a `tasks` finding that asks for the section with that package
+- **WHEN** the tasks add tests to a backend package and the test plan selects only `none`
+- **THEN** the task reviewer returns a `tasks` finding that asks to select that package
 
 #### Scenario: A section that leaves out a package
-- **WHEN** a task adds tests to a backend package and the "Change verification" section holds only a browser command
-- **THEN** the task reviewer returns a `tasks` finding that asks for `mise run test`
+- **WHEN** a task adds tests to a backend package and the test plan selects only `suite e2e-browser`
+- **THEN** the task reviewer returns a `tasks` finding that names the package
 
-#### Scenario: A task that runs the full run
-- **WHEN** a task's verification or the "Change verification" section runs `mise run test`
-- **THEN** the task reviewer returns no finding for running it
+#### Scenario: An area missing from the impact map
+- **WHEN** the design changes the notifiers module and the impact map does not mention it
+- **THEN** the task reviewer returns a `tasks` finding that names the area
 
-#### Scenario: A change with only hook tests
-- **WHEN** the tasks add tests only to the hook tests and the change has no "Change verification" section
-- **THEN** the task reviewer returns no finding about the missing section
+#### Scenario: An exclusion without a valid reason
+- **WHEN** the plan excludes PostgreSQL 17 with the reason that the code path is version-independent, while the design adds a branch for PostgreSQL 17
+- **THEN** the task reviewer returns a `tasks` finding that names the exclusion
 
 #### Scenario: A change to browser end-to-end scenarios
-- **WHEN** a task adds or changes a scenario in `e2e/browser/scenarios` and the "Change verification" section leaves out `mise run e2e:browser`
-- **THEN** the task reviewer returns a `tasks` finding that asks for `mise run e2e:browser`
+- **WHEN** a task adds or changes a scenario in `e2e/browser/scenarios` and the test plan does not select `suite e2e-browser`
+- **THEN** the task reviewer returns a `tasks` finding that asks for that selector
+
+#### Scenario: A task that runs the full run
+- **WHEN** a task's verification runs `mise run test`
+- **THEN** the task reviewer returns a `tasks` finding that asks for the specific tests instead
+
+#### Scenario: A change with only hook tests
+- **WHEN** the tasks add tests only to the hook tests and the test plan selects `suite review-hooks`
+- **THEN** the task reviewer returns no finding about the selection
 
 #### Scenario: A task that changes end-to-end tests without their command
-- **WHEN** a task changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile`, and its verification names no command that repeats those tests
-- **THEN** the task reviewer returns a `tasks` finding that asks for that command
+- **WHEN** a task changes tests in `backend/internal/agent/e2e`, `backend/internal/modules/backups/e2e` or `backend/e2e/upgrade`, the verification agent's code or the `Dockerfile`, and the test plan selects nothing that repeats those tests
+- **THEN** the task reviewer returns a `tasks` finding that asks for that selector
 
 #### Scenario: A verification that runs the whole test set
-- **WHEN** the "Change verification" section or a task's verification runs `mise run test-full`
-- **THEN** the task reviewer returns a `tasks` finding that asks for the specific commands instead
+- **WHEN** a task's verification runs the Go test command over the whole backend module
+- **THEN** the task reviewer returns a `tasks` finding that asks for the specific tests instead
 
 #### Scenario: A task that builds the command
-- **WHEN** a task names `mise run test-full` as something it adds or edits, and its verification runs another command
+- **WHEN** a task names `mise run test` as something it adds or edits, and its verification runs another command
 - **THEN** the task reviewer returns no finding for naming it
 
 ### Requirement: The agent resolves findings itself, except cutting the feature
@@ -188,12 +208,12 @@ Initial and repeat proposal reviews SHALL use the client selected by the review-
 #### Scenario: Codex writes a complete proposal
 
 - **WHEN** Codex finishes a turn that makes an unstarted proposal eligible for full review
-- **THEN** the existing verification-section format check and strict OpenSpec validation precede the existing parallel reviewer roles, all running in Codex with `high` reasoning effort and without starting Claude Code
+- **THEN** the test plan format check and strict OpenSpec validation precede the existing parallel reviewer roles, all running in Codex with `high` reasoning effort and without starting Claude Code
 
 #### Scenario: Claude Code writes a complete proposal
 
 - **WHEN** Claude Code finishes a turn that makes an unstarted proposal eligible for full review
-- **THEN** the existing verification-section format check and strict OpenSpec validation precede the existing parallel reviewer roles, all running in Claude Code on Opus with `medium` effort and without starting Codex
+- **THEN** the test plan format check and strict OpenSpec validation precede the existing parallel reviewer roles, all running in Claude Code on Opus with `medium` effort and without starting Codex
 
 #### Scenario: A proposal fails validation
 

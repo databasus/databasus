@@ -256,7 +256,7 @@ export default function DatabasusVsWalGPage() {
                 </li>
                 <li>
                   <strong>Soporte de versiones</strong>: Admite las versiones 12
-                  a 18 de PostgreSQL, con optimizaciones específicas por
+                  a 19 de PostgreSQL, con optimizaciones específicas por
                   versión.
                 </li>
                 <li>
