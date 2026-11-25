@@ -61,8 +61,8 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly. C
 | Command | Purpose |
 |---|---|
 | `mise run run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend, frontend and website. Seeds a dev account with databases and restarts the backend when its code changes |
-| `mise run test` | Check the work: the backend packages without the end-to-end ones and the frontend tests |
-| `mise run test-full` | Run all tests for the usual Docker development environment. [testing.md](docs/testing.md#checking-work) lists the included suites and the Podman/filesystem exceptions |
+| `mise run test-change <change>` | Check an OpenSpec change: run the tests its test plan, `tests.md`, selects |
+| `mise run test` | Run all tests for the usual Docker development environment; only a person starts it. [testing.md](docs/testing.md#checking-work) lists the included suites and the Podman/filesystem exceptions |
 | `mise run lint` | Check every module without changing files; `backend:lint`, `frontend:lint` and `python:lint` check one area |
 | `mise run verify-deps` | Check known dependency pins, coordinated versions and local client hashes without changing the checkout |
 | `mise run format` | Format every module; `backend:format`, `frontend:format` and `python:format` format one area |
@@ -97,22 +97,22 @@ Several agents may work on this repo at once, in different worktrees. They share
 - The main agent is the one the user talks to. It works in the checkout or worktree its session starts in. It creates a new git worktree only when the user explicitly asks for one, and it uses a worktree the user created as it is.
 - A background agent is one the main agent starts. It may create a worktree of its own when its work needs one or when the main agent asks it to.
 - Lint and format whenever you want: they touch nothing shared.
-- [`docs/testing.md`](docs/testing.md#checking-work) says which test run a change owes. `mise run test` and `mise run test-full` take turns through a machine-wide lock, so one may wait for another. Repeating one failing test directly takes no lock.
+- [`docs/testing.md`](docs/testing.md#checking-work) says which test run a change owes. `mise run test-change` and `mise run test` take turns through a machine-wide lock, so one may wait for another. Repeating one failing test directly takes no lock.
 - Never stop the shared test PostgreSQL server or prune Docker, because other runs use them. The one exception is the recovery of that server after a crash while no test run is active. [`docs/testing.md`](docs/testing.md#isolation) describes it.
 
 ---
 
 ## Tests
 
-Choose checks in proportion to the change:
+An agent runs only the tests a change can affect:
 
-- Run `mise run test` for substantial features or broad changes to application behavior, or when the user explicitly requests it.
-- Do not run it automatically for small, localized fixes, such as button spacing, styling, copy edits or an isolated bug fix. Run only the checks relevant to the affected code and behavior.
+- An OpenSpec change is checked with `mise run test-change <change>`, which runs the selection of its test plan, `tests.md`. The agent keeps the plan matching the diff while implementing.
+- Work outside an OpenSpec change runs the tests relevant to the affected code and behavior directly.
 - Documentation-only changes need no test run.
 
-[`docs/testing.md`](docs/testing.md#checking-work) describes how to select the relevant checks, including long and end-to-end tests.
+[`docs/testing.md`](docs/testing.md#checking-work) describes how a plan selects tests, including engine versions and end-to-end suites.
 
-An agent never runs `mise run test-full` unless the user directly asks for that run.
+An agent never runs `mise run test`, which runs every suite. Only a person starts it, and CI runs every suite before a release.
 
 When you write, change, run or review tests, load the [testing skill](.agents/skills/testing/SKILL.md) first. It says how to write a test. [`docs/testing.md`](docs/testing.md) says which kinds of tests exist and how they are isolated.
 

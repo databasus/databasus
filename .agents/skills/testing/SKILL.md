@@ -114,7 +114,7 @@ Write fakes as small hand-written structs. Do not use mock generators, `testify/
 
 ## Which tests to run
 
-Check a change as [`docs/testing.md`](../../../docs/testing.md#checking-work) says, and include the command and its result in the report. While fixing a test it reported, repeat that test directly with the Go test command or `pnpm test -t` in `frontend/`. A race reported by CI is reproduced by adding `-race` to the Go test command, because local runs leave it out. [`docs/testing.md`](../../../docs/testing.md#commands) gives the full commands.
+Check a change as [`docs/testing.md`](../../../docs/testing.md#checking-work) says: an OpenSpec change with `mise run test-change <change>`, which runs its [test plan](../../../docs/testing.md#test-plans), never with `mise run test`. Include the command and its result in the report. A test you add or change in an area the plan does not select goes into the plan. While fixing a test it reported, repeat that test directly with the Go test command or `pnpm test -t` in `frontend/`. A race reported by CI is reproduced by adding `-race` to the Go test command, because local runs leave it out. [`docs/testing.md`](../../../docs/testing.md#commands) gives the full commands.
 
 After you interrupt a run, remove only what that run left behind. Never prune Docker or stop the shared test PostgreSQL server, apart from [its recovery after a crash](../../../docs/testing.md#isolation).
 

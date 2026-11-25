@@ -25,8 +25,8 @@ inside the Codex sandbox it has to run outside the sandbox. Keep that directory 
 writable roots: it holds the hook trust that the doctor checks.
 Examples outside an agent: `mise run doctor --client claude` and
 `mise run review support-codex-review-pipeline --client codex`.
-Change verification accepts exactly `mise run test`, `pnpm --dir frontend test:browser --project=ui`
-and `mise run e2e:browser`; these are parsed without execution.
+Before a full review, every target change needs a valid test plan, its tests.md; scripts/test_plan.py
+checks the selection without running anything it selects.
 The plan gates intercept ExitPlanMode only in Claude Code; Codex runs the Stop gates.
 Codex 0.164.0 needs persisted project trust to load a new clone's .codex/ layer; a command-line
 trust override alone is insufficient. The project's chrome-devtools entry replaces the global one.
@@ -56,7 +56,7 @@ Actions:
                  after a block a repeat over the previous findings only. The implementing agent runs
                  linting and tests before finishing the turn; this hook never runs them.
   proposal       Full review of a finished OpenSpec proposal with no checked task: first the format
-                 check of the "Change verification" section without running it, then
+                 check of the test plan without running anything it selects, then
                  openspec validate --strict, then parallel reviewers: one per delta spec, and one each
                  for necessity, architecture, names, proposal and design, and tasks. While it runs,
                  necessity, diff, architecture and code-shape skip a turn that only wrote the artifacts.
@@ -146,7 +146,6 @@ import hashlib
 import json
 import os
 import re
-import shlex
 import shutil
 import signal
 import subprocess
@@ -253,90 +252,33 @@ class Check:
     arguments: tuple[str, ...]
 
 
-class ChangeVerificationError(Exception):
+class TestPlanError(Exception):
     pass
 
 
-CHANGE_VERIFICATION_HEADING = "## Change verification"
-# Verification entries describe commands for the implementing agent, not for review to execute.
-# Each form is a whole command, so no form takes arguments.
-VERIFICATION_FORMS = (
-    ("mise", "run", "test"),
-    ("pnpm", "--dir", "frontend", "test:browser", "--project=ui"),
-    ("mise", "run", "e2e:browser"),
-)
-ALLOWED_VERIFICATION_FORMS = (
-    "Allowed forms, one command per line in one ```sh block, each with nothing after it:\n"
-    "- `mise run test`\n"
-    "- `pnpm --dir frontend test:browser --project=ui`\n"
-    "- `mise run e2e:browser`"
-)
+# The reviewed checkout's own parser decides, so the grammar matches the plan it reads.
+TEST_PLAN_SCRIPT = Path("scripts") / "test_plan.py"
+TEST_PLAN_CHECK_TIMEOUT_SECONDS = 30
 
 
-def read_change_verification_block(tasks_text: str) -> list[str] | None:
-    lines = tasks_text.splitlines()
+def check_test_plan(root: Path, change_dir: Path) -> None:
     try:
-        start = next(
-            index for index, line in enumerate(lines) if line.strip() == CHANGE_VERIFICATION_HEADING
+        completed = subprocess.run(
+            [sys.executable, str(root / TEST_PLAN_SCRIPT), "check", str(change_dir)],
+            capture_output=True,
+            text=True,
+            timeout=TEST_PLAN_CHECK_TIMEOUT_SECONDS,
+            check=False,
         )
-    except StopIteration:
-        return None
-
-    # A shell comment inside a code block looks like a heading, so only a heading outside blocks ends the section.
-    is_inside_other_block = False
-    for index in range(start + 1, len(lines)):
-        line = lines[index].strip()
-        if line == "```sh" and not is_inside_other_block:
-            return read_code_block(lines[index + 1 :])
-        if line.startswith("```"):
-            is_inside_other_block = not is_inside_other_block
-        elif not is_inside_other_block and re.match(r"#{1,2} ", line):
-            break
-    raise ChangeVerificationError("the section has no ```sh code block")
-
-
-def read_code_block(lines: list[str]) -> list[str]:
-    for index, line in enumerate(lines):
-        if line.strip() == "```":
-            return lines[:index]
-    raise ChangeVerificationError("the ```sh code block is not closed")
-
-
-def parse_verification_command(line: str) -> Check:
-    try:
-        words = shlex.split(line)
-    except ValueError as error:
-        raise ChangeVerificationError(f"`{line}` cannot be split into words: {error}") from error
-
-    for form in VERIFICATION_FORMS:
-        if tuple(words) == form:
-            return Check(".", form)
-        if tuple(words[: len(form)]) == form:
-            raise ChangeVerificationError(f"`{line}` does not match the form `{' '.join(form)}`")
-    raise ChangeVerificationError(f"`{line}` is not an allowed command")
-
-
-def parse_change_verification(change_dir: Path) -> list[Check]:
-    try:
-        tasks_text = (change_dir / "tasks.md").read_text()
-    except OSError:
-        return []
-
-    try:
-        block = read_change_verification_block(tasks_text)
-        if block is None:
-            return []
-        commands = [
-            line.strip() for line in block if line.strip() and not line.strip().startswith("#")
-        ]
-        if not commands:
-            raise ChangeVerificationError("the ```sh code block holds no command")
-        return [parse_verification_command(line) for line in commands]
-    except ChangeVerificationError as error:
-        raise ChangeVerificationError(
-            f'The "Change verification" section of `{change_dir.name}/tasks.md` is not valid: {error}.\n\n'
-            f"{ALLOWED_VERIFICATION_FORMS}"
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise TestPlanError(
+            f"The test plan check of `{change_dir.name}` could not run: {error}"
         ) from None
+    if completed.returncode != 0:
+        raise TestPlanError(
+            completed.stderr.strip()
+            or f"The test plan check of `{change_dir.name}` exited with {completed.returncode}"
+        )
 
 
 def read_payload() -> dict[str, object]:
@@ -541,7 +483,8 @@ def get_openspec_proposal_hashes(
         if change_dir.name in excluded_changes:
             continue
 
-        # tasks.md is left out: implementing the change also checks its tasks.
+        # tasks.md and tests.md are left out: implementing the change checks its tasks and keeps
+        # its test plan matching the diff.
         paths = [
             change_dir / "proposal.md",
             change_dir / "design.md",
@@ -1269,13 +1212,13 @@ def run_full_review(
     root = session.root
     try:
         for target in targets:
-            parse_change_verification(target.change_dir)
+            check_test_plan(root, target.change_dir)
         checks = full_review.get_checks(root, targets) if full_review.get_checks else []
-    except ChangeVerificationError as error:
+    except TestPlanError as error:
         return FullReviewOutcome(
             False,
             f"{error}\n\nNo check or reviewer ran.",
-            "Fix the section. " + FULL_REVIEW_REPLY_INSTRUCTION,
+            "Fix the test plan. " + FULL_REVIEW_REPLY_INSTRUCTION,
         )
 
     if checks:

@@ -8,12 +8,13 @@ depends = ["dev:prepare"]
 run = "scripts/dev.sh"
 
 [tasks.test]
-description = "Run the backend test packages without the end-to-end ones and the frontend tests"
+description = "Run all Docker-based tests, browser checks and test-runner checks; excludes Podman and filesystem suites"
 run = "scripts/test.sh"
 
-[tasks.test-full]
-description = "Run all Docker-based tests, browser checks and test-runner checks; excludes Podman and filesystem suites"
-run = "scripts/test.sh --full"
+[tasks.test-change]
+description = "Run the tests an OpenSpec change's test plan selects"
+usage = 'arg "<change>" help="The OpenSpec change whose tests.md selects the tests"'
+run = 'scripts/test.sh --change "$usage_change"'
 
 [tasks.lint]
 description = "Check every module without changing files"

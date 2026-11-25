@@ -15,8 +15,8 @@ Rules for writing Go code in `backend/`, which holds the server and the verifica
 |---|---|
 | `mise run backend:lint` | Check the backend code, the contracts and the generated code without changing files |
 | `mise run backend:format` | Format the Go code |
-| `mise run test` | Check the work: the backend packages without the end-to-end ones and the frontend tests |
-| `mise run test-full` | Run all tests for the usual Docker development environment; [testing.md](../docs/testing.md#checking-work) lists the included suites and the Podman/filesystem exceptions |
+| `mise run test-change <change>` | Check an OpenSpec change: run the tests its test plan selects |
+| `mise run test` | Run all tests for the usual Docker development environment; only a person starts it. [testing.md](../docs/testing.md#checking-work) lists the included suites and the Podman/filesystem exceptions |
 | `go test -count=1 -run 'TestName/scenario' <package>` | Repeat one failing test; [`docs/testing.md`](../docs/testing.md#commands) gives the full command |
 | `mise run generate-api` | Regenerate servers, clients and frontend types after editing `api/*.yaml` |
 | `goose -dir migrations create <name> sql` | Create a migration stub, then fill it by hand |

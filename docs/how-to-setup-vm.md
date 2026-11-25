@@ -515,7 +515,7 @@ zed ssh://dev/~/databasus
 | CPUs | `nproc` in the guest | the number of CPUs given to the VM |
 | Guest filesystem | `findmnt -no FSTYPE /` in the guest | `ext4` |
 | Ports | `mise run run` in the guest, `http://localhost:5173` on the host | the frontend opens and you can sign in |
-| Tests | `mise run test` in the guest | the suite passes |
+| Tests | `mise run test` in the guest | every suite passes |
 
 ## When something does not work
 

@@ -179,6 +179,8 @@ Definitions explain meaning and distinctions. [Architecture](architecture.md) ho
 | Console command | An operation of the Databasus binary that the operator runs on the host or in the container instead of starting the server, such as a password reset. The `healthcheck` subcommand is not a console command, because it only asks the running server. |
 | Migration | A goose SQL file in `backend/migrations`, the only way to change the schema. |
 | Test application | A real backend instance isolated for one test, with its own database, clock, lifecycle and permitted external substitutes. |
+| Test plan | The `tests.md` artifact of an OpenSpec change. Its impact map says what the change touches and which tests that can break, its exclusions say what is left out and why, and its selection lists the selectors that `mise run test-change` runs. [Testing](testing.md#test-plans) defines the format. |
+| Selector | One line of a test plan's selection. It names tests to run, such as a backend package with an optional `-run` filter, a frontend path or a named suite, and never a command or its flags. |
 
 ## Dependency maintenance
 

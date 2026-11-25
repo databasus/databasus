@@ -2,7 +2,7 @@
 
 A backup is worth something only if it restores. Proving that takes real database servers. Databasus tests therefore run the real application against servers in containers and check what a caller observes. Most tests create their data through the HTTP API, the same way a user does.
 
-Choose checks for the scope of the change as [the project rules](../AGENTS.md#tests) require. [Checking work](#checking-work) describes the selection. To repeat one failing test while fixing it, call its runner directly with a command from [Commands](#commands).
+An agent checks a change with the tests its [test plan](#test-plans) selects, as [the project rules](../AGENTS.md#tests) require. [Checking work](#checking-work) describes the selection. To repeat one failing test while fixing it, call its runner directly with a command from [Commands](#commands).
 
 This document describes the kinds of tests, what they share and how runs are organized, in that order. The [testing skill](../.agents/skills/testing/SKILL.md) explains how to write one test, and [architecture.md](architecture.md) describes the code the tests rely on.
 
@@ -15,7 +15,7 @@ This document describes the kinds of tests, what they share and how runs are org
 - Independent suites of one run start together. Runs aim to saturate the machine, as [Resource usage and parallelism](#resource-usage-and-parallelism) describes.
 - A test that passes alone but fails beside other suites has a defect in the test. Such a test waits for the condition it depends on or gets a time limit that matches the operation. It is not moved out of the concurrent run or retried.
 - A test never takes a shared resource under a fixed name.
-- Every check runs locally. CI repeats every suite on a clean machine, except the review hook tests and the interruption test of the browser end-to-end suite. `mise run test-full` includes both locally.
+- Every check runs locally. CI repeats every suite on a clean machine, except the review hook tests and the interruption test of the browser end-to-end suite. `mise run test` includes both locally.
 
 ## Layers
 
@@ -90,7 +90,7 @@ Tests from every worktree on a machine share one Docker daemon. Nothing a test c
   - Stale networks are collected automatically. A killed run or a Docker restart can leave networks behind. Each backend test process removes them once: the networks in the test range that are older than an hour and have no running container.
   - With Docker on firewalld, every network is an interface in the firewall zone, and each one slows network creation further.
 - **Images.** An image a run builds has a tag no concurrent run uses, and the run removes it when it ends.
-  - The full run builds `databasus-full-test:local`. Full runs take turns through their lock, so the tag cannot collide. The next full run replaces an image that a killed run left.
+  - `mise run test` and `mise run test-change` build `databasus-test-run:local`. These runs take turns through their lock, so the tag cannot collide. The next run replaces an image that a killed run left.
   - The direct upgrade command builds `databasus-upgrade-test:<run ID>`.
   - An image named through `DATABASUS_IMAGE` is used as given and never removed.
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files from `t.TempDir()`. Containers and processes get unique names and labels, and `t.Cleanup` removes them.
@@ -104,7 +104,7 @@ Tests should keep the machine busy. A run that waits while CPU, memory and disk 
 
 Local runs assume a [development VM](how-to-setup-vm.md) with:
 
-- about 32 GB of memory for the entire run, whether it runs selected packages, `mise run test` or `mise run test-full`;
+- about 32 GB of memory for the entire run, whether it runs selected packages, `mise run test-change` or `mise run test`;
 - 16 logical CPUs (vCPUs), which set Go's default parallel test limit;
 - free disk space that grows with concurrency, both on Docker's storage and in the temporary directory.
 
@@ -126,8 +126,8 @@ When Docker keeps its data in an image file on the root filesystem, that file gr
 |---|---|
 | Target for one package, or a few packages run together | about 5 minutes |
 | Limit | 10 minutes |
-| Runner timeout per package | 15 minutes, so an overrun fails instead of hiding; 30 minutes for the slow packages in `mise run test-full`, where they share the Docker daemon with every other suite |
-| `mise run test-full`, with test images present and a warm build cache | about 10 minutes; limit 20 minutes |
+| Runner timeout per package | 15 minutes, so an overrun fails instead of hiding; 30 minutes for the slow packages, which share the Docker daemon with every other suite of the run |
+| `mise run test`, with test images present and a warm build cache | about 10 minutes; limit 20 minutes |
 
 A test that exists to observe real time may take longer. It runs beside the others, so it does not stretch the critical path.
 
@@ -139,20 +139,22 @@ Every test owns its internal database, containers, ports and files, as [Isolatio
 
 Each command adds its own layer on top:
 
-- **`mise run test`** runs three suites at once: the slow backend packages, the other backend packages and the frontend tests.
+- **`mise run test`** runs every suite. Backend packages run in two groups at once: the slow packages and all the others.
   - Slow packages mostly wait on containers and get a lower package limit. The group already lasts as long as its longest package, so a higher limit only adds memory.
   - Slow packages also get a parallel test limit. Their tests start containers, and the Docker daemon they share is the bottleneck. With one test per logical processor, dozens of Patroni clusters start at once. Container stops and network removals then outlast their deadlines, and the group fails and leaks containers.
   - Other packages mostly compute and get a higher limit.
   - The [test runner](../scripts/test.sh) owns the numbers.
-- **`mise run test-full`** adds the end-to-end packages to the slow group. It starts every other suite beside them, each as soon as what it needs is ready:
-  - The [crashed-run probes](#browser-end-to-end-suite), script tests, review hook tests, the browser suite's unit tests and browser UI start at once.
+
+  Every other suite starts beside the backend groups, each as soon as what it needs is ready:
+  - The frontend tests, the [crashed-run probes](#browser-end-to-end-suite), script tests, review hook tests, the browser suite's unit tests and browser UI start at once.
   - The application image builds once at the start, and then the upgrade test runs against it.
   - The crashed-run probes and then the lifecycle interruption checks run while no other browser run of the command is active. They run one probe after another, and no other browser run may overlap them. They therefore go first, beside the backend packages and the suites that start no browser run.
   - After them, the browser end-to-end scenarios and the other lifecycle probes run together. The probes are split into parts that several processes run, because one process runs its probes one after another.
 
   A failed suite stops no other suite. Only a failed image build keeps the suites that run the image from starting.
 
-  The run ends with a summary of each suite's outcome and duration, the build's duration and the total. Both commands also copy their output to a new `temp/test-<time>.txt` or `temp/test-full-<time>.txt` file in the checkout.
+  The run ends with a summary of each suite's outcome and duration, the build's duration and the total. It also copies its output to a new `temp/test-<time>.txt` file in the checkout.
+- **`mise run test-change <change>`** runs a [test plan](#test-plans)'s selection on the same schedule, with the same limits and timeouts, starting only what the plan selects. Its output goes to `temp/test-change-<change>-<time>.txt`.
 - **Browser UI** takes its worker count from its runner. Locally that is half the host's logical processors rounded up, and at least two. In CI it is two per shard.
 - **A direct package run** uses Go's defaults and gets the whole machine.
 
@@ -245,7 +247,7 @@ TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 15m \
 
 Use Go's `-run` filter to repeat an individual scenario. [PostgreSQL with CloudNativePG](postgresql-cloudnativepg.md) explains the source configuration, slot synchronization and recovery limits.
 
-A run removes its resources after success, failure or cancellation. The `mise run test-full` runner also cleans up when its test process is killed. A killed direct package run can leave resources behind.
+A run removes its resources after success, failure or cancellation. The runner of `mise run test` and `mise run test-change` also cleans up when its test process is killed. A killed direct package run can leave resources behind.
 
 List k3s containers, networks and volumes by fixture label:
 
@@ -352,52 +354,57 @@ The standalone command tests `DATABASUS_IMAGE` when it is set, or builds an imag
 
 ## Checking work
 
-Follow [the project rules](../AGENTS.md#tests) when deciding whether a change needs `mise run test`.
+An agent checks a finished change with `mise run test-change <change>`, which runs the selection of the change's [test plan](#test-plans). It never runs `mise run test`: that command runs every suite, and only a person starts it. CI runs every suite before a release.
 
-- For a localized functional change, run the affected package or screen tests directly.
+- For work outside an OpenSpec change, run the affected package or screen tests directly.
 - For a presentation change, run the frontend checks and verify the affected layout in a browser.
 - Documentation-only changes need no test run.
 
-OpenSpec change verification names the commands selected for the change.
+`mise run test` runs every test that needs only the usual Docker development environment:
 
-`mise run test-full` runs every test that needs only the usual Docker development environment. It includes:
-
-- the routine run;
-- the end-to-end packages of the verification agent and of backups;
+- every backend package except the upgrade test, which runs as its own suite;
+- the frontend unit and screen tests and frontend browser UI;
 - the upgrade test;
-- frontend browser UI;
 - the browser end-to-end suite and its unit, lifecycle and interruption checks;
 - the script and review hook tests.
 
-Podman and filesystem tests remain separate, because they require additional host setup. An agent [does not start the full command on its own](../AGENTS.md#tests).
+Podman and filesystem tests remain separate, because they require additional host setup. `mise run test` and `mise run test-change` share a machine-wide lock, so runs from several worktrees take turns. A direct package test takes no such lock.
 
-Whether checking a change with targeted tests or with `mise run test`, an agent also runs by hand the specific long or end-to-end suites its change touches:
+[Slow-package selection](../backend/test-slow-packages.txt) bounds container load. Register a package there when it starts containers or networks, or when it runs for over a minute. Unlisted packages run in the other group. The [test runner](../scripts/test.sh) owns process limits, package timeouts and the order of the suites.
 
-- A change to scenarios in `e2e/browser/scenarios` or to the `Dockerfile` runs `mise run e2e:browser`. For a scenario change, the change verification names the command.
-- A change to tests in `backend/internal/agent/e2e` or to the verification agent's code runs `mise run agent:e2e`, or the Go test command for the affected tests.
-- A change to tests in `backend/internal/modules/backups/e2e` runs the Go test command for the affected tests.
-- A change to tests in `backend/internal/modules/instancebackups/e2e`, or to how Databasus backups are produced or recovered, runs [the recovery-cycle command](#commands).
-- A change to `backend/e2e/upgrade` runs `mise run backend:test-upgrade`.
+A break in the backup pipeline can pass every module test. When a change touches that pipeline, its plan selects the affected packages in `backend/internal/modules/backups/e2e`.
 
-A break in the backup pipeline can pass `mise run test`. When a change touches that pipeline, run the affected tests in `backend/internal/modules/backups/e2e` by hand.
+### Test plans
 
-A change to the browser end-to-end suite's own code owes its commands too:
+Every OpenSpec change carries a test plan, `tests.md`, written after its task list. The plan has three parts:
 
-- A change to its code outside the scenarios runs `mise run e2e:unit`.
-- A change to how a run starts or cleans up also runs `mise run e2e:lifecycle`.
-- A change to the lifecycle command also runs `uv run --project e2e/browser pytest e2e/browser/lifecycle_interruption`.
+- **Impact**: what the change touches and which tests that can break, with the reason. Follow callers across module boundaries. The import graph alone is too coarse, because module tests build the whole application, and it does not see migrations, the API contract, client tool bundles or the frontend.
+- **Not selected**: every affected area or engine version the selection leaves out, with the reason it cannot break.
+- **Selection**: one block fenced as `tests` under the `## Selection` heading, one selector per line.
 
-### What `mise run test` runs
+| Selector | Runs |
+|---|---|
+| `backend <package pattern> [-run <regex>]` | Go packages of the backend module, as `go test` patterns relative to `backend/`, optionally filtered |
+| `frontend <path> [-t <test name>]` | frontend test files under a path relative to `frontend/`, starting with `src/` |
+| `suite <name>` | `browser-ui`, `e2e-browser`, `e2e-unit`, `lifecycle` (the crashed-run probes and the parts of the other lifecycle probes), `lifecycle-interruption-checks`, `upgrade`, `scripts` or `review-hooks` |
+| `none` | nothing, as the only line, for a change that can break no test |
 
-The routine command prepares locked frontend dependencies. It then runs the backend tests outside the end-to-end packages, plus the frontend unit and screen tests. Migration and architecture-linter tests are included. Independent groups finish even if another fails, and the summary identifies failures.
+Selectors name tests, never commands, flags, limits or timeouts. The runner applies the limits of [Parallelism in local runs](#parallelism-in-local-runs) and the browser ordering of `mise run test`. A plan never selects the whole test set: the review hooks refuse `./...`, `./internal/...`, `./internal/modules/...`, `./internal/engines/...` and `./internal/lib/...`, any pattern that reaches the upgrade test, such as `./e2e/...`, and `src` or a whole frontend layer: `src/pages`, `src/widgets`, `src/features`, `src/entities` or `src/shared`.
 
-The full command adds the Docker end-to-end, browser, upgrade, script and review-hook suites described above. They are scheduled as [Parallelism in local runs](#parallelism-in-local-runs) describes.
+A selector that runs no test fails the run and is named in its output. A backend selector fails when its pattern matches or loads no package, or when no test at the depth of its `-run` filter passed, failed or skipped: one level without a filter, two for `TestA/sub`. A selector whose tests all skipped, such as the Neon tests without their settings, passes, and the run prints the skips and names the selector. A frontend selector fails when its path does not exist or no test under it passed or failed; a directory matches only the files inside it, not a sibling that shares its name as a prefix. A mistyped filter therefore cannot pass by running nothing. When two selectors overlap, the tests they share run once for each.
 
-Both commands share a machine-wide lock. A direct package test takes no such lock.
+**Engine versions.** Engine tests run each supported version as a subtest, so `-run` selects versions. Select the versions where the behavior under test differs. When nothing in the changed path depends on the version, select the oldest and the newest supported version of each affected engine. Read the subtest names in the package before writing the filter: they differ between packages, such as `postgres:17` in the engine tests and `PostgreSQL 17` in the backup tests, and Go replaces spaces in subtest names with underscores.
 
-The [test runner](../scripts/test.sh) owns process limits, package timeouts and full-run ordering.
+**End-to-end code.** A change selects the suites that repeat its end-to-end code:
 
-[Slow-package selection](../backend/test-slow-packages.txt) bounds container load. Register a package there when it starts containers or networks, or when it runs for over a minute. Unlisted packages still run in the fast group.
+- browser end-to-end scenarios: `suite e2e-browser`;
+- the browser suite's other code: `suite e2e-unit`, plus `suite lifecycle` when a run's start or cleanup changes and `suite lifecycle-interruption-checks` when the lifecycle command changes;
+- the verification agent's code or its end-to-end tests: `backend ./internal/agent/e2e/...`;
+- tests under `backend/internal/modules/backups/e2e` or `backend/internal/modules/instancebackups/e2e`: the changed packages there;
+- the upgrade test: `suite upgrade`; the `Dockerfile`: `suite upgrade` and `suite e2e-browser`;
+- the review hooks: `suite review-hooks`; repository Python scripts: `suite scripts`.
+
+The plan follows the implementation. An agent that finds an affected area the plan missed, or a selected area the change no longer affects, updates the plan before the final run. The proposal review checks the plan against the design and the tasks, and the implementation review checks it against the diff. [`scripts/test_plan.py`](../scripts/test_plan.py) owns the grammar that both the runner and the review hooks read.
 
 ### What runs separately
 
@@ -492,8 +499,8 @@ To repeat one failing test, call its Go or frontend runner directly. This takes 
 
 | What                                                   | Command                                                                          |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| Backend and frontend test suites                       | `mise run test`                                                                  |
-| All tests for the usual Docker development environment | `mise run test-full`                                                             |
+| The tests a change's test plan selects                 | `mise run test-change <change>`                                                  |
+| All tests for the usual Docker development environment, started by a person | `mise run test`                                       |
 | One backend test, in `backend/`, see below             | `go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` |
 | Verification agent unit tests                          | `mise run agent:test`                                                            |
 | Verification agent end-to-end tests on Docker          | `mise run agent:e2e`                                                             |

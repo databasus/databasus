@@ -16,7 +16,7 @@ With a Neon connection string available, an end-to-end test SHALL run the applic
 - restore each backup into a new database in the same project and over the source database, through the API;
 - after each restore, find the same rows, view results and sequence positions as in the source, and fail naming each value that differs.
 
-The same cycle SHALL also run against a PostgreSQL server in a container of the test harness, so that the cycle's own setup, comparison and cleanup are verified on every run without Neon. Both tests SHALL belong to the logical backup end-to-end tests, so that `mise run test-full` runs them. `mise run test` SHALL NOT run them.
+The same cycle SHALL also run against a PostgreSQL server in a container of the test harness, so that the cycle's own setup, comparison and cleanup are verified on every run without Neon. Both tests SHALL belong to the logical backup end-to-end tests, so that `mise run test` runs them, and a test plan that selects those tests runs them too.
 
 #### Scenario: The cycle passes
 
@@ -30,8 +30,13 @@ The same cycle SHALL also run against a PostgreSQL server in a container of the 
 
 #### Scenario: The cycle runs without Neon
 
-- **WHEN** `mise run test-full` runs without a Neon connection string
+- **WHEN** `mise run test` runs without a Neon connection string
 - **THEN** the cycle still runs against the container PostgreSQL server and passes
+
+#### Scenario: A test plan selects the logical PostgreSQL backup tests
+
+- **WHEN** a change's test plan selects `backend ./internal/modules/backups/e2e/postgresql/...` and `mise run test-change` runs it without `TEST_NEON_DATABASE_URL`
+- **THEN** the container cycle runs and passes, and the Neon test is reported as skipped
 
 ### Requirement: Concurrent runs share one Neon project without interference
 
@@ -64,11 +69,11 @@ Several local worktrees and both CI architectures SHALL be able to run the test 
 
 ### Requirement: A missing Neon connection string skips locally and fails where it is required
 
-The Neon test SHALL read the Neon connection string from the environment variable `TEST_NEON_DATABASE_URL`; `mise run test-full` SHALL provide it from `.env` like the other test settings. When the variable is empty or missing, the Neon test SHALL skip with a message that names the variable. When `TEST_IS_NEON_REQUIRED` is `true`, a missing or empty connection string SHALL fail the test instead. An unreachable project or refused credentials SHALL fail the test whether or not the string is required; they SHALL NOT be reported as a skip.
+The Neon test SHALL read the Neon connection string from the environment variable `TEST_NEON_DATABASE_URL`; `mise run test` and `mise run test-change` SHALL provide it from `.env` like the other test settings. When the variable is empty or missing, the Neon test SHALL skip with a message that names the variable. When `TEST_IS_NEON_REQUIRED` is `true`, a missing or empty connection string SHALL fail the test instead. An unreachable project or refused credentials SHALL fail the test whether or not the string is required; they SHALL NOT be reported as a skip.
 
 #### Scenario: A local run without the variable
 
-- **WHEN** a developer runs `mise run test-full` without `TEST_NEON_DATABASE_URL` in `.env`
+- **WHEN** a developer runs `mise run test` without `TEST_NEON_DATABASE_URL` in `.env`
 - **THEN** the Neon test is reported as skipped with a message naming `TEST_NEON_DATABASE_URL`
 - **AND** the run's other suites are unaffected
 
