@@ -247,28 +247,6 @@ export default function AdvancedConfigPage() {
                 Este é o servidor de e-mail da instância. Os canais de notificação por e-mail, que avisam sobre os backups, têm configurações SMTP próprias no formulário de cada canal. Por isso, um canal de notificação que entrega e-mails não diz nada sobre este servidor. Para testar o servidor de e-mail da instância, abra <strong>Databasus settings → Mail server</strong> e clique em <strong>Send test email</strong>. A mensagem vai para o seu próprio endereço e, se a entrega falhar, você vê a resposta do servidor de e-mail.
               </p>
 
-              <div className="bg-[#1f2937]/50 border border-[#ffffff20] border-l-[3px] my-4 border-l-red-500 rounded-lg px-4 py-4 flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-red-500 mt-0.5 shrink-0"
-                >
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <path d="M12 9v4M12 17h.01" />
-                </svg>
-                <div>
-                  <p className="text-gray-300 my-0!">
-                    <strong>Se o seu relay não oferece STARTTLS, defina <code>SMTP_SECURITY=none</code> antes de atualizar.</strong> Em qualquer porta diferente da 465, o modo padrão é <code>starttls</code>, que não continua sem criptografia, então esse relay não recebe nada até a variável ser definida. Se a instância exige o código de acesso por e-mail, ninguém entra com senha enquanto os e-mails não forem entregues. Para recuperar o acesso, desative o segundo fator com <code>docker exec -it databasus ./main --disable-2fa</code> (veja <a href="/pt/password/#disable-two-factor" className="text-blue-400 hover:text-blue-300">Parar de pedir um código no login</a>).
-                  </p>
-                </div>
-              </div>
-
               <table>
                 <thead>
                   <tr>

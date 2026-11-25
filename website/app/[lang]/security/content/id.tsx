@@ -43,7 +43,6 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   const encryptionPipeline = `PostgreSQL pg_dump → Compression → Encryption → Cloud Storage`;
-  const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
 
   return (
     <>
@@ -201,50 +200,11 @@ export default function SecurityPage() {
                 kamu.
               </p>
               <h2 id="two-factor-authentication">Autentikasi dua faktor saat masuk</h2>
+
               <p>
-                Kata sandi saja membuka akses ke semua kredensial database, kunci penyimpanan, dan
-                backup yang disimpan instance. Karena itu, administrator bisa mewajibkan faktor
-                kedua saat masuk dengan kata sandi. Jika aktif, memasukkan kata sandi yang benar
-                akan mengirim kode enam digit ke alamat email akun. Proses masuk baru selesai
-                setelah kode dimasukkan. Kode kedaluwarsa sepuluh menit setelah dikirim, dibuang
-                setelah lima tebakan salah, dan diganti jika kode baru diminta. Mengaktifkan
-                pengaturan ini melindungi proses masuk berikutnya tanpa menghentikan sesi yang sudah
-                terbuka.
+                Administrator bisa mewajibkan autentikasi dua faktor untuk masuk dengan kata sandi: kode yang dikirim lewat email atau kode dari aplikasi autentikator (TOTP). Jika faktor kedua tidak bisa dipakai, misalnya server email berhenti bekerja atau ponsel hilang, konsol server bisa mematikan kewajiban ini atau mereset aplikasi sebuah akun, seperti dijelaskan di <a href={`${getLocalizedHref("id", "password")}#disable-two-factor`} className="text-blue-400 hover:text-blue-600">halaman kata sandi</a>.
               </p>
-              <p>
-                Pengaturan ini berlaku untuk proses masuk dengan kata sandi. Masuk lewat Google atau
-                GitHub tetap langsung menerbitkan token karena penyedia tersebut menjalankan
-                pemeriksaan multi-faktor sendiri. Instance yang ingin faktor kedua berlaku bagi
-                semua pengguna tidak mengonfigurasi kedua penyedia itu.
-              </p>
-              <p>
-                Pengaturan ini hanya bisa diaktifkan jika instance memiliki server email dan setiap
-                administrator aktif memiliki alamat email asli, agar tidak ada yang mengaktifkannya
-                lalu membuat instance tidak bisa diakses. Jika server email kemudian berhenti
-                mengirimkan email, tidak ada yang bisa masuk dengan kata sandi. Ini disengaja:
-                kegagalan server email tidak boleh diam-diam menurunkan autentikasi menjadi satu
-                faktor. Operator dengan akses shell di server bisa menonaktifkannya kembali:
-              </p>
-              <div className="relative my-6">
-                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
-                  <code>{disableTwoFactorCommand}</code>
-                </pre>
-                <div className="absolute right-2 top-2">
-                  <CopyButton text={disableTwoFactorCommand} lang="id" />
-                </div>
-              </div>
-              <p>
-                Perintah melaporkan perubahan dan mencatatnya di log audit, sehingga alasan instance
-                berhenti meminta kode tetap tercatat. Perintah ini didokumentasikan bersama
-                pemulihan kata sandi di{" "}
-                <a
-                  href={`${getLocalizedHref("id", "password")}#disable-two-factor`}
-                  className="text-blue-400 hover:text-blue-600"
-                >
-                  halaman kata sandi
-                </a>
-                .
-              </p>
+
               <h2 id="security-and-reliability-engineering">🛡️ Rekayasa keamanan dan keandalan</h2>
 
               <p>

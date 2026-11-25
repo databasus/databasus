@@ -43,6 +43,7 @@ export default function PasswordResetPage() {
   const listAdminsCommand = `docker exec -it databasus ./main --list-admins`;
   const createUserCommand = `docker exec -it databasus ./main --create-user --email="ops@example.com" --password="YourSecurePassword123" --role=admin`;
   const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
+  const resetTwoFactorCommand = `docker exec -it databasus ./main --reset-2fa --email="owner@example.com"`;
 
   return (
     <>
@@ -193,7 +194,7 @@ export default function PasswordResetPage() {
                 akun nonaktif atau undangan, atau akun yang masuk lewat Google atau GitHub, perintah
                 akan gagal tanpa mengubah apa pun.
               </p>
-              <h2 id="disable-two-factor">Nonaktifkan kewajiban kode saat masuk</h2>
+              <h2 id="disable-two-factor">Nonaktifkan kewajiban 2FA</h2>
               <p>
                 Instance bisa mewajibkan kode enam digit yang dikirim lewat email saat masuk, selain
                 kata sandi. Jika server email berhenti mengirimkan kode, tidak ada yang bisa masuk
@@ -213,6 +214,25 @@ export default function PasswordResetPage() {
                 nonaktif, dan mencatat perubahan di log audit. Setelah itu, proses masuk berikutnya
                 dengan kata sandi tidak memerlukan kode. Administrator bisa mengaktifkan kembali
                 pengaturan ini setelah email berfungsi lagi.
+              </p>
+
+              <h2 id="reset-authenticator-app">Reset aplikasi autentikator sebuah akun</h2>
+
+              <p>
+                Jika seseorang kehilangan ponsel berisi aplikasi autentikatornya, hapus aplikasi itu dari akunnya di server tempat Databasus berjalan:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{resetTwoFactorCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={resetTwoFactorCommand} lang="id" />
+                </div>
+              </div>
+
+              <p>
+                Proses masuk berikutnya untuk akun itu mengikuti pengaturan 2FA instance. Administrator juga bisa mereset aplikasi pengguna dari daftar pengguna.
               </p>
             </article>
           </div>

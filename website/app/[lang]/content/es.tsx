@@ -179,7 +179,7 @@ export default function Index() {
                 name: "¿Cómo garantiza Databasus la seguridad?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus aplica seguridad en tres niveles: (1) Cifrado de datos sensibles: todas las contraseñas, tokens y credenciales se cifran con AES-256-GCM y se guardan separados de la base de datos; (2) Cifrado de las copias de seguridad: cada archivo de respaldo se cifra con una clave única derivada de una clave maestra, el ID de la copia y una sal aleatoria, de modo que las copias resultan inútiles sin su clave de cifrado aunque alguien acceda al almacenamiento; (3) Acceso de solo lectura a la base de datos: Databasus solo requiere permisos SELECT y realiza comprobaciones exhaustivas para asegurar que no existen privilegios de escritura, lo que evita la corrupción de datos incluso si la herramienta se ve comprometida. El propio inicio de sesión puede exigir un segundo factor: con él activado, tras la contraseña correcta llega un código de seis dígitos al correo de la cuenta, mientras que el inicio de sesión con Google o GitHub sigue apoyándose en las comprobaciones de esos proveedores. Antes de cada versión, las comprobaciones automáticas analizan código, dependencias, secretos e imágenes de contenedores. Las pruebas verifican ciclos completos de copia de seguridad y restauración en contenedores reales de PostgreSQL, MySQL, MariaDB y MongoDB. Todas las comprobaciones obligatorias deben pasar antes de publicar. Las auditorías periódicas de Codex Security de OpenAI las complementan y se realizan por separado del proceso de publicación. Todas las operaciones se ejecutan en contenedores que usted controla, en servidores que le pertenecen, y al ser código abierto, su equipo de seguridad puede auditar cada línea de código antes del despliegue.",
+                  text: "Databasus aplica seguridad en tres niveles: (1) Cifrado de datos sensibles: todas las contraseñas, tokens y credenciales se cifran con AES-256-GCM y se guardan separados de la base de datos; (2) Cifrado de las copias de seguridad: cada archivo de respaldo se cifra con una clave única derivada de una clave maestra, el ID de la copia y una sal aleatoria, de modo que las copias resultan inútiles sin su clave de cifrado aunque alguien acceda al almacenamiento; (3) Acceso de solo lectura a la base de datos: Databasus solo requiere permisos SELECT y realiza comprobaciones exhaustivas para asegurar que no existen privilegios de escritura, lo que evita la corrupción de datos incluso si la herramienta se ve comprometida. El inicio de sesión puede exigir autenticación de dos factores: un código enviado por correo o un código de una aplicación de autenticación (TOTP). Antes de cada versión, las comprobaciones automáticas analizan código, dependencias, secretos e imágenes de contenedores. Las pruebas verifican ciclos completos de copia de seguridad y restauración en contenedores reales de PostgreSQL, MySQL, MariaDB y MongoDB. Todas las comprobaciones obligatorias deben pasar antes de publicar. Las auditorías periódicas de Codex Security de OpenAI las complementan y se realizan por separado del proceso de publicación. Todas las operaciones se ejecutan en contenedores que usted controla, en servidores que le pertenecen, y al ser código abierto, su equipo de seguridad puede auditar cada línea de código antes del despliegue.",
                 },
               },
               {
@@ -1269,11 +1269,7 @@ export default function Index() {
                   de datos incluso si la herramienta se ve comprometida.
                   <br />
                   <br />
-                  El propio inicio de sesión puede exigir un segundo factor: con
-                  él activado, tras la contraseña correcta llega un código de
-                  seis dígitos al correo de la cuenta, mientras que el inicio de
-                  sesión con Google o GitHub sigue apoyándose en las
-                  comprobaciones de esos proveedores.
+                  El inicio de sesión puede exigir autenticación de dos factores: un código enviado por correo o un código de una aplicación de autenticación (TOTP).
                   <br />
                   <br />
                   Antes de cada versión, las comprobaciones automáticas analizan código,

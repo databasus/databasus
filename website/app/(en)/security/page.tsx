@@ -43,7 +43,6 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   const encryptionPipeline = `PostgreSQL pg_dump → Compression → Encryption → Cloud Storage`;
-  const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
 
   return (
     <>
@@ -272,54 +271,7 @@ export default function SecurityPage() {
               </h2>
 
               <p>
-                A password alone opens every database credential, storage key
-                and backup the instance holds, so an administrator can require a
-                second factor for password sign-in. With it on, a correct
-                password sends a six-digit code to the account&apos;s email
-                address, and the sign-in finishes only once that code is
-                entered. The code stops working ten minutes after it was sent,
-                is discarded after five wrong guesses, and requesting another
-                one replaces it. Turning the setting on guards the next sign-in
-                and leaves sessions that are already open working.
-              </p>
-
-              <p>
-                The setting covers password sign-in. Signing in through Google
-                or GitHub still issues a token directly, because those providers
-                run their own multi-factor checks - an instance that wants the
-                second factor to cover everybody does not configure them.
-              </p>
-
-              <p>
-                It can only be turned on when the instance has a mail server and
-                every active administrator holds a real email address, so nobody
-                switches it on and locks the instance out. If the mail server
-                later stops delivering, nobody gets in with a password, which is
-                deliberate: a broken mail server must not quietly downgrade
-                authentication back to one factor. An operator with shell access
-                on the server switches it off again:
-              </p>
-
-              <div className="relative my-6">
-                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
-                  <code>{disableTwoFactorCommand}</code>
-                </pre>
-                <div className="absolute right-2 top-2">
-                  <CopyButton text={disableTwoFactorCommand} />
-                </div>
-              </div>
-
-              <p>
-                The command reports what it changed and records it in the audit
-                log, so an instance that stopped asking for codes says why. It
-                is documented beside password recovery on the{" "}
-                <a
-                  href="/password#disable-two-factor"
-                  className="text-blue-400 hover:text-blue-600"
-                >
-                  password page
-                </a>
-                .
+                An administrator can require two-factor authentication for password sign-in: a code sent by email or a code from an authenticator app (TOTP). If the second factor is out of reach, for example because the mail server stopped working or a phone was lost, the server console switches the requirement off or resets an account&apos;s app, as the <a href="/password#disable-two-factor" className="text-blue-400 hover:text-blue-600">password page</a> describes.
               </p>
 
               <h2 id="security-and-reliability-engineering">

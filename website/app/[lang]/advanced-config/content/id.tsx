@@ -227,43 +227,6 @@ export default function AdvancedConfigPage() {
                 <strong>Send test email</strong>. Pesan dikirim ke alamat kamu sendiri, dan jika
                 gagal, respons mail server akan ditampilkan.
               </p>
-              <div className="bg-[#1f2937]/50 border border-[#ffffff20] border-l-[3px] my-4 border-l-red-500 rounded-lg px-4 py-4 flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-red-500 mt-0.5 shrink-0"
-                >
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <path d="M12 9v4M12 17h.01" />
-                </svg>
-                <div>
-                  <p className="text-gray-300 my-0!">
-                    <strong>
-                      Jika relay kamu tidak menyediakan STARTTLS, atur{" "}
-                      <code>SMTP_SECURITY=none</code> sebelum upgrade.
-                    </strong>{" "}
-                    Pada semua port selain 465, mode default adalah <code>starttls</code>, yang
-                    tidak mau melanjutkan tanpa enkripsi. Relay semacam itu tidak akan menerima
-                    pesan sampai variabel tersebut diatur. Jika instance mewajibkan kode login dari
-                    email, tidak ada yang bisa login dengan password selama email tidak bisa
-                    dikirim. Untuk mendapatkan akses kembali, nonaktifkan faktor kedua dengan{" "}
-                    <code>docker exec -it databasus ./main --disable-2fa</code> (lihat{" "}
-                    <a
-                      href={getLocalizedUrl("id", "password") + "#disable-two-factor"}
-                      className="text-blue-400 hover:text-blue-300"
-                    >
-                      Menonaktifkan kewajiban kode login
-                    </a>
-                    ).
-                  </p>
-                </div>
-              </div>
               <table>
                 <thead>
                   <tr>

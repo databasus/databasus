@@ -98,7 +98,7 @@ O Databasus faz uma restauração de verdade para confirmar que os backups serve
 - **Armazenamento zero-trust**: os backups são criptografados e continuam inúteis para um atacante, então você pode guardá-los com segurança em armazenamentos compartilhados como S3, Azure Blob Storage, etc.
 - **Criptografia de segredos**: qualquer dado sensível é criptografado e nunca fica exposto, nem em logs nem em mensagens de erro
 - **Usuário somente leitura**: por padrão, o Databasus usa um usuário somente leitura para os backups e nunca guarda nada capaz de alterar os seus dados
-- **Autenticação de dois fatores**: o login por senha pode exigir um código de seis dígitos enviado ao e-mail da conta. Entrar pelo Google ou pelo GitHub continua contando com as verificações desses provedores
+- **Autenticação de dois fatores**: o login pode exigir um código enviado por e-mail ou um código de um aplicativo autenticador (TOTP)
 
 ### 👥 **Adequado para equipes** <a href="https://databasus.com/pt/access-management/">(docs)</a>
 

@@ -99,7 +99,7 @@ Databasus melakukan restore sungguhan untuk memastikan backup bisa dipakai, buka
 - **Penyimpanan zero-trust**: backup terenkripsi dan tetap tidak berguna bagi penyerang, jadi kamu bisa menyimpannya dengan aman di penyimpanan bersama seperti S3, Azure Blob Storage, dan lain-lain
 - **Enkripsi untuk secret**: semua data sensitif dienkripsi dan tidak pernah terekspos, bahkan di log atau pesan error
 - **Pengguna read-only**: secara default Databasus memakai pengguna read-only untuk backup dan tidak pernah menyimpan apa pun yang bisa mengubah data kamu
-- **Autentikasi dua faktor**: login dengan password bisa mewajibkan kode enam digit yang dikirim ke email akun. Login lewat Google atau GitHub tetap mengandalkan pemeriksaan dari penyedianya
+- **Autentikasi dua faktor**: login bisa mewajibkan kode yang dikirim lewat email atau kode dari aplikasi autentikator (TOTP)
 
 ### 👥 **Cocok untuk tim** <a href="https://databasus.com/id/access-management/">(dokumentasi)</a>
 

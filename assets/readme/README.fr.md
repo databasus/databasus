@@ -98,7 +98,7 @@ Databasus effectue une vraie restauration pour confirmer que les sauvegardes son
 - **Stockage zero-trust** : les sauvegardes sont chiffrées et restent inutilisables pour un attaquant, vous pouvez donc les déposer sans risque sur un stockage partagé comme S3, Azure Blob Storage, etc.
 - **Chiffrement des secrets** : toute donnée sensible est chiffrée et n'est jamais exposée, pas même dans les logs ou les messages d'erreur
 - **Utilisateur en lecture seule** : par défaut, Databasus sauvegarde via un utilisateur en lecture seule et ne conserve rien qui permette de modifier vos données
-- **Authentification à deux facteurs** : la connexion par mot de passe peut exiger un code à six chiffres envoyé à l'adresse du compte. Se connecter par Google ou GitHub continue de s'appuyer sur les vérifications de ces fournisseurs
+- **Authentification à deux facteurs** : la connexion peut exiger un code envoyé par e-mail ou un code d'une application d'authentification (TOTP)
 
 ### 👥 **Adapté aux équipes** <a href="https://databasus.com/fr/access-management/">(docs)</a>
 

@@ -43,6 +43,7 @@ export default function PasswordResetPage() {
   const listAdminsCommand = `docker exec -it databasus ./main --list-admins`;
   const createUserCommand = `docker exec -it databasus ./main --create-user --email="ops@example.com" --password="YourSecurePassword123" --role=admin`;
   const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
+  const resetTwoFactorCommand = `docker exec -it databasus ./main --reset-2fa --email="owner@example.com"`;
 
   return (
     <>
@@ -237,9 +238,7 @@ export default function PasswordResetPage() {
                 o comando falha sem alterar nada.
               </p>
 
-              <h2 id="disable-two-factor">
-                Parar de pedir um código no login
-              </h2>
+              <h2 id="disable-two-factor">Parar de exigir 2FA</h2>
 
               <p>
                 Uma instância pode exigir, além da senha, um código de seis
@@ -264,6 +263,25 @@ export default function PasswordResetPage() {
                 log de auditoria. O próximo login por senha dispensa o código, e
                 um administrador pode ligar a opção de novo assim que o e-mail
                 voltar a funcionar.
+              </p>
+
+              <h2 id="reset-authenticator-app">Redefinir o aplicativo autenticador de uma conta</h2>
+
+              <p>
+                Se alguém perdeu o celular com o aplicativo autenticador, remova o aplicativo da conta no servidor onde o Databasus está em execução:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{resetTwoFactorCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={resetTwoFactorCommand} />
+                </div>
+              </div>
+
+              <p>
+                O próximo login dessa conta segue a configuração de 2FA da instância. Um administrador também pode redefinir o aplicativo de um usuário na lista de usuários.
               </p>
             </article>
           </div>
