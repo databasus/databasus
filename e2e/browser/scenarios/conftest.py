@@ -52,6 +52,39 @@ def page(browser: Browser, instance_admin: Account) -> Iterator[Page]:
 
 
 @pytest.fixture
+def member_page(browser: Browser, instance_admin: Account) -> Iterator[Page]:
+    """A second browser of the same installation, signed in as nobody, for an account other than
+    the administrator's."""
+    member_scenario_page = _new_page(browser)
+
+    yield member_scenario_page
+
+    member_scenario_page.context.close()
+
+
+@pytest.fixture(scope="session")
+def mail_installation_admin(browser: Browser) -> Account:
+    """Root admin of the installation that has a mail server."""
+    registering_page = _new_page(browser, os.environ["E2E_MAIL_BASE_URL"])
+    account = Account(os.environ["E2E_EMAIL"], os.environ["E2E_PASSWORD"], is_root_admin=True)
+
+    open_application(registering_page)
+    register_first_account(registering_page, account)
+    registering_page.context.close()
+
+    return account
+
+
+@pytest.fixture
+def mail_installation_page(browser: Browser, mail_installation_admin: Account) -> Iterator[Page]:
+    mail_page = _new_page(browser, os.environ["E2E_MAIL_BASE_URL"])
+
+    yield mail_page
+
+    mail_page.context.close()
+
+
+@pytest.fixture
 def recovery_target_page(browser: Browser) -> Iterator[Page]:
     """A page of the separately initialized installation that a recovery replaces."""
     target_page = _new_page(browser, os.environ["E2E_TARGET_BASE_URL"])

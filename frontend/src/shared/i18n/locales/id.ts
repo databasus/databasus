@@ -135,6 +135,14 @@ export const id: typeof en = {
       'Server tidak dapat menyelesaikan permintaan (HTTP {{status}}). Coba lagi nanti.',
     signInCodeIncorrect: 'Kode salah.',
     pendingSignInNotUsable: 'Proses masuk ini tidak bisa dilanjutkan. Silakan masuk lagi.',
+    pendingSignInNotResendable: 'Langkah masuk ini tidak mengirim kode.',
+    secondFactorInvalid: 'Kode salah atau sudah pernah dipakai.',
+    tooManyWrongCodes:
+      'Terlalu banyak kode salah yang dimasukkan untuk akun ini. Anda bisa mencoba lagi nanti, paling lama dalam satu jam.',
+    authenticatorAppRequired:
+      'Instance ini mewajibkan aplikasi autentikator, jadi sambungannya tidak bisa diputus. Anda bisa menggantinya.',
+    authenticatorSetupNotUsable:
+      'Penyiapan ini sudah kedaluwarsa atau menerima terlalu banyak kode salah. Hubungkan aplikasi lagi dari awal.',
     signInCodeNotSent:
       'Instance tidak dapat mengirim kode masuk. Coba lagi nanti atau hubungi admin.',
     tooManySignInCodes:
@@ -269,11 +277,17 @@ export const id: typeof en = {
         'Jika aktif, anggota (pengguna non-admin) bisa membuat ruang kerja baru. Jika nonaktif, hanya admin yang bisa membuat ruang kerja.',
     },
     twoFactorAuth: {
-      title: 'Aktifkan autentikasi dua faktor saat masuk',
+      title: 'Wajibkan 2FA',
       description:
-        'Jika aktif, masuk dengan kata sandi juga membutuhkan kode enam digit yang dikirim ke alamat email akun. Ini tidak berlaku untuk masuk melalui Google atau GitHub.',
+        'Jika aktif, setiap masuk dengan kata sandi, termasuk oleh admin, juga harus melewati 2FA.',
+      method: 'Faktor kedua',
+      methods: {
+        email: 'Kode lewat email',
+        authenticatorApp: 'Aplikasi autentikator',
+      },
+      authenticatorAppExamples: 'Misalnya Google Authenticator, Microsoft Authenticator, dll.',
       mailServerRequired:
-        'Fitur ini membutuhkan server email. <docsLink>Konfigurasikan SMTP</docsLink> terlebih dahulu.',
+        'Kode lewat email membutuhkan server email. <mailServerLink>Konfigurasikan SMTP</mailServerLink> terlebih dahulu.',
     },
     saving: 'Menyimpan...',
     saveChanges: 'Simpan perubahan',
@@ -922,6 +936,21 @@ export const id: typeof en = {
       invalidCode: 'Kode harus terdiri dari 6 digit',
       codeResent: 'Kode baru sedang dikirim. Kode sebelumnya sudah tidak berlaku.',
     },
+    signInAuthenticatorCode: {
+      title: 'Masukkan kode aplikasi',
+      description: 'Buka aplikasi autentikator Anda dan masukkan kode enam digit untuk Databasus.',
+      recoveryDescription:
+        'Masukkan salah satu kode pemulihan yang Anda simpan saat menghubungkan aplikasi.',
+      submit: 'Masuk',
+      backToSignIn: 'Kembali ke halaman masuk',
+    },
+    signInAuthenticatorSetup: {
+      title: 'Hubungkan aplikasi autentikator',
+      description:
+        'Instance ini mewajibkan aplikasi autentikator untuk masuk. Hubungkan aplikasi sekarang untuk melanjutkan.',
+      submit: 'Konfirmasi',
+      backToSignIn: 'Kembali ke halaman masuk',
+    },
     signUp: {
       title: 'Daftar',
       namePlaceholder: 'John Doe',
@@ -969,6 +998,35 @@ export const id: typeof en = {
         submit: 'Ubah kata sandi',
         signInRequired: 'Kata sandi sudah diubah. Masuk lagi dengan kata sandi baru.',
       },
+      authenticatorApp: {
+        title: 'Autentikasi dua faktor (2FA)',
+        description:
+          'Jika aplikasi terhubung, masuk dengan kata sandi meminta kode dari aplikasi, bukan kode lewat email.',
+        notConnected: 'Belum ada aplikasi autentikator yang terhubung.',
+        connectedAt: 'Terhubung: {{time}}.',
+        recoveryCodesLeft: 'Kode pemulihan yang belum dipakai: {{count}}.',
+        connect: 'Hubungkan aplikasi',
+        replace: 'Ganti aplikasi',
+        regenerate: 'Buat kode pemulihan baru',
+        disconnect: 'Putuskan aplikasi',
+        requiredByInstance:
+          'Instance ini mewajibkan aplikasi autentikator, jadi Anda bisa mengganti aplikasi, tetapi tidak bisa memutuskannya.',
+        currentCode:
+          'Untuk melanjutkan, masukkan kode terbaru dari aplikasi atau kode pemulihan yang belum dipakai.',
+        connectTitle: 'Hubungkan aplikasi autentikator',
+        replaceTitle: 'Ganti aplikasi autentikator',
+        replaceDescription:
+          'Setelah Anda mengonfirmasi, aplikasi lama dan kode pemulihan lama tidak berlaku lagi.',
+        regenerateTitle: 'Kode pemulihan baru',
+        regenerateDescription: 'Kode pemulihan sebelumnya tidak berlaku lagi.',
+        disconnectTitle: 'Putuskan aplikasi autentikator',
+        disconnectDescription:
+          'Masuk dengan kata sandi tidak akan meminta kode aplikasi lagi, dan kode pemulihan tidak berlaku lagi.',
+        confirm: 'Konfirmasi',
+        done: 'Selesai',
+        connected: 'Aplikasi autentikator terhubung',
+        disconnected: 'Aplikasi autentikator diputuskan',
+      },
     },
     list: {
       title: 'Pengguna Databasus',
@@ -981,7 +1039,14 @@ export const id: typeof en = {
         systemRole: 'Role sistem',
         isActive: 'Aktif?',
         created: 'Dibuat',
+        authenticatorApp: 'Aplikasi autentikator',
       },
+      authenticatorAppConnected: 'Terhubung',
+      authenticatorAppNotConnected: 'Tidak terhubung',
+      resetAuthenticatorApp: 'Reset aplikasi',
+      resetAuthenticatorAppConfirmation:
+        'Reset aplikasi autentikator milik {{email}}? Kode pemulihannya tidak berlaku lagi. Jika instance mewajibkan aplikasi, pengguna ini menghubungkan aplikasi baru saat masuk berikutnya.',
+      authenticatorAppReset: 'Aplikasi autentikator direset',
       roleLabel: 'Role:',
       activeLabel: 'Aktif:',
       viewAuditLogs: 'Lihat log audit',
@@ -2105,6 +2170,33 @@ export const id: typeof en = {
       interrupted: 'Pemulihan terhenti.',
     },
   },
+  authenticatorApp: {
+    setup: {
+      qrCodeAlt: 'Kode QR untuk dipindai dengan aplikasi autentikator',
+      scan: 'Pindai kode QR dengan aplikasi autentikator, misalnya Google Authenticator, Microsoft Authenticator, atau 1Password. Jika halaman ini dimuat ulang, pindai kode yang terbaru.',
+      secret: 'Atau masukkan kunci ini secara manual di aplikasi',
+      copySecret: 'Salin kunci',
+      secretCopied: 'Kunci disalin',
+      copyFailed: 'Browser tidak mengizinkan penyalinan. Ketik kunci secara manual.',
+    },
+    code: {
+      appCode: 'Kode dari aplikasi',
+      recoveryCode: 'Kode pemulihan',
+      useRecoveryCode: 'Gunakan kode pemulihan',
+      useAppCode: 'Gunakan kode dari aplikasi',
+      invalidAppCode: 'Kode harus terdiri dari 6 digit',
+    },
+    recoveryCodes: {
+      title: 'Simpan kode pemulihan Anda',
+      description:
+        'Setiap kode bisa menggantikan kode aplikasi satu kali, misalnya jika ponsel Anda hilang. Kode hanya ditampilkan sekarang, jadi simpan di tempat yang aman, seperti pengelola kata sandi.',
+      copy: 'Salin kode',
+      copied: 'Kode disalin',
+      copyFailed: 'Browser tidak mengizinkan penyalinan. Unduh kodenya sebagai gantinya.',
+      download: 'Unduh',
+      saved: 'Saya sudah menyimpan kode pemulihan',
+    },
+  },
   masterKey: {
     title: 'Kunci master',
     open: 'Unduh kunci master',
@@ -2119,6 +2211,8 @@ export const id: typeof en = {
     codeRequired:
       'Instalasi ini mewajibkan autentikasi dua faktor saat masuk, jadi konfirmasi akses ke kunci dengan kode yang dikirim ke email Anda.',
     codeFailed: 'Jika kode tetap tidak masuk, salin kunci dari server secara manual.',
+    appCodeRequired:
+      'Instalasi ini mewajibkan autentikasi dua faktor saat masuk, jadi konfirmasi akses dengan kode dari aplikasi autentikator atau kode pemulihan yang belum dipakai.',
     proof: {
       sendCode: 'Kirim kode konfirmasi ke email saya',
       resendCode: 'Kirim kode baru',

@@ -1,9 +1,10 @@
-import { Alert, Button, Checkbox, TextInput } from '@mantine/core';
+import { Alert, Button, Checkbox, Loader, TextInput } from '@mantine/core';
 import { CircleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type InstanceRecovery, instanceRecoveryApi } from '@/entities/instance-backups';
+import { SecondFactorCodeField, useIsAuthenticatorAppConnected } from '@/entities/users';
 import { ApiError, useSessionMutation } from '@/shared/api';
 import { useSessionGuard } from '@/shared/auth';
 import { translateApiError, useLocale } from '@/shared/i18n';
@@ -18,9 +19,9 @@ interface Props {
   onCancel: () => void;
 }
 
-// Apply needs the replacement confirmation and, while the instance requires two-factor sign-in, the
-// code emailed for this recovery; a repeated request for the same recovery observes the one already
-// accepted.
+// eslint-disable-next-line i18next/no-literal-string -- contract enum value
+const AUTHENTICATOR_APP_METHOD = 'AUTHENTICATOR_APP';
+
 export function RecoveryReplacementStep({
   recovery,
   isCodeRequired,
@@ -38,11 +39,17 @@ export function RecoveryReplacementStep({
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [codeError, setCodeError] = useState<unknown>();
   const [isCodeRejectable, setIsCodeRejectable] = useState(false);
+  const [isRecoveryCode, setIsRecoveryCode] = useState(false);
+  const [isAppCodeAnswered, setIsAppCodeAnswered] = useState(false);
+  const isAppConnected = useIsAuthenticatorAppConnected(isCodeRequired);
+  const isAppCodeExpected = isAppConnected === true || isAppCodeAnswered;
+  const wrongCodeMessage = isAppCodeExpected
+    ? t('errors.secondFactorInvalid')
+    : t('masterKey.proof.wrongCode');
   const isCodeRejected =
     applyError instanceof ApiError && applyError.code === 'identity_proof_invalid';
   const error = isCodeRejected ? codeError : (applyError ?? codeError);
-  const codeFieldError =
-    isCodeRejected && isCodeRejectable ? t('masterKey.proof.wrongCode') : undefined;
+  const codeFieldError = isCodeRejected && isCodeRejectable ? wrongCodeMessage : undefined;
 
   const confirmationMutation = useSessionMutation({
     mutationFn: (recoveryId: string) => instanceRecoveryApi.requestConfirmation(recoveryId),
@@ -54,8 +61,10 @@ export function RecoveryReplacementStep({
     setCodeError(undefined);
 
     try {
-      await confirmationMutation.mutateAsync(recovery.id);
-      if (isCurrent()) setIsCodeSent(true);
+      const confirmation = await confirmationMutation.mutateAsync(recovery.id);
+      if (!isCurrent()) return;
+      if (confirmation.method === AUTHENTICATOR_APP_METHOD) setIsAppCodeAnswered(true);
+      else setIsCodeSent(true);
     } catch (failure: unknown) {
       if (isCurrent()) setCodeError(failure);
     } finally {
@@ -97,7 +106,34 @@ export function RecoveryReplacementStep({
         onChange={(event) => setIsReplacementConfirmed(event.currentTarget.checked)}
       />
 
-      {isCodeRequired && (
+      {isCodeRequired && isAppConnected === undefined && (
+        <div className="mt-3">
+          <Loader size="xs" role="status" />
+        </div>
+      )}
+
+      {isCodeRequired && isAppCodeExpected && (
+        <div className="mt-3">
+          <p className="mb-2">{t('masterKey.appCodeRequired')}</p>
+          <SecondFactorCodeField
+            code={code}
+            onCodeChange={(enteredCode) => {
+              setCode(enteredCode);
+              setIsCodeRejectable(false);
+            }}
+            isRecoveryCode={isRecoveryCode}
+            onRecoveryCodeToggle={(isRecoveryCodeChosen) => {
+              setIsRecoveryCode(isRecoveryCodeChosen);
+              setCode('');
+              setIsCodeRejectable(false);
+            }}
+            error={codeFieldError}
+            isDisabled={isApplying}
+          />
+        </div>
+      )}
+
+      {isCodeRequired && isAppConnected === false && !isAppCodeAnswered && (
         <div className="mt-3">
           <Button
             size="xs"

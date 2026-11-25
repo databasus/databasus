@@ -45,7 +45,7 @@ func (r *settingsRepository) getOrCreate(ctx context.Context) (Settings, error) 
 		IsAllowExternalRegistrations:      defaults.IsAllowExternalRegistrations,
 		IsAllowMemberInvitations:          defaults.IsAllowMemberInvitations,
 		IsMemberAllowedToCreateWorkspaces: defaults.IsMemberAllowedToCreateWorkspaces,
-		IsTwoFactorAuthRequired:           defaults.IsTwoFactorAuthRequired,
+		TwoFactorRequirement:              defaults.TwoFactorRequirement,
 	}
 
 	err = database.Conn(ctx, r.db).Create(&settings).Error
@@ -62,12 +62,12 @@ func (r *settingsRepository) updateSwitches(ctx context.Context, settingsID uuid
 		SET is_allow_external_registrations = ?,
 			is_allow_member_invitations = ?,
 			is_member_allowed_to_create_workspaces = ?,
-			is_two_factor_auth_required = ?
+			two_factor_requirement = ?
 		WHERE id = ?`,
 		switches.IsAllowExternalRegistrations,
 		switches.IsAllowMemberInvitations,
 		switches.IsMemberAllowedToCreateWorkspaces,
-		switches.IsTwoFactorAuthRequired,
+		switches.TwoFactorRequirement,
 		settingsID,
 	).Error
 	if err != nil {
@@ -77,13 +77,13 @@ func (r *settingsRepository) updateSwitches(ctx context.Context, settingsID uuid
 	return nil
 }
 
-func (r *settingsRepository) updateIsTwoFactorAuthRequired(
+func (r *settingsRepository) updateTwoFactorRequirement(
 	ctx context.Context,
 	settingsID uuid.UUID,
-	isRequired bool,
+	requirement TwoFactorRequirement,
 ) error {
 	err := database.Conn(ctx, r.db).Exec(
-		"UPDATE users_settings SET is_two_factor_auth_required = ? WHERE id = ?", isRequired, settingsID,
+		"UPDATE users_settings SET two_factor_requirement = ? WHERE id = ?", requirement, settingsID,
 	).Error
 	if err != nil {
 		return fmt.Errorf("update the second factor setting: %w", err)

@@ -103,7 +103,7 @@ func TestPasswordlessSignIn(t *testing.T) {
 					require.Equal(t, http.StatusOK, getUser(t, admin.Client, admin.UserID).StatusCode())
 
 					twoFactorUpdate := defaultSettingsUpdate()
-					twoFactorUpdate.IsTwoFactorAuthRequired = true
+					twoFactorUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementEMAIL
 					updatedSettings := updateInstanceSettings(t, admin.Client, twoFactorUpdate)
 					require.Equal(t, http.StatusOK, updatedSettings.StatusCode(), string(updatedSettings.Body))
 

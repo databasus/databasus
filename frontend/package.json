@@ -25,6 +25,7 @@
     "i18next": "^26.4.2",
     "lucide-react": "1.70.0",
     "openapi-fetch": "^0.17.0",
+    "qrcode.react": "4.2.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-i18next": "^17.0.14",

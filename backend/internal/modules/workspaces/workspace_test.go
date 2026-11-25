@@ -298,7 +298,7 @@ func forbidMemberWorkspaces(t *testing.T, admin apptest.Session) {
 		IsAllowExternalRegistrations:      true,
 		IsAllowMemberInvitations:          true,
 		IsMemberAllowedToCreateWorkspaces: false,
-		IsTwoFactorAuthRequired:           false,
+		TwoFactorRequirement:              apiclient.TwoFactorRequirementOFF,
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))

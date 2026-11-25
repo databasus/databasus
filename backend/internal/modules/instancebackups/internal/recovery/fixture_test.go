@@ -150,8 +150,8 @@ func newInitializedTarget(t *testing.T) target {
 
 	initializedTarget := newTargetOn(t, testdb.Open(t))
 	initializedTarget.execute(t, `INSERT INTO users_settings (id, is_allow_external_registrations,
-		is_allow_member_invitations, is_member_allowed_to_create_workspaces, is_two_factor_auth_required)
-		VALUES (gen_random_uuid(), true, true, true, false)`)
+		is_allow_member_invitations, is_member_allowed_to_create_workspaces, two_factor_requirement)
+		VALUES (gen_random_uuid(), true, true, true, 'OFF')`)
 
 	_, err := crypto.OpenOrCreateMasterKey(initializedTarget.secretKeyPath)
 	require.NoError(t, err)

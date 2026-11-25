@@ -1,7 +1,8 @@
 // Package identityproof confirms that root admin is present before a sensitive operation while the
-// instance requires two-factor sign-in: a single-use code emailed to their account. A code is bound to the account,
-// the session, a purpose and the operation's subject, so a proof for one operation cannot authorize
-// another.
+// instance requires two-factor sign-in: a current code of root admin's authenticator app, or else a
+// single-use code emailed to their account. An emailed code is bound to the account, the session, a
+// purpose and the operation's subject, so a proof for one operation cannot authorize another; an
+// app code is single-use across every purpose instead.
 package identityproof
 
 import (
@@ -22,6 +23,19 @@ const (
 	codeLifetime    = 5 * time.Minute
 	maxCodeAttempts = 5
 )
+
+type Method string
+
+const (
+	MethodEmail            Method = "EMAIL"
+	MethodAuthenticatorApp Method = "AUTHENTICATOR_APP"
+)
+
+// Confirmation answers a confirmation request. ExpiresAt is set only for an emailed code.
+type Confirmation struct {
+	Method    Method
+	ExpiresAt *time.Time
+}
 
 // Binding is what a proof authorizes: a purpose and the subject of that operation, such as a
 // recovery ID with its archive fingerprint. A master-key export has an empty subject.

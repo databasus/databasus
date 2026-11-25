@@ -369,6 +369,7 @@ func setUpSeedAccounts(t *testing.T) (seedFixture, seedParams) {
 
 	response, err := admin.Client.UpdateInstanceSettingsWithResponse(t.Context(), apiclient.InstanceSettingsUpdate{
 		IsAllowExternalRegistrations: true, IsAllowMemberInvitations: true, IsMemberAllowedToCreateWorkspaces: true,
+		TwoFactorRequirement: apiclient.TwoFactorRequirementOFF,
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode())
@@ -413,11 +414,19 @@ func updateSeedSettings(t *testing.T, fixture seedFixture, settings seedSettings
 			IsAllowExternalRegistrations:      true,
 			IsAllowMemberInvitations:          true,
 			IsMemberAllowedToCreateWorkspaces: settings.isWorkspaceCreationAllowed,
-			IsTwoFactorAuthRequired:           settings.isTwoFactorRequired,
+			TwoFactorRequirement:              getSeedTwoFactorRequirement(settings),
 		},
 	)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode())
+}
+
+func getSeedTwoFactorRequirement(settings seedSettings) apiclient.TwoFactorRequirement {
+	if settings.isTwoFactorRequired {
+		return apiclient.TwoFactorRequirementEMAIL
+	}
+
+	return apiclient.TwoFactorRequirementOFF
 }
 
 func buildTestSeedParams(baseURL string) seedParams {

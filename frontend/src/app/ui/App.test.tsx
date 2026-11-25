@@ -27,6 +27,8 @@ const openProfile = async (isTwoFactorAuthRequired: boolean) => {
       status: 'ACTIVE',
       isRootAdmin: false,
       createdAt: '2026-10-01T00:00:00Z',
+      authenticatorAppConnectedAt: null,
+      unusedRecoveryCodeCount: null,
     }),
     mockApi.get('/workspaces', 200, { items: [] }),
     mockApi.get('/instance-settings', 200, {
@@ -34,7 +36,7 @@ const openProfile = async (isTwoFactorAuthRequired: boolean) => {
       isAllowMemberInvitations: false,
       isMemberAllowedToCreateWorkspaces: false,
       isEmailConfigured: true,
-      isTwoFactorAuthRequired,
+      twoFactorRequirement: isTwoFactorAuthRequired ? 'EMAIL' : 'OFF',
     }),
     http.get('https://api.github.com/repos/databasus/databasus', () =>
       HttpResponse.json({ stargazers_count: 1 }),

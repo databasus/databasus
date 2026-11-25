@@ -199,6 +199,7 @@ func TestSeedBootstrapAdminFailures(t *testing.T) {
 			t.Context(),
 			apiclient.InstanceSettingsUpdate{
 				IsAllowExternalRegistrations: false,
+				TwoFactorRequirement:         apiclient.TwoFactorRequirementOFF,
 			},
 		)
 		require.NoError(t, err)

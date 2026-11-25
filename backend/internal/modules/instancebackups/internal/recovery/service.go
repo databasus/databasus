@@ -2,7 +2,6 @@ package recovery
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -25,8 +24,6 @@ type ServiceDeps struct {
 	RebuildRequest *lifecycle.RebuildRequest
 }
 
-// ApplyRequest is root admin's confirmation that the installation is replaced, with the code
-// emailed for the recovery while the instance requires two-factor sign-in.
 type ApplyRequest struct {
 	IsReplacementConfirmed bool
 	Code                   *string
@@ -97,21 +94,23 @@ func (s *Service) GetLatestRecovery() (*Recovery, error) {
 	return &recovery, nil
 }
 
-// RequestConfirmation emails root admin a code that confirms applying this prepared recovery in the
-// current session.
-func (s *Service) RequestConfirmation(ctx context.Context, actor users.Actor, recoveryID uuid.UUID) (time.Time, error) {
+func (s *Service) RequestConfirmation(
+	ctx context.Context,
+	actor users.Actor,
+	recoveryID uuid.UUID,
+) (users.IdentityConfirmation, error) {
 	if _, err := s.users.RequireRootAdmin(ctx, actor); err != nil {
-		return time.Time{}, err
+		return users.IdentityConfirmation{}, err
 	}
 
 	journal, err := s.journal.Read()
 	if err != nil {
-		return time.Time{}, err
+		return users.IdentityConfirmation{}, err
 	}
 
 	operation, err := s.getApplicable(journal, recoveryID)
 	if err != nil {
-		return time.Time{}, err
+		return users.IdentityConfirmation{}, err
 	}
 
 	return s.users.SendIdentityCode(ctx, actor, getApplyBinding(operation))
@@ -237,8 +236,6 @@ func isApplyAccepted(journal Journal, recoveryID uuid.UUID) bool {
 	return journal.LastCompleted != nil && journal.LastCompleted.OperationID == recoveryID
 }
 
-// verifyCodeWhenRequired asks for the emailed code only while the instance requires two-factor
-// sign-in; otherwise the session and the replacement confirmation are enough.
 func (s *Service) verifyCodeWhenRequired(
 	ctx context.Context,
 	actor users.Actor,

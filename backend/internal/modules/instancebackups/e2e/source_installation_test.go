@@ -118,7 +118,7 @@ func openRegistrations(t *testing.T, root accountSession) {
 		IsAllowExternalRegistrations:      true,
 		IsAllowMemberInvitations:          true,
 		IsMemberAllowedToCreateWorkspaces: true,
-		IsTwoFactorAuthRequired:           false,
+		TwoFactorRequirement:              apiclient.TwoFactorRequirementOFF,
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))

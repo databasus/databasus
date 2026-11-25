@@ -73,13 +73,15 @@ const openApplication = (
       status: 'ACTIVE',
       isRootAdmin: false,
       createdAt: firstWorkspace.createdAt,
+      authenticatorAppConnectedAt: null,
+      unusedRecoveryCodeCount: null,
     }),
     mockApi.get('/instance-settings', 200, {
       isAllowExternalRegistrations: false,
       isAllowMemberInvitations: false,
       isMemberAllowedToCreateWorkspaces: false,
       isEmailConfigured: true,
-      isTwoFactorAuthRequired: false,
+      twoFactorRequirement: 'OFF',
     }),
     mockApi.get('/workspaces', 200, { items: workspaces }),
     http.get(`*${API_BASE_PATH}/workspaces/:workspaceId`, ({ params }) =>
@@ -1202,6 +1204,8 @@ const openApplicationAsRootAdmin = (
       status: 'ACTIVE',
       isRootAdmin: true,
       createdAt: firstWorkspace.createdAt,
+      authenticatorAppConnectedAt: null,
+      unusedRecoveryCodeCount: null,
     }),
     mockApi.get('/verification-agents', 200, { items: [] }),
     mockApi.get('/instance-backup-settings', 200, {

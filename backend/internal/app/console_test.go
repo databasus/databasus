@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -15,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/lib/totp"
 	"databasus-backend/internal/modules/users"
 )
 
@@ -310,7 +312,7 @@ func TestRunConsoleCommand(t *testing.T) {
 			t,
 			SQLExecutionSpec{
 				App:       testApp,
-				Statement: "INSERT INTO users_settings (is_two_factor_auth_required) VALUES (TRUE)",
+				Statement: "INSERT INTO users_settings (two_factor_requirement) VALUES ('EMAIL')",
 			},
 		)
 
@@ -318,13 +320,13 @@ func TestRunConsoleCommand(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Contains(t, output, "Two-factor authentication is now off")
-		assert.False(t, isTwoFactorAuthRequired(t, testApp))
+		assert.Equal(t, "OFF", getTwoFactorRequirement(t, testApp))
 		assert.True(
 			t,
 			hasAuditRecordContaining(
 				t,
 				testApp,
-				"isTwoFactorAuthRequired: true -> false (switched off from the host console)",
+				"twoFactorRequirement: EMAIL -> OFF (switched off from the host console)",
 			),
 		)
 		assert.Nil(t, testApp.backgroundGroup)
@@ -337,7 +339,64 @@ func TestRunConsoleCommand(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Contains(t, output, "Two-factor authentication was already off")
-		assert.False(t, hasAuditRecordContaining(t, testApp, "isTwoFactorAuthRequired"))
+		assert.False(t, hasAuditRecordContaining(t, testApp, "twoFactorRequirement"))
+	})
+
+	t.Run("resets the authenticator app of an account and records it without an author", func(t *testing.T) {
+		testApp := newTestApp(t)
+		serverURL := newConsoleTestServer(t, testApp)
+		email := createConsoleAdministrator(t, testApp)
+		connectConsoleAuthenticatorApp(t, serverURL, email)
+
+		output, err := testApp.RunConsoleCommand(t.Context(),
+			ConsoleCommand{Kind: ConsoleCommandResetTwoFactor, Email: email})
+
+		require.NoError(t, err)
+		assert.Contains(t, output, "are removed")
+		assert.Equal(t, "COMPLETED", getSignInOutcome(t, apiclient.New(t, serverURL), email))
+		assert.True(t, hasAuthorlessAuditRecord(t, testApp,
+			"Authenticator app reset from the host console: "+email))
+	})
+
+	t.Run("reports no change for an account without an authenticator app", func(t *testing.T) {
+		testApp := newTestApp(t)
+		email := createConsoleAdministrator(t, testApp)
+		auditRecordCount := countAuditRecords(t, testApp)
+
+		output, err := testApp.RunConsoleCommand(t.Context(),
+			ConsoleCommand{Kind: ConsoleCommandResetTwoFactor, Email: email})
+
+		require.NoError(t, err)
+		assert.Contains(t, output, "Nothing changed")
+		assert.Equal(t, auditRecordCount, countAuditRecords(t, testApp))
+	})
+
+	t.Run("returns an error for an unknown address when resetting an authenticator app", func(t *testing.T) {
+		testApp := newTestApp(t)
+		createConsoleAdministrator(t, testApp)
+		auditRecordCount := countAuditRecords(t, testApp)
+
+		_, err := testApp.RunConsoleCommand(t.Context(),
+			ConsoleCommand{Kind: ConsoleCommandResetTwoFactor, Email: newConsoleEmail()})
+
+		require.Error(t, err)
+		assert.Equal(t, auditRecordCount, countAuditRecords(t, testApp))
+	})
+
+	t.Run("keeps asking a user with an app for its code after the second factor is switched off", func(t *testing.T) {
+		testApp := newTestApp(t)
+		serverURL := newConsoleTestServer(t, testApp)
+		email := createConsoleAdministrator(t, testApp)
+		connectConsoleAuthenticatorApp(t, serverURL, email)
+		executeSQL(t, SQLExecutionSpec{
+			App:       testApp,
+			Statement: "UPDATE users_settings SET two_factor_requirement = 'EMAIL'",
+		})
+
+		_, err := testApp.RunConsoleCommand(t.Context(), ConsoleCommand{Kind: ConsoleCommandDisableTwoFactor})
+
+		require.NoError(t, err)
+		assert.Equal(t, "AUTHENTICATOR_CODE_REQUIRED", getSignInOutcome(t, apiclient.New(t, serverURL), email))
 	})
 
 	t.Run("lists the administrators unmasked, marks the bootstrap one and leaves members out", func(t *testing.T) {
@@ -403,13 +462,61 @@ func newConsoleEmail() string {
 func newConsoleTestClient(t *testing.T, testApp *App) *apiclient.ClientWithResponses {
 	t.Helper()
 
+	return apiclient.New(t, newConsoleTestServer(t, testApp))
+}
+
+func newConsoleTestServer(t *testing.T, testApp *App) string {
+	t.Helper()
+
 	handler, err := testApp.NewHandler()
 	require.NoError(t, err)
 
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 
-	return apiclient.New(t, server.URL)
+	return server.URL
+}
+
+func connectConsoleAuthenticatorApp(t *testing.T, serverURL, email string) {
+	t.Helper()
+
+	password := consolePassword
+	signedIn, err := apiclient.New(t, serverURL).SignInWithResponse(t.Context(), apiclient.SignInRequest{
+		Email: email, Password: &password, CloudflareTurnstileToken: nil,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, signedIn.StatusCode(), string(signedIn.Body))
+	session, err := signedIn.JSON200.AsSignInCompleted()
+	require.NoError(t, err)
+	client := apiclient.New(t, serverURL, apiclient.WithSessionToken(session.Token))
+
+	startedSetup, err := client.StartAuthenticatorAppSetupWithResponse(t.Context(), session.UserId,
+		apiclient.SecondFactorProof{Code: nil})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, startedSetup.StatusCode(), string(startedSetup.Body))
+	code, err := totp.ComputeCode(startedSetup.JSON201.Secret, totp.GetStep(time.Now()))
+	require.NoError(t, err)
+
+	confirmedSetup, err := client.ConfirmAuthenticatorAppSetupWithResponse(t.Context(), session.UserId,
+		startedSetup.JSON201.AuthenticatorAppSetupId, apiclient.AuthenticatorAppCode{Code: &code})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, confirmedSetup.StatusCode(), string(confirmedSetup.Body))
+}
+
+func getSignInOutcome(t *testing.T, client *apiclient.ClientWithResponses, email string) string {
+	t.Helper()
+
+	password := consolePassword
+	response, err := client.SignInWithResponse(t.Context(), apiclient.SignInRequest{
+		Email: email, Password: &password, CloudflareTurnstileToken: nil,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+
+	outcome, err := response.JSON200.Discriminator()
+	require.NoError(t, err)
+
+	return outcome
 }
 
 // signIn returns an error unless the password sign-in issues a session.
@@ -540,15 +647,26 @@ func countAuditRecords(t *testing.T, testApp *App) int {
 	return recordCount
 }
 
-func isTwoFactorAuthRequired(t *testing.T, testApp *App) bool {
+func getTwoFactorRequirement(t *testing.T, testApp *App) string {
 	t.Helper()
 
-	var isRequired bool
+	var requirement string
 	require.NoError(t, testApp.db.WithContext(t.Context()).Raw(
-		"SELECT is_two_factor_auth_required FROM users_settings",
-	).Scan(&isRequired).Error)
+		"SELECT two_factor_requirement FROM users_settings",
+	).Scan(&requirement).Error)
 
-	return isRequired
+	return requirement
+}
+
+func hasAuthorlessAuditRecord(t *testing.T, testApp *App, message string) bool {
+	t.Helper()
+
+	var isPresent bool
+	require.NoError(t, testApp.db.WithContext(t.Context()).Raw(
+		"SELECT EXISTS (SELECT 1 FROM lib_audit_events WHERE message = ? AND author_user_id IS NULL)", message,
+	).Scan(&isPresent).Error)
+
+	return isPresent
 }
 
 func hasAuditRecordContaining(t *testing.T, testApp *App, messagePart string) bool {

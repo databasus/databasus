@@ -32,6 +32,45 @@ services:
       start_period: 180s
       start_interval: 1s
 
+  # An installation with a mail server, for the scenarios that read mail: the emailed sign-in code.
+  # The other installations have none, as a fresh deployment from the README.
+  databasus-mail:
+    image: ${E2E_IMAGE:?}
+    pull_policy: never
+    environment:
+      IS_DISABLE_ANONYMOUS_TELEMETRY: "true"
+      SMTP_HOST: mail
+      SMTP_PORT: "1025"
+      SMTP_FROM: databasus@example.com
+      SMTP_SECURITY: none
+    depends_on:
+      mail:
+        condition: service_healthy
+    volumes:
+      - databasus-mail-data:/databasus-data
+    healthcheck:
+      test: ["CMD", "databasus", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+      start_interval: 1s
+
+  # Keeps every message it receives and answers them over its HTTP API, which the scenarios read
+  # through the browser, as the only service on this network they can reach.
+  mail:
+    image: docker.io/axllent/mailpit:v1.20.5@sha256:cd75e91719cace4e3100eab9f848ecf2ecdd7f4db01e1573a0114769dad4ba2e
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
+
   databases:
     image: docker.io/library/postgres:18@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
     environment:
@@ -120,6 +159,7 @@ networks:
 volumes:
   databasus-data:
   databasus-target-data:
+  databasus-mail-data:
   recovery-socket:
   recovery-engine-data:
   recovery-work:

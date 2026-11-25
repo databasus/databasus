@@ -21,6 +21,7 @@ import { activateSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
 import { formatDateTime } from '@/shared/i18n';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { mockSignedInAccount } from '@/shared/lib/test/mockSignedInAccount';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 import { getUserClockFormat } from '@/shared/time';
 import { LanguageThemeControlComponent } from '@/shared/ui';
@@ -71,6 +72,7 @@ const useSectionResponses = ({
     mockApi.get('/instance-backup-statuses', 200, status),
     mockApi.get('/instance-backup-destinations', 200, { items: [s3Choice, localChoice] }),
     mockApi.get('/instance-backups', 200, { items: backups }),
+    mockSignedInAccount(),
   );
 
 const renderSection = (onConfigureSmtp = vi.fn()) =>
@@ -135,7 +137,7 @@ describe('InstanceBackupsSection', () => {
         isAllowExternalRegistrations: false,
         isAllowMemberInvitations: false,
         isMemberAllowedToCreateWorkspaces: false,
-        isTwoFactorAuthRequired: false,
+        twoFactorRequirement: 'OFF',
         isEmailConfigured: true,
       }),
       mockApi.get('/verification-agents', 200, { items: [] }),
@@ -920,8 +922,53 @@ describe('InstanceBackupsSection', () => {
       await user.click(await screen.findByRole('button', { name: masterKey.open }));
       const dialog = within(await screen.findByRole('dialog', { name: masterKey.title }));
 
-      expect(dialog.getByRole('button', { name: masterKey.proof.sendCode })).toBeTruthy();
+      expect(await dialog.findByRole('button', { name: masterKey.proof.sendCode })).toBeTruthy();
       expect(masterKeyRequests()).toHaveLength(0);
+    });
+
+    it('asks for an app code in the master-key dialog when root admin has an app', async () => {
+      useSectionResponses({
+        status: buildStatus({
+          isMasterKeyAcknowledged: false,
+          isConfirmationCodeRequired: true,
+        }),
+      });
+      const exportBodies: unknown[] = [];
+      server.use(
+        mockSignedInAccount({ isAuthenticatorAppConnected: true }),
+        http.post(`*${API_BASE_PATH}/master-key-exports`, async ({ request }) => {
+          exportBodies.push(await request.json());
+          return HttpResponse.json(
+            {
+              token: 'key-token',
+              fileName: 'databasus-master-key.txt',
+              expiresAt: '2999-01-01T00:00:00Z',
+            },
+            { status: 201 },
+          );
+        }),
+        http.get(`*${API_BASE_PATH}/master-key-downloads`, () =>
+          HttpResponse.text('panel-master-key-0123456789'),
+        ),
+      );
+      const { user } = openSection();
+      const masterKey = dictionary.masterKey;
+
+      await user.click(await screen.findByRole('button', { name: masterKey.open }));
+      const dialog = within(await screen.findByRole('dialog', { name: masterKey.title }));
+      await user.type(
+        await dialog.findByLabelText(dictionary.authenticatorApp.code.appCode),
+        '123456',
+      );
+
+      expect(dialog.queryByRole('button', { name: masterKey.proof.sendCode })).toBeNull();
+      await user.click(dialog.getByRole('button', { name: masterKey.proof.confirm }));
+
+      expect(await dialog.findByText('pane••••••••••••6789')).toBeTruthy();
+      expect(exportBodies).toEqual([{ code: '123456' }]);
+      expect(
+        server.getRequests().some((request) => request.url.includes('/master-key-confirmations')),
+      ).toBe(false);
     });
 
     it('opens recovery from a backup file in a dialog', async () => {
@@ -987,7 +1034,7 @@ describe('InstanceBackupsSection', () => {
           isAllowExternalRegistrations: false,
           isAllowMemberInvitations: false,
           isMemberAllowedToCreateWorkspaces: false,
-          isTwoFactorAuthRequired: false,
+          twoFactorRequirement: 'OFF',
           isEmailConfigured: false,
         }),
         mockApi.get('/verification-agents', 200, { items: [] }),

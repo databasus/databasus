@@ -32,7 +32,7 @@ func (h *Handler) UpdateInstanceSettings(
 		IsAllowExternalRegistrations:      request.Body.IsAllowExternalRegistrations,
 		IsAllowMemberInvitations:          request.Body.IsAllowMemberInvitations,
 		IsMemberAllowedToCreateWorkspaces: request.Body.IsMemberAllowedToCreateWorkspaces,
-		IsTwoFactorAuthRequired:           request.Body.IsTwoFactorAuthRequired,
+		TwoFactorRequirement:              settings.TwoFactorRequirement(request.Body.TwoFactorRequirement),
 	})
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func toInstanceSettingsBody(instanceSettings settings.InstanceSettings) Instance
 		IsAllowExternalRegistrations:      instanceSettings.IsAllowExternalRegistrations,
 		IsAllowMemberInvitations:          instanceSettings.IsAllowMemberInvitations,
 		IsMemberAllowedToCreateWorkspaces: instanceSettings.IsMemberAllowedToCreateWorkspaces,
-		IsTwoFactorAuthRequired:           instanceSettings.IsTwoFactorAuthRequired,
+		TwoFactorRequirement:              TwoFactorRequirement(instanceSettings.TwoFactorRequirement),
 		IsEmailConfigured:                 instanceSettings.IsEmailConfigured,
 	}
 }

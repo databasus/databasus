@@ -157,6 +157,14 @@ export const pt: typeof en = {
       'O servidor não conseguiu concluir a solicitação (HTTP {{status}}). Tente novamente mais tarde.',
     signInCodeIncorrect: 'Código incorreto.',
     pendingSignInNotUsable: 'Este login não pode mais ser concluído. Entre novamente.',
+    pendingSignInNotResendable: 'Esta etapa do login não envia códigos.',
+    secondFactorInvalid: 'O código está errado ou já foi usado.',
+    tooManyWrongCodes:
+      'Foram digitados códigos errados demais para esta conta. Você poderá tentar de novo em até uma hora.',
+    authenticatorAppRequired:
+      'Esta instância exige um aplicativo autenticador, então ele não pode ser desconectado. Você pode substituí-lo.',
+    authenticatorSetupNotUsable:
+      'Esta configuração expirou ou recebeu códigos errados demais. Conecte o aplicativo de novo desde o início.',
     signInCodeNotSent:
       'A instância não conseguiu enviar o código de acesso. Tente mais tarde ou fale com um administrador.',
     tooManySignInCodes:
@@ -301,11 +309,17 @@ export const pt: typeof en = {
         'Quando ativado, os membros (usuários que não são administradores) podem criar novos espaços de trabalho. Quando desativado, só os administradores podem criá-los.',
     },
     twoFactorAuth: {
-      title: 'Ativar o login em duas etapas',
+      title: 'Exigir 2FA',
       description:
-        'Quando ativado, além da senha é preciso informar um código de seis dígitos enviado para o e-mail da conta. Não vale para o login pelo Google ou pelo GitHub.',
+        'Quando ativado, todo login com senha, inclusive o de administradores, também precisa passar pela 2FA.',
+      method: 'Segundo fator',
+      methods: {
+        email: 'Código por e-mail',
+        authenticatorApp: 'Aplicativo autenticador',
+      },
+      authenticatorAppExamples: 'Por exemplo, Google Authenticator, Microsoft Authenticator etc.',
       mailServerRequired:
-        'É preciso ter um servidor de e-mail. <docsLink>Configure o SMTP</docsLink> primeiro.',
+        'O código por e-mail precisa de um servidor de e-mail. <mailServerLink>Configure o SMTP</mailServerLink> primeiro.',
     },
     saving: 'Salvando...',
     saveChanges: 'Salvar alterações',
@@ -993,6 +1007,22 @@ export const pt: typeof en = {
       invalidCode: 'O código tem 6 dígitos',
       codeResent: 'Enviamos um novo código. O anterior não funciona mais.',
     },
+    signInAuthenticatorCode: {
+      title: 'Digite o código do aplicativo',
+      description:
+        'Abra seu aplicativo autenticador e digite o código de seis dígitos do Databasus.',
+      recoveryDescription:
+        'Digite um dos códigos de recuperação que você salvou ao conectar o aplicativo.',
+      submit: 'Entrar',
+      backToSignIn: 'Voltar para o login',
+    },
+    signInAuthenticatorSetup: {
+      title: 'Conecte um aplicativo autenticador',
+      description:
+        'Esta instância exige um aplicativo autenticador para entrar. Conecte um agora para continuar.',
+      submit: 'Confirmar',
+      backToSignIn: 'Voltar para o login',
+    },
     signUp: {
       title: 'Criar conta',
       namePlaceholder: 'João Silva',
@@ -1039,6 +1069,35 @@ export const pt: typeof en = {
         submit: 'Alterar senha',
         signInRequired: 'Senha alterada. Entre novamente com sua nova senha.',
       },
+      authenticatorApp: {
+        title: 'Autenticação em dois fatores (2FA)',
+        description:
+          'Com um aplicativo conectado, o login com senha pede um código do aplicativo em vez de um código por e-mail.',
+        notConnected: 'Nenhum aplicativo autenticador conectado.',
+        connectedAt: 'Conectado: {{time}}.',
+        recoveryCodesLeft: 'Códigos de recuperação não usados: {{count}}.',
+        connect: 'Conectar aplicativo',
+        replace: 'Substituir aplicativo',
+        regenerate: 'Gerar novos códigos de recuperação',
+        disconnect: 'Desconectar aplicativo',
+        requiredByInstance:
+          'Esta instância exige um aplicativo autenticador, então você pode substituir o aplicativo, mas não desconectá-lo.',
+        currentCode:
+          'Para continuar, digite um código atual do seu aplicativo ou um código de recuperação não usado.',
+        connectTitle: 'Conectar um aplicativo autenticador',
+        replaceTitle: 'Substituir o aplicativo autenticador',
+        replaceDescription:
+          'Depois que você confirmar, o aplicativo antigo e os códigos de recuperação antigos param de funcionar.',
+        regenerateTitle: 'Novos códigos de recuperação',
+        regenerateDescription: 'Os códigos de recuperação anteriores param de funcionar.',
+        disconnectTitle: 'Desconectar o aplicativo autenticador',
+        disconnectDescription:
+          'O login com senha não vai mais pedir um código do aplicativo, e os códigos de recuperação param de funcionar.',
+        confirm: 'Confirmar',
+        done: 'Concluir',
+        connected: 'Aplicativo autenticador conectado',
+        disconnected: 'Aplicativo autenticador desconectado',
+      },
     },
     list: {
       title: 'Usuários do Databasus',
@@ -1051,7 +1110,14 @@ export const pt: typeof en = {
         systemRole: 'Papel no sistema',
         isActive: 'Ativo?',
         created: 'Criado em',
+        authenticatorApp: 'Aplicativo autenticador',
       },
+      authenticatorAppConnected: 'Conectado',
+      authenticatorAppNotConnected: 'Não conectado',
+      resetAuthenticatorApp: 'Redefinir aplicativo',
+      resetAuthenticatorAppConfirmation:
+        'Redefinir o aplicativo autenticador de {{email}}? Os códigos de recuperação dessa pessoa param de funcionar. Se a instância exigir um aplicativo, ela conecta um novo no próximo login.',
+      authenticatorAppReset: 'Aplicativo autenticador redefinido',
       roleLabel: 'Papel:',
       activeLabel: 'Ativo:',
       viewAuditLogs: 'Ver logs de auditoria',
@@ -2249,6 +2315,33 @@ export const pt: typeof en = {
       interrupted: 'A recuperação foi interrompida.',
     },
   },
+  authenticatorApp: {
+    setup: {
+      qrCodeAlt: 'QR code para escanear com um aplicativo autenticador',
+      scan: 'Escaneie o QR code com um aplicativo autenticador, como Google Authenticator, Microsoft Authenticator ou 1Password. Se esta página foi recarregada, escaneie o código mais recente.',
+      secret: 'Ou digite esta chave manualmente no aplicativo',
+      copySecret: 'Copiar chave',
+      secretCopied: 'Chave copiada',
+      copyFailed: 'O navegador não permitiu copiar. Digite a chave manualmente.',
+    },
+    code: {
+      appCode: 'Código do aplicativo',
+      recoveryCode: 'Código de recuperação',
+      useRecoveryCode: 'Usar um código de recuperação',
+      useAppCode: 'Usar um código do aplicativo',
+      invalidAppCode: 'O código tem 6 dígitos',
+    },
+    recoveryCodes: {
+      title: 'Salve seus códigos de recuperação',
+      description:
+        'Cada código substitui um código do aplicativo uma única vez, por exemplo, se você perder o celular. Eles só aparecem agora, então guarde-os em um lugar seguro, como um gerenciador de senhas.',
+      copy: 'Copiar códigos',
+      copied: 'Códigos copiados',
+      copyFailed: 'O navegador não permitiu copiar. Baixe os códigos.',
+      download: 'Baixar',
+      saved: 'Salvei os códigos de recuperação',
+    },
+  },
   masterKey: {
     title: 'Chave mestra',
     open: 'Baixar a chave mestra',
@@ -2263,6 +2356,8 @@ export const pt: typeof en = {
     codeRequired:
       'Esta instalação exige o login em duas etapas, então confirme o acesso à chave com um código enviado ao seu e-mail.',
     codeFailed: 'Se o código continuar sem chegar, copie a chave do servidor manualmente.',
+    appCodeRequired:
+      'Esta instalação exige o login em duas etapas, então confirme o acesso com um código do seu aplicativo autenticador ou um código de recuperação não usado.',
     proof: {
       sendCode: 'Enviar um código de confirmação por e-mail',
       resendCode: 'Enviar um novo código',

@@ -14,7 +14,7 @@ import { getUserTimeFormat } from '@/shared/time';
 import { closeOverlayOnEscape } from '@/shared/ui';
 import { OverlayFocusReturn } from '@/shared/ui';
 import { WrappingSelect } from '@/shared/ui';
-import { LoadFailure } from '@/shared/ui';
+import { ConfirmationComponent, LoadFailure } from '@/shared/ui';
 import tableStyles from '@/shared/ui/nativeTable.module.css';
 
 const isUserActive = (user: User): boolean => user.status === 'ACTIVE';
@@ -38,6 +38,10 @@ export function UsersPage() {
     mutationFn: (parameters: Parameters<typeof userManagementApi.activateUser>) =>
       userManagementApi.activateUser(...parameters),
   });
+  const resetAuthenticatorAppMutation = useSessionMutation({
+    mutationFn: (parameters: Parameters<typeof userManagementApi.resetAuthenticatorApp>) =>
+      userManagementApi.resetAuthenticatorApp(...parameters),
+  });
   const changeUserRoleMutation = useSessionMutation({
     mutationFn: (parameters: Parameters<typeof userManagementApi.changeUserRole>) =>
       userManagementApi.changeUserRole(...parameters),
@@ -48,6 +52,7 @@ export function UsersPage() {
   const [processingUsers, setProcessingUsers] = useState<Set<string>>(new Set());
   const [changingRoleUsers, setChangingRoleUsers] = useState<Set<string>>(new Set());
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userToResetAppFor, setUserToResetAppFor] = useState<User>();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [failure, setFailure] = useState<unknown>();
   const [listFailure, setListFailure] = useState<unknown>();
@@ -108,6 +113,50 @@ export function UsersPage() {
       if (isCurrent()) setChangingRoleUsers((current) => withoutUserId(current, userId));
     }
   };
+  const handleAuthenticatorAppReset = async (resetUser: User) => {
+    if (actionUsers.current.has(resetUser.id)) return;
+    actionUsers.current.add(resetUser.id);
+    const requestQueryRevision = queryRevision.GetCurrent();
+    setProcessingUsers((current) => withUserId(current, resetUser.id));
+    setFailure(undefined);
+
+    try {
+      const changedUser = await resetAuthenticatorAppMutation.mutateAsync([resetUser.id]);
+      if (!isCurrent() || !queryRevision.IsCurrent(requestQueryRevision)) return;
+      acknowledgedUsers.set(changedUser.id, changedUser);
+      replaceOrPrependItem(changedUser);
+      notify({ kind: 'success', title: i18n.t('users.list.authenticatorAppReset') });
+    } catch (error) {
+      if (isCurrent() && queryRevision.IsCurrent(requestQueryRevision)) setFailure(error);
+    } finally {
+      actionUsers.current.delete(resetUser.id);
+      if (isCurrent()) setProcessingUsers((current) => withoutUserId(current, resetUser.id));
+    }
+  };
+
+  const renderAuthenticatorApp = (user: User) => (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className={user.authenticatorAppConnectedAt ? 'text-content' : 'text-muted'}>
+        {user.authenticatorAppConnectedAt
+          ? t('users.list.authenticatorAppConnected')
+          : t('users.list.authenticatorAppNotConnected')}
+      </span>
+      {user.authenticatorAppConnectedAt && (
+        <Button
+          variant="outline"
+          color="danger"
+          size="xs"
+          aria-label={`${t('users.list.resetAuthenticatorApp')} (${user.email})`}
+          loading={processingUsers.has(user.id)}
+          disabled={processingUsers.has(user.id) || changingRoleUsers.has(user.id)}
+          onClick={() => setUserToResetAppFor(user)}
+        >
+          {t('users.list.resetAuthenticatorApp')}
+        </Button>
+      )}
+    </div>
+  );
+
   const handleRowClick = (user: User, invoker: HTMLElement) => {
     drawerInvoker.current = invoker;
     setSelectedUser(user);
@@ -165,6 +214,11 @@ export function UsersPage() {
               size="xs"
             />
           </div>
+        </div>
+
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted">{t('users.list.columns.authenticatorApp')}</span>
+          {renderAuthenticatorApp(user)}
         </div>
 
         <Button
@@ -304,6 +358,9 @@ export function UsersPage() {
                         <th scope="col" style={{ width: 200 }}>
                           {t('users.list.columns.isActive')}
                         </th>
+                        <th scope="col" style={{ width: 220 }}>
+                          {t('users.list.columns.authenticatorApp')}
+                        </th>
                         <th scope="col" style={{ width: 300 }}>
                           {t('users.list.columns.created')}
                         </th>
@@ -344,6 +401,7 @@ export function UsersPage() {
                               size="xs"
                             />
                           </td>
+                          <td>{renderAuthenticatorApp(user)}</td>
                           <td>
                             {(() => {
                               const date = dayjs(user.createdAt);
@@ -392,6 +450,20 @@ export function UsersPage() {
           )}
         </div>
       </div>
+      {userToResetAppFor && (
+        <ConfirmationComponent
+          description={t('users.list.resetAuthenticatorAppConfirmation', {
+            email: userToResetAppFor.email,
+          })}
+          isDestructive
+          actionText={t('users.list.resetAuthenticatorApp')}
+          onConfirm={() => {
+            setUserToResetAppFor(undefined);
+            void handleAuthenticatorAppReset(userToResetAppFor);
+          }}
+          onDecline={() => setUserToResetAppFor(undefined)}
+        />
+      )}
       <Drawer
         closeOnEscape={false}
         onKeyDown={(event) =>

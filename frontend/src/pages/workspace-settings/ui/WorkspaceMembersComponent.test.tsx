@@ -20,6 +20,8 @@ const owner: User = {
   status: 'ACTIVE',
   isRootAdmin: false,
   createdAt: '2026-10-01T10:00:00Z',
+  authenticatorAppConnectedAt: null,
+  unusedRecoveryCodeCount: null,
 };
 
 const selectedWorkspace: Workspace = {

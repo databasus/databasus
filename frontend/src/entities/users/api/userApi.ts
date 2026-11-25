@@ -1,21 +1,11 @@
+import { getSignedInUserId } from '@/entities/users/api/getSignedInUserId';
+import type { AuthenticatorAppSetupSession } from '@/entities/users/model/AuthenticatorAppSetupSession';
 import type { SignInOutcome } from '@/entities/users/model/SignInOutcome';
 import type { User } from '@/entities/users/model/User';
 import type { ReadOptions } from '@/shared/api';
 import { type ApiComponents, getApiClient, requireData, requireSuccess } from '@/shared/api';
-import { getSessionSnapshot } from '@/shared/auth';
 
 type Schemas = ApiComponents['schemas'];
-
-// The current user is the one the stored session belongs to, so its operations take the ID saved
-// at sign-in.
-const getSignedInUserId = (): string => {
-  const userId = getSessionSnapshot().userId;
-  if (!userId) {
-    throw new Error('no signed-in user is stored');
-  }
-
-  return userId;
-};
 
 export const userApi = {
   async signUp(request: Schemas['SignUpRequest']): Promise<Schemas['Session']> {
@@ -40,6 +30,21 @@ export const userApi = {
     );
 
     return session;
+  },
+
+  async confirmSignInAuthenticatorAppSetup(
+    pendingSignInId: string,
+    request: Schemas['VerifySignInCodeRequest'],
+  ): Promise<AuthenticatorAppSetupSession> {
+    return requireData(
+      await getApiClient().POST(
+        '/pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup',
+        {
+          params: { path: { pendingSignInId } },
+          body: request,
+        },
+      ),
+    );
   },
 
   async resendSignInCode(

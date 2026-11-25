@@ -31,6 +31,23 @@ func TestApplyInstanceRecovery(t *testing.T) {
 		assert.Equal(t, apiclient.InstanceRecoveryStatusAPPLYING, getRecovery(t, owner.RootAdmin, prepared.ID).Status)
 	})
 
+	t.Run("accepts the apply without a code and answers 409 to a confirmation request when nothing is "+
+		"required although root admin has an app", func(t *testing.T) {
+		t.Parallel()
+		owner := newInstanceOwner(t)
+		owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+		prepared := owner.App.PrepareRecovery(t)
+
+		confirmationResponse := requestRecoveryConfirmation(t, owner.RootAdmin, prepared.ID)
+		applyResponse := applyRecovery(t, owner.RootAdmin, prepared.ID, nil)
+
+		requireProblemCode(t, confirmationResponse.StatusCode(), confirmationResponse.Body,
+			http.StatusConflict, apiclient.ProblemCodeIdentityProofUnavailable)
+		assert.Empty(t, owner.App.Mail.GetMessagesTo(owner.RootAdmin.Email))
+		require.Equal(t, http.StatusAccepted, applyResponse.StatusCode(), string(applyResponse.Body))
+		assert.Equal(t, apiclient.InstanceRecoveryStatusAPPLYING, applyResponse.JSON202.Status)
+	})
+
 	t.Run("accepts the apply with a code emailed for this recovery", func(t *testing.T) {
 		t.Parallel()
 		owner := newTwoFactorInstanceOwner(t)
@@ -50,7 +67,7 @@ func TestApplyInstanceRecovery(t *testing.T) {
 			owner := newTwoFactorInstanceOwner(t)
 			prepared := owner.App.PrepareRecovery(t)
 			requireRecoveryCode(t, owner, prepared.ID)
-			setTwoFactorSignIn(t, owner.RootAdmin, false)
+			setTwoFactorRequirement(t, owner.RootAdmin, apiclient.TwoFactorRequirementOFF)
 
 			response := applyRecovery(t, owner.RootAdmin, prepared.ID, nil)
 
@@ -220,10 +237,83 @@ func TestApplyInstanceRecovery(t *testing.T) {
 		requireProblemCode(t, cancelResponse.StatusCode(), cancelResponse.Body,
 			http.StatusConflict, apiclient.ProblemCodeRecoveryNotReady)
 	})
+	t.Run("accepts the apply with root admin's app code on an instance without a mail server", func(t *testing.T) {
+		t.Parallel()
+		owner := newInstanceOwner(t, apptest.WithoutMailServer())
+		connectedApp := owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+		setTwoFactorRequirement(t, owner.RootAdmin, apiclient.TwoFactorRequirementAUTHENTICATORAPP)
+		prepared := owner.App.PrepareRecovery(t)
+
+		response := applyRecovery(t, owner.RootAdmin, prepared.ID,
+			new(owner.App.GenerateAuthenticatorCode(t, connectedApp.Secret)))
+
+		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
+	})
+
+	t.Run("accepts the apply with a recovery code and spends it", func(t *testing.T) {
+		t.Parallel()
+		owner := newInstanceOwner(t, apptest.WithoutMailServer())
+		connectedApp := owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+		setTwoFactorRequirement(t, owner.RootAdmin, apiclient.TwoFactorRequirementAUTHENTICATORAPP)
+		prepared := owner.App.PrepareRecovery(t)
+
+		response := applyRecovery(t, owner.RootAdmin, prepared.ID, &connectedApp.RecoveryCodes[0])
+
+		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
+		var unusedRecoveryCodeCount int
+		owner.App.QuerySQL(t, &unusedRecoveryCodeCount,
+			"SELECT count(*) FROM users_recovery_codes WHERE used_at IS NULL")
+		assert.Equal(t, 9, unusedRecoveryCodeCount)
+	})
+
+	t.Run("returns 400 identity_proof_invalid for an app code already spent on a master-key export",
+		func(t *testing.T) {
+			t.Parallel()
+			owner := newTwoFactorInstanceOwner(t)
+			connectedApp := owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+			prepared := owner.App.PrepareRecovery(t)
+			code := owner.App.GenerateAuthenticatorCode(t, connectedApp.Secret)
+			requireMasterKeyExport(t, owner.RootAdmin, &code)
+
+			response := applyRecovery(t, owner.RootAdmin, prepared.ID, &code)
+
+			requireProblemCode(t, response.StatusCode(), response.Body,
+				http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
+			assert.Equal(t, apiclient.InstanceRecoveryStatusREADY, getRecovery(t, owner.RootAdmin, prepared.ID).Status)
+		})
 }
 
 func TestRequestInstanceRecoveryConfirmation(t *testing.T) {
 	t.Parallel()
+
+	t.Run("answers the app method without mail when root admin has an app", func(t *testing.T) {
+		t.Parallel()
+		owner := newTwoFactorInstanceOwner(t)
+		owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+		prepared := owner.App.PrepareRecovery(t)
+
+		response := requestRecoveryConfirmation(t, owner.RootAdmin, prepared.ID)
+
+		require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
+		assert.Equal(t, apiclient.IdentityConfirmationMethodAUTHENTICATORAPP, response.JSON201.Method)
+		assert.Nil(t, response.JSON201.ExpiresAt)
+		assert.Empty(t, owner.App.Mail.GetMessagesTo(owner.RootAdmin.Email))
+	})
+
+	t.Run("answers the app method on an instance without a mail server when root admin has an app",
+		func(t *testing.T) {
+			t.Parallel()
+			owner := newInstanceOwner(t, apptest.WithoutMailServer())
+			owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+			setTwoFactorRequirement(t, owner.RootAdmin, apiclient.TwoFactorRequirementAUTHENTICATORAPP)
+			prepared := owner.App.PrepareRecovery(t)
+
+			response := requestRecoveryConfirmation(t, owner.RootAdmin, prepared.ID)
+
+			require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
+			assert.Equal(t, apiclient.IdentityConfirmationMethodAUTHENTICATORAPP, response.JSON201.Method)
+			assert.Nil(t, response.JSON201.ExpiresAt)
+		})
 
 	t.Run("emails root admin a code that expires in five minutes, one a minute", func(t *testing.T) {
 		t.Parallel()
@@ -234,7 +324,14 @@ func TestRequestInstanceRecoveryConfirmation(t *testing.T) {
 		secondResponse := requestRecoveryConfirmation(t, owner.RootAdmin, prepared.ID)
 
 		require.Equal(t, http.StatusCreated, firstResponse.StatusCode(), string(firstResponse.Body))
-		assert.WithinDuration(t, owner.App.Clock.Now().Add(5*time.Minute), firstResponse.JSON201.ExpiresAt, time.Second)
+		assert.Equal(t, apiclient.IdentityConfirmationMethodEMAIL, firstResponse.JSON201.Method)
+		require.NotNil(t, firstResponse.JSON201.ExpiresAt)
+		assert.WithinDuration(
+			t,
+			owner.App.Clock.Now().Add(5*time.Minute),
+			*firstResponse.JSON201.ExpiresAt,
+			time.Second,
+		)
 		assert.Len(t, owner.App.Mail.GetMessagesTo(owner.RootAdmin.Email), 1)
 		requireProblemCode(t, secondResponse.StatusCode(), secondResponse.Body,
 			http.StatusTooManyRequests, apiclient.ProblemCodeRateLimited)

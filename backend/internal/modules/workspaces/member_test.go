@@ -393,7 +393,7 @@ func closeMemberInvitations(t *testing.T, admin apptest.Session) {
 		IsAllowExternalRegistrations:      true,
 		IsAllowMemberInvitations:          false,
 		IsMemberAllowedToCreateWorkspaces: true,
-		IsTwoFactorAuthRequired:           false,
+		TwoFactorRequirement:              apiclient.TwoFactorRequirementOFF,
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))

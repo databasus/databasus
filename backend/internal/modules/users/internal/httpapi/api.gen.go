@@ -19,55 +19,60 @@ import (
 
 // Defines values for ProblemCode.
 const (
-	ProblemCodeAdminEmailMissing          ProblemCode = "admin_email_missing"
-	ProblemCodeAlreadyMember              ProblemCode = "already_member"
-	ProblemCodeAlreadyRunning             ProblemCode = "already_running"
-	ProblemCodeArchiveTooLarge            ProblemCode = "archive_too_large"
-	ProblemCodeBackupNotCompleted         ProblemCode = "backup_not_completed"
-	ProblemCodeCannotChangeOwnRole        ProblemCode = "cannot_change_own_role"
-	ProblemCodeCleanupPending             ProblemCode = "cleanup_pending"
-	ProblemCodeDatabaseConnectionFailed   ProblemCode = "database_connection_failed"
-	ProblemCodeDatabasusBackupInUse       ProblemCode = "databasus_backup_in_use"
-	ProblemCodeEmailNotConfigured         ProblemCode = "email_not_configured"
-	ProblemCodeEmailNotFound              ProblemCode = "email_not_found"
-	ProblemCodeEmailTaken                 ProblemCode = "email_taken"
-	ProblemCodeHumanVerificationFailed    ProblemCode = "human_verification_failed"
-	ProblemCodeIdentityProofInvalid       ProblemCode = "identity_proof_invalid"
-	ProblemCodeIdentityProofUnavailable   ProblemCode = "identity_proof_unavailable"
-	ProblemCodeInUse                      ProblemCode = "in_use"
-	ProblemCodeInstanceUnhealthy          ProblemCode = "instance_unhealthy"
-	ProblemCodeInsufficientDiskSpace      ProblemCode = "insufficient_disk_space"
-	ProblemCodeInternal                   ProblemCode = "internal"
-	ProblemCodeInvalidRequest             ProblemCode = "invalid_request"
-	ProblemCodeInvalidResetCode           ProblemCode = "invalid_reset_code"
-	ProblemCodeNoExtendableChain          ProblemCode = "no_extendable_chain"
-	ProblemCodeNoRestorableBackup         ProblemCode = "no_restorable_backup"
-	ProblemCodeNotFound                   ProblemCode = "not_found"
-	ProblemCodeNotRunning                 ProblemCode = "not_running"
-	ProblemCodeOauthFailed                ProblemCode = "oauth_failed"
-	ProblemCodeOauthNotConfigured         ProblemCode = "oauth_not_configured"
-	ProblemCodeOwnerRequiresTransfer      ProblemCode = "owner_requires_transfer"
-	ProblemCodePasswordIncorrect          ProblemCode = "password_incorrect"
-	ProblemCodePasswordNotSet             ProblemCode = "password_not_set"
-	ProblemCodePasswordNotSetGithub       ProblemCode = "password_not_set_github"
-	ProblemCodePasswordNotSetGoogle       ProblemCode = "password_not_set_google"
-	ProblemCodePasswordNotSetGoogleGithub ProblemCode = "password_not_set_google_github"
-	ProblemCodePendingSignInNotUsable     ProblemCode = "pending_sign_in_not_usable"
-	ProblemCodePermissionDenied           ProblemCode = "permission_denied"
-	ProblemCodeRateLimited                ProblemCode = "rate_limited"
-	ProblemCodeRecoveryIncompatible       ProblemCode = "recovery_incompatible"
-	ProblemCodeRecoveryNotReady           ProblemCode = "recovery_not_ready"
-	ProblemCodeRegistrationClosed         ProblemCode = "registration_closed"
-	ProblemCodeRegistrationIncomplete     ProblemCode = "registration_incomplete"
-	ProblemCodeSignInCodeIncorrect        ProblemCode = "sign_in_code_incorrect"
-	ProblemCodeSignInCodeNotSent          ProblemCode = "sign_in_code_not_sent"
-	ProblemCodeSignInCodeResentTooSoon    ProblemCode = "sign_in_code_resent_too_soon"
-	ProblemCodeStorageUnavailable         ProblemCode = "storage_unavailable"
-	ProblemCodeTargetTimeUnreachable      ProblemCode = "target_time_unreachable"
-	ProblemCodeTooManySignInCodes         ProblemCode = "too_many_sign_in_codes"
-	ProblemCodeUnauthenticated            ProblemCode = "unauthenticated"
-	ProblemCodeUserDeactivated            ProblemCode = "user_deactivated"
-	ProblemCodeWorkspaceNotEmpty          ProblemCode = "workspace_not_empty"
+	ProblemCodeAdminEmailMissing           ProblemCode = "admin_email_missing"
+	ProblemCodeAlreadyMember               ProblemCode = "already_member"
+	ProblemCodeAlreadyRunning              ProblemCode = "already_running"
+	ProblemCodeArchiveTooLarge             ProblemCode = "archive_too_large"
+	ProblemCodeAuthenticatorAppRequired    ProblemCode = "authenticator_app_required"
+	ProblemCodeAuthenticatorSetupNotUsable ProblemCode = "authenticator_setup_not_usable"
+	ProblemCodeBackupNotCompleted          ProblemCode = "backup_not_completed"
+	ProblemCodeCannotChangeOwnRole         ProblemCode = "cannot_change_own_role"
+	ProblemCodeCleanupPending              ProblemCode = "cleanup_pending"
+	ProblemCodeDatabaseConnectionFailed    ProblemCode = "database_connection_failed"
+	ProblemCodeDatabasusBackupInUse        ProblemCode = "databasus_backup_in_use"
+	ProblemCodeEmailNotConfigured          ProblemCode = "email_not_configured"
+	ProblemCodeEmailNotFound               ProblemCode = "email_not_found"
+	ProblemCodeEmailTaken                  ProblemCode = "email_taken"
+	ProblemCodeHumanVerificationFailed     ProblemCode = "human_verification_failed"
+	ProblemCodeIdentityProofInvalid        ProblemCode = "identity_proof_invalid"
+	ProblemCodeIdentityProofUnavailable    ProblemCode = "identity_proof_unavailable"
+	ProblemCodeInUse                       ProblemCode = "in_use"
+	ProblemCodeInstanceUnhealthy           ProblemCode = "instance_unhealthy"
+	ProblemCodeInsufficientDiskSpace       ProblemCode = "insufficient_disk_space"
+	ProblemCodeInternal                    ProblemCode = "internal"
+	ProblemCodeInvalidRequest              ProblemCode = "invalid_request"
+	ProblemCodeInvalidResetCode            ProblemCode = "invalid_reset_code"
+	ProblemCodeNoExtendableChain           ProblemCode = "no_extendable_chain"
+	ProblemCodeNoRestorableBackup          ProblemCode = "no_restorable_backup"
+	ProblemCodeNotFound                    ProblemCode = "not_found"
+	ProblemCodeNotRunning                  ProblemCode = "not_running"
+	ProblemCodeOauthFailed                 ProblemCode = "oauth_failed"
+	ProblemCodeOauthNotConfigured          ProblemCode = "oauth_not_configured"
+	ProblemCodeOwnerRequiresTransfer       ProblemCode = "owner_requires_transfer"
+	ProblemCodePasswordIncorrect           ProblemCode = "password_incorrect"
+	ProblemCodePasswordNotSet              ProblemCode = "password_not_set"
+	ProblemCodePasswordNotSetGithub        ProblemCode = "password_not_set_github"
+	ProblemCodePasswordNotSetGoogle        ProblemCode = "password_not_set_google"
+	ProblemCodePasswordNotSetGoogleGithub  ProblemCode = "password_not_set_google_github"
+	ProblemCodePendingSignInNotResendable  ProblemCode = "pending_sign_in_not_resendable"
+	ProblemCodePendingSignInNotUsable      ProblemCode = "pending_sign_in_not_usable"
+	ProblemCodePermissionDenied            ProblemCode = "permission_denied"
+	ProblemCodeRateLimited                 ProblemCode = "rate_limited"
+	ProblemCodeRecoveryIncompatible        ProblemCode = "recovery_incompatible"
+	ProblemCodeRecoveryNotReady            ProblemCode = "recovery_not_ready"
+	ProblemCodeRegistrationClosed          ProblemCode = "registration_closed"
+	ProblemCodeRegistrationIncomplete      ProblemCode = "registration_incomplete"
+	ProblemCodeSecondFactorInvalid         ProblemCode = "second_factor_invalid"
+	ProblemCodeSignInCodeIncorrect         ProblemCode = "sign_in_code_incorrect"
+	ProblemCodeSignInCodeNotSent           ProblemCode = "sign_in_code_not_sent"
+	ProblemCodeSignInCodeResentTooSoon     ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeStorageUnavailable          ProblemCode = "storage_unavailable"
+	ProblemCodeTargetTimeUnreachable       ProblemCode = "target_time_unreachable"
+	ProblemCodeTooManySignInCodes          ProblemCode = "too_many_sign_in_codes"
+	ProblemCodeTooManyWrongCodes           ProblemCode = "too_many_wrong_codes"
+	ProblemCodeUnauthenticated             ProblemCode = "unauthenticated"
+	ProblemCodeUserDeactivated             ProblemCode = "user_deactivated"
+	ProblemCodeWorkspaceNotEmpty           ProblemCode = "workspace_not_empty"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
@@ -80,6 +85,10 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeAlreadyRunning:
 		return true
 	case ProblemCodeArchiveTooLarge:
+		return true
+	case ProblemCodeAuthenticatorAppRequired:
+		return true
+	case ProblemCodeAuthenticatorSetupNotUsable:
 		return true
 	case ProblemCodeBackupNotCompleted:
 		return true
@@ -139,6 +148,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodePasswordNotSetGoogleGithub:
 		return true
+	case ProblemCodePendingSignInNotResendable:
+		return true
 	case ProblemCodePendingSignInNotUsable:
 		return true
 	case ProblemCodePermissionDenied:
@@ -153,6 +164,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeRegistrationIncomplete:
 		return true
+	case ProblemCodeSecondFactorInvalid:
+		return true
 	case ProblemCodeSignInCodeIncorrect:
 		return true
 	case ProblemCodeSignInCodeNotSent:
@@ -165,11 +178,43 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeTooManySignInCodes:
 		return true
+	case ProblemCodeTooManyWrongCodes:
+		return true
 	case ProblemCodeUnauthenticated:
 		return true
 	case ProblemCodeUserDeactivated:
 		return true
 	case ProblemCodeWorkspaceNotEmpty:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignInAuthenticatorCodeRequiredOutcome.
+const (
+	SignInAuthenticatorCodeRequiredOutcomeAUTHENTICATORCODEREQUIRED SignInAuthenticatorCodeRequiredOutcome = "AUTHENTICATOR_CODE_REQUIRED"
+)
+
+// Valid indicates whether the value is a known member of the SignInAuthenticatorCodeRequiredOutcome enum.
+func (e SignInAuthenticatorCodeRequiredOutcome) Valid() bool {
+	switch e {
+	case SignInAuthenticatorCodeRequiredOutcomeAUTHENTICATORCODEREQUIRED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignInAuthenticatorSetupRequiredOutcome.
+const (
+	SignInAuthenticatorSetupRequiredOutcomeAUTHENTICATORSETUPREQUIRED SignInAuthenticatorSetupRequiredOutcome = "AUTHENTICATOR_SETUP_REQUIRED"
+)
+
+// Valid indicates whether the value is a known member of the SignInAuthenticatorSetupRequiredOutcome enum.
+func (e SignInAuthenticatorSetupRequiredOutcome) Valid() bool {
+	switch e {
+	case SignInAuthenticatorSetupRequiredOutcomeAUTHENTICATORSETUPREQUIRED:
 		return true
 	default:
 		return false
@@ -200,6 +245,27 @@ const (
 func (e SignInCompletedOutcome) Valid() bool {
 	switch e {
 	case SignInCompletedOutcomeCOMPLETED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TwoFactorRequirement.
+const (
+	TwoFactorRequirementAUTHENTICATORAPP TwoFactorRequirement = "AUTHENTICATOR_APP"
+	TwoFactorRequirementEMAIL            TwoFactorRequirement = "EMAIL"
+	TwoFactorRequirementOFF              TwoFactorRequirement = "OFF"
+)
+
+// Valid indicates whether the value is a known member of the TwoFactorRequirement enum.
+func (e TwoFactorRequirement) Valid() bool {
+	switch e {
+	case TwoFactorRequirementAUTHENTICATORAPP:
+		return true
+	case TwoFactorRequirementEMAIL:
+		return true
+	case TwoFactorRequirementOFF:
 		return true
 	default:
 		return false
@@ -245,6 +311,42 @@ func (e UserStatus) Valid() bool {
 	}
 }
 
+// AuthenticatorAppCode A code from an authenticator app
+type AuthenticatorAppCode struct {
+	// Code The six digits the app shows
+	Code *string `json:"code,omitempty"`
+}
+
+// AuthenticatorAppSetup A started authenticator app setup
+type AuthenticatorAppSetup struct {
+	// AuthenticatorAppSetupId The setup that confirmAuthenticatorAppSetup confirms
+	AuthenticatorAppSetupId openapi_types.UUID `json:"authenticatorAppSetupId"`
+
+	// ExpiresAt When the setup stops being confirmable
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// OtpauthUri The `otpauth://totp/` address of the secret, for the QR code, returned only in this response
+	OtpauthUri string `json:"otpauthUri"`
+
+	// Secret The base32 secret to type into the app, returned only in this response
+	Secret string `json:"secret"`
+}
+
+// AuthenticatorAppSetupSession The connected app's recovery codes and the session of the signed-in user
+type AuthenticatorAppSetupSession struct {
+	// Email The address of the signed-in user
+	Email string `json:"email"`
+
+	// RecoveryCodes Ten single-use codes that replace an app code, returned only in this response
+	RecoveryCodes []string `json:"recoveryCodes"`
+
+	// Token The session token to send as `Authorization: Bearer <token>`, returned once
+	Token string `json:"token"`
+
+	// UserId The ID of the signed-in user
+	UserId openapi_types.UUID `json:"userId"`
+}
+
 // FieldError A field of the request that breaks the contract or a validation rule
 type FieldError struct {
 	// Detail What is wrong with the field
@@ -268,8 +370,8 @@ type InstanceSettings struct {
 	// IsMemberAllowedToCreateWorkspaces A user who is not an instance admin may create workspaces
 	IsMemberAllowedToCreateWorkspaces bool `json:"isMemberAllowedToCreateWorkspaces"`
 
-	// IsTwoFactorAuthRequired A password sign-in also needs a code emailed to the user
-	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
+	// TwoFactorRequirement The second factor a password sign-in needs: none, a code emailed to the user, or a code from an authenticator app the user connects at the next sign-in. A user with a connected app presents the app under every value. Requiring `EMAIL` needs a mail server and a usable address on every active administrator.
+	TwoFactorRequirement TwoFactorRequirement `json:"twoFactorRequirement"`
 }
 
 // InstanceSettingsUpdate The editable instance settings
@@ -283,8 +385,8 @@ type InstanceSettingsUpdate struct {
 	// IsMemberAllowedToCreateWorkspaces A user who is not an instance admin may create workspaces
 	IsMemberAllowedToCreateWorkspaces bool `json:"isMemberAllowedToCreateWorkspaces"`
 
-	// IsTwoFactorAuthRequired A password sign-in also needs a code emailed to the user
-	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
+	// TwoFactorRequirement The second factor a password sign-in needs: none, a code emailed to the user, or a code from an authenticator app the user connects at the next sign-in. A user with a connected app presents the app under every value. Requiring `EMAIL` needs a mail server and a usable address on every active administrator.
+	TwoFactorRequirement TwoFactorRequirement `json:"twoFactorRequirement"`
 }
 
 // OAuthSignInRequest The answer of an identity provider's authorization page
@@ -356,10 +458,22 @@ type Problem struct {
 // ProblemCode The cause of the error for programs; a value never changes its meaning
 type ProblemCode string
 
+// RecoveryCodes A new set of recovery codes
+type RecoveryCodes struct {
+	// RecoveryCodes Ten single-use codes that replace an app code, returned only in this response
+	RecoveryCodes []string `json:"recoveryCodes"`
+}
+
 // ResendSignInCodeRequest A request for a new code
 type ResendSignInCodeRequest struct {
 	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
 	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
+}
+
+// SecondFactorProof A current second factor of the signed-in user
+type SecondFactorProof struct {
+	// Code A current app code or an unused recovery code
+	Code *string `json:"code,omitempty"`
 }
 
 // Session A session of a signed-in user. The operation that creates it returns the token once; no other operation returns it
@@ -373,6 +487,39 @@ type Session struct {
 	// UserId The ID of the signed-in user
 	UserId openapi_types.UUID `json:"userId"`
 }
+
+// SignInAuthenticatorCodeRequired The password was correct, and the user's authenticator app proves the second factor
+type SignInAuthenticatorCodeRequired struct {
+	// Outcome Always `AUTHENTICATOR_CODE_REQUIRED`
+	Outcome SignInAuthenticatorCodeRequiredOutcome `json:"outcome"`
+
+	// PendingSignInId The pending sign-in that an app code or a recovery code completes
+	PendingSignInId openapi_types.UUID `json:"pendingSignInId"`
+}
+
+// SignInAuthenticatorCodeRequiredOutcome Always `AUTHENTICATOR_CODE_REQUIRED`
+type SignInAuthenticatorCodeRequiredOutcome string
+
+// SignInAuthenticatorSetupRequired The password was correct, and the instance requires an authenticator app the user has not connected yet; the user connects one before signing in
+type SignInAuthenticatorSetupRequired struct {
+	// ExpiresAt When the setup stops being confirmable
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// OtpauthUri The `otpauth://totp/` address of the secret, for the QR code, returned only in this response
+	OtpauthUri string `json:"otpauthUri"`
+
+	// Outcome Always `AUTHENTICATOR_SETUP_REQUIRED`
+	Outcome SignInAuthenticatorSetupRequiredOutcome `json:"outcome"`
+
+	// PendingSignInId The pending sign-in that confirming the setup completes
+	PendingSignInId openapi_types.UUID `json:"pendingSignInId"`
+
+	// Secret The base32 secret to type into the app, returned only in this response
+	Secret string `json:"secret"`
+}
+
+// SignInAuthenticatorSetupRequiredOutcome Always `AUTHENTICATOR_SETUP_REQUIRED`
+type SignInAuthenticatorSetupRequiredOutcome string
 
 // SignInCodeRequired The password was correct, and a code went to the user's address
 type SignInCodeRequired struct {
@@ -413,7 +560,7 @@ type SignInOptions struct {
 	HasAnyUser bool `json:"hasAnyUser"`
 }
 
-// SignInOutcome The session, or the pending sign-in that waits for the emailed code
+// SignInOutcome The session, or the pending sign-in that waits for the second factor
 type SignInOutcome struct {
 	union json.RawMessage
 }
@@ -457,8 +604,14 @@ type TestEmail struct {
 	RecipientEmail string `json:"recipientEmail"`
 }
 
+// TwoFactorRequirement The second factor a password sign-in needs: none, a code emailed to the user, or a code from an authenticator app the user connects at the next sign-in. A user with a connected app presents the app under every value. Requiring `EMAIL` needs a mail server and a usable address on every active administrator.
+type TwoFactorRequirement string
+
 // User A user of the instance
 type User struct {
+	// AuthenticatorAppConnectedAt When the user's authenticator app was connected; null without an app
+	AuthenticatorAppConnectedAt *time.Time `json:"authenticatorAppConnectedAt"`
+
 	// CreatedAt When the user was created
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -479,6 +632,9 @@ type User struct {
 
 	// Status `INVITED` for a user who was invited and has not finished sign-up, `ACTIVE`, or `INACTIVE` for a deactivated user
 	Status UserStatus `json:"status"`
+
+	// UnusedRecoveryCodeCount How many recovery codes the user has not used yet; null without an app
+	UnusedRecoveryCodeCount *int `json:"unusedRecoveryCodeCount"`
 }
 
 // UserPage One page of users, the newest first
@@ -511,14 +667,17 @@ type UserUpdate struct {
 	Name string `json:"name"`
 }
 
-// VerifySignInCodeRequest The code emailed for a pending sign-in
+// VerifySignInCodeRequest The code that completes a pending sign-in
 type VerifySignInCodeRequest struct {
 	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
 	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
 
-	// Code The six digits from the message
+	// Code The six digits from the message or the app, or an unused recovery code
 	Code *string `json:"code,omitempty"`
 }
+
+// AuthenticatorAppSetupId defines model for AuthenticatorAppSetupId.
+type AuthenticatorAppSetupId = openapi_types.UUID
 
 // BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
 type BackupConfigDatabaseId = openapi_types.UUID
@@ -586,6 +745,9 @@ type CompletePasswordResetJSONRequestBody = PasswordResetCompletion
 // RequestPasswordResetJSONRequestBody defines body for RequestPasswordReset for application/json ContentType.
 type RequestPasswordResetJSONRequestBody = PasswordResetRequest
 
+// ConfirmSignInAuthenticatorAppSetupJSONRequestBody defines body for ConfirmSignInAuthenticatorAppSetup for application/json ContentType.
+type ConfirmSignInAuthenticatorAppSetupJSONRequestBody = VerifySignInCodeRequest
+
 // ResendSignInCodeJSONRequestBody defines body for ResendSignInCode for application/json ContentType.
 type ResendSignInCodeJSONRequestBody = ResendSignInCodeRequest
 
@@ -601,8 +763,20 @@ type SignUpJSONRequestBody = SignUpRequest
 // UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
 type UpdateUserJSONRequestBody = UserUpdate
 
+// StartAuthenticatorAppSetupJSONRequestBody defines body for StartAuthenticatorAppSetup for application/json ContentType.
+type StartAuthenticatorAppSetupJSONRequestBody = SecondFactorProof
+
+// ConfirmAuthenticatorAppSetupJSONRequestBody defines body for ConfirmAuthenticatorAppSetup for application/json ContentType.
+type ConfirmAuthenticatorAppSetupJSONRequestBody = AuthenticatorAppCode
+
+// DisconnectAuthenticatorAppJSONRequestBody defines body for DisconnectAuthenticatorApp for application/json ContentType.
+type DisconnectAuthenticatorAppJSONRequestBody = SecondFactorProof
+
 // ChangeUserPasswordJSONRequestBody defines body for ChangeUserPassword for application/json ContentType.
 type ChangeUserPasswordJSONRequestBody = PasswordChange
+
+// RegenerateRecoveryCodesJSONRequestBody defines body for RegenerateRecoveryCodes for application/json ContentType.
+type RegenerateRecoveryCodesJSONRequestBody = SecondFactorProof
 
 // ChangeUserRoleJSONRequestBody defines body for ChangeUserRole for application/json ContentType.
 type ChangeUserRoleJSONRequestBody = UserRoleChange
@@ -675,6 +849,74 @@ func (t *SignInOutcome) MergeSignInCodeRequired(v SignInCodeRequired) error {
 	return err
 }
 
+// AsSignInAuthenticatorCodeRequired returns the union data inside the SignInOutcome as a SignInAuthenticatorCodeRequired
+func (t SignInOutcome) AsSignInAuthenticatorCodeRequired() (SignInAuthenticatorCodeRequired, error) {
+	var body SignInAuthenticatorCodeRequired
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSignInAuthenticatorCodeRequired overwrites any union data inside the SignInOutcome as the provided SignInAuthenticatorCodeRequired
+func (t *SignInOutcome) FromSignInAuthenticatorCodeRequired(v SignInAuthenticatorCodeRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"AUTHENTICATOR_CODE_REQUIRED"}`))
+	t.union = b
+	return err
+}
+
+// MergeSignInAuthenticatorCodeRequired performs a merge with any union data inside the SignInOutcome, using the provided SignInAuthenticatorCodeRequired
+func (t *SignInOutcome) MergeSignInAuthenticatorCodeRequired(v SignInAuthenticatorCodeRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"AUTHENTICATOR_CODE_REQUIRED"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSignInAuthenticatorSetupRequired returns the union data inside the SignInOutcome as a SignInAuthenticatorSetupRequired
+func (t SignInOutcome) AsSignInAuthenticatorSetupRequired() (SignInAuthenticatorSetupRequired, error) {
+	var body SignInAuthenticatorSetupRequired
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSignInAuthenticatorSetupRequired overwrites any union data inside the SignInOutcome as the provided SignInAuthenticatorSetupRequired
+func (t *SignInOutcome) FromSignInAuthenticatorSetupRequired(v SignInAuthenticatorSetupRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"AUTHENTICATOR_SETUP_REQUIRED"}`))
+	t.union = b
+	return err
+}
+
+// MergeSignInAuthenticatorSetupRequired performs a merge with any union data inside the SignInOutcome, using the provided SignInAuthenticatorSetupRequired
+func (t *SignInOutcome) MergeSignInAuthenticatorSetupRequired(v SignInAuthenticatorSetupRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"AUTHENTICATOR_SETUP_REQUIRED"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
 func (t SignInOutcome) Discriminator() (string, error) {
 	var discriminator struct {
 		Discriminator string `json:"outcome"`
@@ -689,6 +931,10 @@ func (t SignInOutcome) ValueByDiscriminator() (interface{}, error) {
 		return nil, err
 	}
 	switch discriminator {
+	case "AUTHENTICATOR_CODE_REQUIRED":
+		return t.AsSignInAuthenticatorCodeRequired()
+	case "AUTHENTICATOR_SETUP_REQUIRED":
+		return t.AsSignInAuthenticatorSetupRequired()
 	case "CODE_REQUIRED":
 		return t.AsSignInCodeRequired()
 	case "COMPLETED":
@@ -728,10 +974,13 @@ type ServerInterface interface {
 	// RequestPasswordReset Mail a password reset code
 	// (POST /password-resets)
 	RequestPasswordReset(c *gin.Context)
+	// ConfirmSignInAuthenticatorAppSetup Complete a pending sign-in by connecting the required authenticator app
+	// (POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup)
+	ConfirmSignInAuthenticatorAppSetup(c *gin.Context, pendingSignInId PendingSignInId)
 	// ResendSignInCode Send a new code that replaces the pending sign-in
 	// (POST /pending-sign-ins/{pendingSignInId}/resend)
 	ResendSignInCode(c *gin.Context, pendingSignInId PendingSignInId)
-	// VerifySignInCode Complete a pending sign-in with the emailed code
+	// VerifySignInCode Complete a pending sign-in with the emailed code or the authenticator app code
 	// (POST /pending-sign-ins/{pendingSignInId}/verify)
 	VerifySignInCode(c *gin.Context, pendingSignInId PendingSignInId)
 	// SignIn Sign in with an email address and a password
@@ -758,12 +1007,27 @@ type ServerInterface interface {
 	// ActivateUser Activate a user
 	// (POST /users/{userId}/activate)
 	ActivateUser(c *gin.Context, userId UserId)
+	// StartAuthenticatorAppSetup Start connecting an authenticator app to the signed-in user
+	// (POST /users/{userId}/authenticator-app-setups)
+	StartAuthenticatorAppSetup(c *gin.Context, userId UserId)
+	// ConfirmAuthenticatorAppSetup Connect the authenticator app with a code it generated
+	// (POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm)
+	ConfirmAuthenticatorAppSetup(c *gin.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId)
 	// DeactivateUser Deactivate a user
 	// (POST /users/{userId}/deactivate)
 	DeactivateUser(c *gin.Context, userId UserId)
+	// DisconnectAuthenticatorApp Disconnect the signed-in user's authenticator app
+	// (POST /users/{userId}/disconnect-authenticator-app)
+	DisconnectAuthenticatorApp(c *gin.Context, userId UserId)
 	// ChangeUserPassword Replace the password of the signed-in user
 	// (PUT /users/{userId}/password)
 	ChangeUserPassword(c *gin.Context, userId UserId)
+	// RegenerateRecoveryCodes Replace the signed-in user's recovery codes with a new set
+	// (POST /users/{userId}/recovery-codes)
+	RegenerateRecoveryCodes(c *gin.Context, userId UserId)
+	// ResetAuthenticatorApp Remove a user's authenticator app and recovery codes
+	// (POST /users/{userId}/reset-authenticator-app)
+	ResetAuthenticatorApp(c *gin.Context, userId UserId)
 	// ChangeUserRole Replace the global role of a user
 	// (PUT /users/{userId}/role)
 	ChangeUserRole(c *gin.Context, userId UserId)
@@ -854,6 +1118,31 @@ func (siw *ServerInterfaceWrapper) RequestPasswordReset(c *gin.Context) {
 	}
 
 	siw.Handler.RequestPasswordReset(c)
+}
+
+// ConfirmSignInAuthenticatorAppSetup operation middleware
+func (siw *ServerInterfaceWrapper) ConfirmSignInAuthenticatorAppSetup(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "pendingSignInId" -------------
+	var pendingSignInId PendingSignInId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pendingSignInId", c.Param("pendingSignInId"), &pendingSignInId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter pendingSignInId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ConfirmSignInAuthenticatorAppSetup(c, pendingSignInId)
 }
 
 // ResendSignInCode operation middleware
@@ -1076,6 +1365,65 @@ func (siw *ServerInterfaceWrapper) ActivateUser(c *gin.Context) {
 	siw.Handler.ActivateUser(c, userId)
 }
 
+// StartAuthenticatorAppSetup operation middleware
+func (siw *ServerInterfaceWrapper) StartAuthenticatorAppSetup(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", c.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter userId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.StartAuthenticatorAppSetup(c, userId)
+}
+
+// ConfirmAuthenticatorAppSetup operation middleware
+func (siw *ServerInterfaceWrapper) ConfirmAuthenticatorAppSetup(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", c.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter userId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "authenticatorAppSetupId" -------------
+	var authenticatorAppSetupId AuthenticatorAppSetupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authenticatorAppSetupId", c.Param("authenticatorAppSetupId"), &authenticatorAppSetupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter authenticatorAppSetupId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ConfirmAuthenticatorAppSetup(c, userId, authenticatorAppSetupId)
+}
+
 // DeactivateUser operation middleware
 func (siw *ServerInterfaceWrapper) DeactivateUser(c *gin.Context) {
 
@@ -1101,6 +1449,31 @@ func (siw *ServerInterfaceWrapper) DeactivateUser(c *gin.Context) {
 	siw.Handler.DeactivateUser(c, userId)
 }
 
+// DisconnectAuthenticatorApp operation middleware
+func (siw *ServerInterfaceWrapper) DisconnectAuthenticatorApp(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", c.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter userId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DisconnectAuthenticatorApp(c, userId)
+}
+
 // ChangeUserPassword operation middleware
 func (siw *ServerInterfaceWrapper) ChangeUserPassword(c *gin.Context) {
 
@@ -1124,6 +1497,56 @@ func (siw *ServerInterfaceWrapper) ChangeUserPassword(c *gin.Context) {
 	}
 
 	siw.Handler.ChangeUserPassword(c, userId)
+}
+
+// RegenerateRecoveryCodes operation middleware
+func (siw *ServerInterfaceWrapper) RegenerateRecoveryCodes(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", c.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter userId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.RegenerateRecoveryCodes(c, userId)
+}
+
+// ResetAuthenticatorApp operation middleware
+func (siw *ServerInterfaceWrapper) ResetAuthenticatorApp(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", c.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter userId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ResetAuthenticatorApp(c, userId)
 }
 
 // ChangeUserRole operation middleware
@@ -1186,6 +1609,11 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/users/:userId/activate", wrapper.ActivateUser)
 	router.POST(options.BaseURL+"/users/:userId/deactivate", wrapper.DeactivateUser)
 	router.PUT(options.BaseURL+"/users/:userId/role", wrapper.ChangeUserRole)
+	router.POST(options.BaseURL+"/users/:userId/authenticator-app-setups", wrapper.StartAuthenticatorAppSetup)
+	router.POST(options.BaseURL+"/users/:userId/authenticator-app-setups/:authenticatorAppSetupId/confirm", wrapper.ConfirmAuthenticatorAppSetup)
+	router.POST(options.BaseURL+"/users/:userId/disconnect-authenticator-app", wrapper.DisconnectAuthenticatorApp)
+	router.POST(options.BaseURL+"/users/:userId/recovery-codes", wrapper.RegenerateRecoveryCodes)
+	router.POST(options.BaseURL+"/users/:userId/reset-authenticator-app", wrapper.ResetAuthenticatorApp)
 	router.POST(options.BaseURL+"/sessions", wrapper.SignIn)
 	router.POST(options.BaseURL+"/github-sessions", wrapper.SignInWithGitHub)
 	router.POST(options.BaseURL+"/google-sessions", wrapper.SignInWithGoogle)
@@ -1196,6 +1624,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/test-emails", wrapper.SendTestEmail)
 	router.POST(options.BaseURL+"/pending-sign-ins/:pendingSignInId/verify", wrapper.VerifySignInCode)
 	router.POST(options.BaseURL+"/pending-sign-ins/:pendingSignInId/resend", wrapper.ResendSignInCode)
+	router.POST(options.BaseURL+"/pending-sign-ins/:pendingSignInId/confirm-authenticator-app-setup", wrapper.ConfirmSignInAuthenticatorAppSetup)
 	router.GET(options.BaseURL+"/sign-in-options", wrapper.GetSignInOptions)
 }
 
@@ -1616,6 +2045,90 @@ func (response RequestPasswordResetdefaultApplicationProblemPlusJSONResponse) Vi
 	return err
 }
 
+type ConfirmSignInAuthenticatorAppSetupRequestObject struct {
+	PendingSignInId PendingSignInId `json:"pendingSignInId"`
+	Body            *ConfirmSignInAuthenticatorAppSetupJSONRequestBody
+}
+
+type ConfirmSignInAuthenticatorAppSetupResponseObject interface {
+	VisitConfirmSignInAuthenticatorAppSetupResponse(w http.ResponseWriter) error
+}
+
+type ConfirmSignInAuthenticatorAppSetup200JSONResponse AuthenticatorAppSetupSession
+
+func (response ConfirmSignInAuthenticatorAppSetup200JSONResponse) VisitConfirmSignInAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmSignInAuthenticatorAppSetup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ConfirmSignInAuthenticatorAppSetup400ApplicationProblemPlusJSONResponse) VisitConfirmSignInAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmSignInAuthenticatorAppSetup410ApplicationProblemPlusJSONResponse Problem
+
+func (response ConfirmSignInAuthenticatorAppSetup410ApplicationProblemPlusJSONResponse) VisitConfirmSignInAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(410)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmSignInAuthenticatorAppSetup429ApplicationProblemPlusJSONResponse Problem
+
+func (response ConfirmSignInAuthenticatorAppSetup429ApplicationProblemPlusJSONResponse) VisitConfirmSignInAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmSignInAuthenticatorAppSetupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ConfirmSignInAuthenticatorAppSetupdefaultApplicationProblemPlusJSONResponse) VisitConfirmSignInAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ResendSignInCodeRequestObject struct {
 	PendingSignInId PendingSignInId `json:"pendingSignInId"`
 	Body            *ResendSignInCodeJSONRequestBody
@@ -1651,6 +2164,20 @@ func (response ResendSignInCode400ApplicationProblemPlusJSONResponse) VisitResen
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResendSignInCode409ApplicationProblemPlusJSONResponse Problem
+
+func (response ResendSignInCode409ApplicationProblemPlusJSONResponse) VisitResendSignInCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -2481,6 +3008,203 @@ func (response ActivateUserdefaultApplicationProblemPlusJSONResponse) VisitActiv
 	return err
 }
 
+type StartAuthenticatorAppSetupRequestObject struct {
+	UserId UserId `json:"userId"`
+	Body   *StartAuthenticatorAppSetupJSONRequestBody
+}
+
+type StartAuthenticatorAppSetupResponseObject interface {
+	VisitStartAuthenticatorAppSetupResponse(w http.ResponseWriter) error
+}
+
+type StartAuthenticatorAppSetup201JSONResponse AuthenticatorAppSetup
+
+func (response StartAuthenticatorAppSetup201JSONResponse) VisitStartAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAuthenticatorAppSetup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartAuthenticatorAppSetup400ApplicationProblemPlusJSONResponse) VisitStartAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAuthenticatorAppSetup401ApplicationProblemPlusJSONResponse Problem
+
+func (response StartAuthenticatorAppSetup401ApplicationProblemPlusJSONResponse) VisitStartAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAuthenticatorAppSetup403ApplicationProblemPlusJSONResponse Problem
+
+func (response StartAuthenticatorAppSetup403ApplicationProblemPlusJSONResponse) VisitStartAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAuthenticatorAppSetup429ApplicationProblemPlusJSONResponse Problem
+
+func (response StartAuthenticatorAppSetup429ApplicationProblemPlusJSONResponse) VisitStartAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAuthenticatorAppSetupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response StartAuthenticatorAppSetupdefaultApplicationProblemPlusJSONResponse) VisitStartAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmAuthenticatorAppSetupRequestObject struct {
+	UserId                  UserId                  `json:"userId"`
+	AuthenticatorAppSetupId AuthenticatorAppSetupId `json:"authenticatorAppSetupId"`
+	Body                    *ConfirmAuthenticatorAppSetupJSONRequestBody
+}
+
+type ConfirmAuthenticatorAppSetupResponseObject interface {
+	VisitConfirmAuthenticatorAppSetupResponse(w http.ResponseWriter) error
+}
+
+type ConfirmAuthenticatorAppSetup200JSONResponse RecoveryCodes
+
+func (response ConfirmAuthenticatorAppSetup200JSONResponse) VisitConfirmAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmAuthenticatorAppSetup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ConfirmAuthenticatorAppSetup400ApplicationProblemPlusJSONResponse) VisitConfirmAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmAuthenticatorAppSetup401ApplicationProblemPlusJSONResponse Problem
+
+func (response ConfirmAuthenticatorAppSetup401ApplicationProblemPlusJSONResponse) VisitConfirmAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmAuthenticatorAppSetup403ApplicationProblemPlusJSONResponse Problem
+
+func (response ConfirmAuthenticatorAppSetup403ApplicationProblemPlusJSONResponse) VisitConfirmAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmAuthenticatorAppSetup410ApplicationProblemPlusJSONResponse Problem
+
+func (response ConfirmAuthenticatorAppSetup410ApplicationProblemPlusJSONResponse) VisitConfirmAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(410)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmAuthenticatorAppSetupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ConfirmAuthenticatorAppSetupdefaultApplicationProblemPlusJSONResponse) VisitConfirmAuthenticatorAppSetupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type DeactivateUserRequestObject struct {
 	UserId UserId `json:"userId"`
 }
@@ -2564,6 +3288,118 @@ func (response DeactivateUserdefaultApplicationProblemPlusJSONResponse) VisitDea
 	return err
 }
 
+type DisconnectAuthenticatorAppRequestObject struct {
+	UserId UserId `json:"userId"`
+	Body   *DisconnectAuthenticatorAppJSONRequestBody
+}
+
+type DisconnectAuthenticatorAppResponseObject interface {
+	VisitDisconnectAuthenticatorAppResponse(w http.ResponseWriter) error
+}
+
+type DisconnectAuthenticatorApp200JSONResponse User
+
+func (response DisconnectAuthenticatorApp200JSONResponse) VisitDisconnectAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DisconnectAuthenticatorApp400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DisconnectAuthenticatorApp400ApplicationProblemPlusJSONResponse) VisitDisconnectAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DisconnectAuthenticatorApp401ApplicationProblemPlusJSONResponse Problem
+
+func (response DisconnectAuthenticatorApp401ApplicationProblemPlusJSONResponse) VisitDisconnectAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DisconnectAuthenticatorApp403ApplicationProblemPlusJSONResponse Problem
+
+func (response DisconnectAuthenticatorApp403ApplicationProblemPlusJSONResponse) VisitDisconnectAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DisconnectAuthenticatorApp409ApplicationProblemPlusJSONResponse Problem
+
+func (response DisconnectAuthenticatorApp409ApplicationProblemPlusJSONResponse) VisitDisconnectAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DisconnectAuthenticatorApp429ApplicationProblemPlusJSONResponse Problem
+
+func (response DisconnectAuthenticatorApp429ApplicationProblemPlusJSONResponse) VisitDisconnectAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DisconnectAuthenticatorAppdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DisconnectAuthenticatorAppdefaultApplicationProblemPlusJSONResponse) VisitDisconnectAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ChangeUserPasswordRequestObject struct {
 	UserId UserId `json:"userId"`
 	Body   *ChangeUserPasswordJSONRequestBody
@@ -2631,6 +3467,187 @@ type ChangeUserPassworddefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response ChangeUserPassworddefaultApplicationProblemPlusJSONResponse) VisitChangeUserPasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegenerateRecoveryCodesRequestObject struct {
+	UserId UserId `json:"userId"`
+	Body   *RegenerateRecoveryCodesJSONRequestBody
+}
+
+type RegenerateRecoveryCodesResponseObject interface {
+	VisitRegenerateRecoveryCodesResponse(w http.ResponseWriter) error
+}
+
+type RegenerateRecoveryCodes201JSONResponse RecoveryCodes
+
+func (response RegenerateRecoveryCodes201JSONResponse) VisitRegenerateRecoveryCodesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegenerateRecoveryCodes400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response RegenerateRecoveryCodes400ApplicationProblemPlusJSONResponse) VisitRegenerateRecoveryCodesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegenerateRecoveryCodes401ApplicationProblemPlusJSONResponse Problem
+
+func (response RegenerateRecoveryCodes401ApplicationProblemPlusJSONResponse) VisitRegenerateRecoveryCodesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegenerateRecoveryCodes403ApplicationProblemPlusJSONResponse Problem
+
+func (response RegenerateRecoveryCodes403ApplicationProblemPlusJSONResponse) VisitRegenerateRecoveryCodesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegenerateRecoveryCodes429ApplicationProblemPlusJSONResponse Problem
+
+func (response RegenerateRecoveryCodes429ApplicationProblemPlusJSONResponse) VisitRegenerateRecoveryCodesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegenerateRecoveryCodesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response RegenerateRecoveryCodesdefaultApplicationProblemPlusJSONResponse) VisitRegenerateRecoveryCodesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResetAuthenticatorAppRequestObject struct {
+	UserId UserId `json:"userId"`
+}
+
+type ResetAuthenticatorAppResponseObject interface {
+	VisitResetAuthenticatorAppResponse(w http.ResponseWriter) error
+}
+
+type ResetAuthenticatorApp200JSONResponse User
+
+func (response ResetAuthenticatorApp200JSONResponse) VisitResetAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResetAuthenticatorApp401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ResetAuthenticatorApp401ApplicationProblemPlusJSONResponse) VisitResetAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResetAuthenticatorApp403ApplicationProblemPlusJSONResponse Problem
+
+func (response ResetAuthenticatorApp403ApplicationProblemPlusJSONResponse) VisitResetAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResetAuthenticatorApp404ApplicationProblemPlusJSONResponse Problem
+
+func (response ResetAuthenticatorApp404ApplicationProblemPlusJSONResponse) VisitResetAuthenticatorAppResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResetAuthenticatorAppdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ResetAuthenticatorAppdefaultApplicationProblemPlusJSONResponse) VisitResetAuthenticatorAppResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -2760,10 +3777,13 @@ type StrictServerInterface interface {
 	// RequestPasswordReset Mail a password reset code
 	// (POST /password-resets)
 	RequestPasswordReset(ctx context.Context, request RequestPasswordResetRequestObject) (RequestPasswordResetResponseObject, error)
+	// ConfirmSignInAuthenticatorAppSetup Complete a pending sign-in by connecting the required authenticator app
+	// (POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup)
+	ConfirmSignInAuthenticatorAppSetup(ctx context.Context, request ConfirmSignInAuthenticatorAppSetupRequestObject) (ConfirmSignInAuthenticatorAppSetupResponseObject, error)
 	// ResendSignInCode Send a new code that replaces the pending sign-in
 	// (POST /pending-sign-ins/{pendingSignInId}/resend)
 	ResendSignInCode(ctx context.Context, request ResendSignInCodeRequestObject) (ResendSignInCodeResponseObject, error)
-	// VerifySignInCode Complete a pending sign-in with the emailed code
+	// VerifySignInCode Complete a pending sign-in with the emailed code or the authenticator app code
 	// (POST /pending-sign-ins/{pendingSignInId}/verify)
 	VerifySignInCode(ctx context.Context, request VerifySignInCodeRequestObject) (VerifySignInCodeResponseObject, error)
 	// SignIn Sign in with an email address and a password
@@ -2790,12 +3810,27 @@ type StrictServerInterface interface {
 	// ActivateUser Activate a user
 	// (POST /users/{userId}/activate)
 	ActivateUser(ctx context.Context, request ActivateUserRequestObject) (ActivateUserResponseObject, error)
+	// StartAuthenticatorAppSetup Start connecting an authenticator app to the signed-in user
+	// (POST /users/{userId}/authenticator-app-setups)
+	StartAuthenticatorAppSetup(ctx context.Context, request StartAuthenticatorAppSetupRequestObject) (StartAuthenticatorAppSetupResponseObject, error)
+	// ConfirmAuthenticatorAppSetup Connect the authenticator app with a code it generated
+	// (POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm)
+	ConfirmAuthenticatorAppSetup(ctx context.Context, request ConfirmAuthenticatorAppSetupRequestObject) (ConfirmAuthenticatorAppSetupResponseObject, error)
 	// DeactivateUser Deactivate a user
 	// (POST /users/{userId}/deactivate)
 	DeactivateUser(ctx context.Context, request DeactivateUserRequestObject) (DeactivateUserResponseObject, error)
+	// DisconnectAuthenticatorApp Disconnect the signed-in user's authenticator app
+	// (POST /users/{userId}/disconnect-authenticator-app)
+	DisconnectAuthenticatorApp(ctx context.Context, request DisconnectAuthenticatorAppRequestObject) (DisconnectAuthenticatorAppResponseObject, error)
 	// ChangeUserPassword Replace the password of the signed-in user
 	// (PUT /users/{userId}/password)
 	ChangeUserPassword(ctx context.Context, request ChangeUserPasswordRequestObject) (ChangeUserPasswordResponseObject, error)
+	// RegenerateRecoveryCodes Replace the signed-in user's recovery codes with a new set
+	// (POST /users/{userId}/recovery-codes)
+	RegenerateRecoveryCodes(ctx context.Context, request RegenerateRecoveryCodesRequestObject) (RegenerateRecoveryCodesResponseObject, error)
+	// ResetAuthenticatorApp Remove a user's authenticator app and recovery codes
+	// (POST /users/{userId}/reset-authenticator-app)
+	ResetAuthenticatorApp(ctx context.Context, request ResetAuthenticatorAppRequestObject) (ResetAuthenticatorAppResponseObject, error)
 	// ChangeUserRole Replace the global role of a user
 	// (PUT /users/{userId}/role)
 	ChangeUserRole(ctx context.Context, request ChangeUserRoleRequestObject) (ChangeUserRoleResponseObject, error)
@@ -3030,6 +4065,39 @@ func (sh *strictHandler) RequestPasswordReset(ctx *gin.Context) {
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(RequestPasswordResetResponseObject); ok {
 		if err := validResponse.VisitRequestPasswordResetResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ConfirmSignInAuthenticatorAppSetup operation middleware
+func (sh *strictHandler) ConfirmSignInAuthenticatorAppSetup(ctx *gin.Context, pendingSignInId PendingSignInId) {
+	var request ConfirmSignInAuthenticatorAppSetupRequestObject
+
+	request.PendingSignInId = pendingSignInId
+
+	var body ConfirmSignInAuthenticatorAppSetupJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ConfirmSignInAuthenticatorAppSetup(ctx.Request.Context(), request.(ConfirmSignInAuthenticatorAppSetupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ConfirmSignInAuthenticatorAppSetup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ConfirmSignInAuthenticatorAppSetupResponseObject); ok {
+		if err := validResponse.VisitConfirmSignInAuthenticatorAppSetupResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {
@@ -3324,6 +4392,73 @@ func (sh *strictHandler) ActivateUser(ctx *gin.Context, userId UserId) {
 	}
 }
 
+// StartAuthenticatorAppSetup operation middleware
+func (sh *strictHandler) StartAuthenticatorAppSetup(ctx *gin.Context, userId UserId) {
+	var request StartAuthenticatorAppSetupRequestObject
+
+	request.UserId = userId
+
+	var body StartAuthenticatorAppSetupJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StartAuthenticatorAppSetup(ctx.Request.Context(), request.(StartAuthenticatorAppSetupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartAuthenticatorAppSetup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(StartAuthenticatorAppSetupResponseObject); ok {
+		if err := validResponse.VisitStartAuthenticatorAppSetupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ConfirmAuthenticatorAppSetup operation middleware
+func (sh *strictHandler) ConfirmAuthenticatorAppSetup(ctx *gin.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId) {
+	var request ConfirmAuthenticatorAppSetupRequestObject
+
+	request.UserId = userId
+	request.AuthenticatorAppSetupId = authenticatorAppSetupId
+
+	var body ConfirmAuthenticatorAppSetupJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ConfirmAuthenticatorAppSetup(ctx.Request.Context(), request.(ConfirmAuthenticatorAppSetupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ConfirmAuthenticatorAppSetup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ConfirmAuthenticatorAppSetupResponseObject); ok {
+		if err := validResponse.VisitConfirmAuthenticatorAppSetupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // DeactivateUser operation middleware
 func (sh *strictHandler) DeactivateUser(ctx *gin.Context, userId UserId) {
 	var request DeactivateUserRequestObject
@@ -3343,6 +4478,39 @@ func (sh *strictHandler) DeactivateUser(ctx *gin.Context, userId UserId) {
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(DeactivateUserResponseObject); ok {
 		if err := validResponse.VisitDeactivateUserResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DisconnectAuthenticatorApp operation middleware
+func (sh *strictHandler) DisconnectAuthenticatorApp(ctx *gin.Context, userId UserId) {
+	var request DisconnectAuthenticatorAppRequestObject
+
+	request.UserId = userId
+
+	var body DisconnectAuthenticatorAppJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DisconnectAuthenticatorApp(ctx.Request.Context(), request.(DisconnectAuthenticatorAppRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DisconnectAuthenticatorApp")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(DisconnectAuthenticatorAppResponseObject); ok {
+		if err := validResponse.VisitDisconnectAuthenticatorAppResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {
@@ -3376,6 +4544,65 @@ func (sh *strictHandler) ChangeUserPassword(ctx *gin.Context, userId UserId) {
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(ChangeUserPasswordResponseObject); ok {
 		if err := validResponse.VisitChangeUserPasswordResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RegenerateRecoveryCodes operation middleware
+func (sh *strictHandler) RegenerateRecoveryCodes(ctx *gin.Context, userId UserId) {
+	var request RegenerateRecoveryCodesRequestObject
+
+	request.UserId = userId
+
+	var body RegenerateRecoveryCodesJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RegenerateRecoveryCodes(ctx.Request.Context(), request.(RegenerateRecoveryCodesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RegenerateRecoveryCodes")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(RegenerateRecoveryCodesResponseObject); ok {
+		if err := validResponse.VisitRegenerateRecoveryCodesResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResetAuthenticatorApp operation middleware
+func (sh *strictHandler) ResetAuthenticatorApp(ctx *gin.Context, userId UserId) {
+	var request ResetAuthenticatorAppRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ResetAuthenticatorApp(ctx.Request.Context(), request.(ResetAuthenticatorAppRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResetAuthenticatorApp")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ResetAuthenticatorAppResponseObject); ok {
+		if err := validResponse.VisitResetAuthenticatorAppResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {

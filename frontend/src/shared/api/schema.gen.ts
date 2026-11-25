@@ -147,6 +147,123 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{userId}/authenticator-app-setups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start connecting an authenticator app to the signed-in user
+         * @description Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer carries a new secret and its `otpauth://` address, returned only here; no later answer returns them. The setup replaces the user's earlier unconfirmed setup and stops being confirmable thirty minutes later or after five wrong codes. A user who already has an app replaces it this way and sends a current app code or an unused recovery code in `code`; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected app keeps working until the new one is confirmed.
+         */
+        post: operations["startAuthenticatorAppSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+                /** @description The setup that startAuthenticatorAppSetup named */
+                authenticatorAppSetupId: components["parameters"]["AuthenticatorAppSetupId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect the authenticator app with a code it generated
+         * @description Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the setup secret generated connects the app, replaces any app connected before together with its recovery codes, and answers ten new recovery codes, returned only here. A wrong code gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that expired, was replaced or was destroyed by wrong codes gets 410 `authenticator_setup_not_usable`.
+         */
+        post: operations["confirmAuthenticatorAppSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/disconnect-authenticator-app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disconnect the signed-in user's authenticator app
+         * @description Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app method the answer is 409 `authenticator_app_required`. The app and its recovery codes are removed, and pending sign-ins that wait for its code stop working.
+         */
+        post: operations["disconnectAuthenticatorApp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace the signed-in user's recovery codes with a new set
+         * @description Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one, or a user without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery code stops working, and the ten new codes are returned only here.
+         */
+        post: operations["regenerateRecoveryCodes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/reset-authenticator-app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a user's authenticator app and recovery codes
+         * @description For a user who lost the app. The same rules as deactivation decide who may reset whom: resetting yourself or the bootstrap administrator gets 403 `permission_denied`, and so does resetting an instance admin for anyone but the bootstrap administrator. Pending sign-ins that wait for the app's code stop working; sessions survive. A user without an app is answered unchanged.
+         */
+        post: operations["resetAuthenticatorApp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sessions": {
         parameters: {
             query?: never;
@@ -158,7 +275,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in with an email address and a password
-         * @description Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+         * @description Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. After a correct password the answer names the second factor that follows: a user with a connected authenticator app gets `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a requirement the session is issued. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
          */
         post: operations["signIn"];
         delete?: never;
@@ -304,8 +421,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Complete a pending sign-in with the emailed code
-         * @description Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+         * Complete a pending sign-in with the emailed code or the authenticator app code
+         * @description Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after it was created and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is completed by `confirmSignInAuthenticatorAppSetup` instead.
          */
         post: operations["verifySignInCode"];
         delete?: never;
@@ -328,9 +445,32 @@ export interface paths {
         put?: never;
         /**
          * Send a new code that replaces the pending sign-in
-         * @description Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+         * @description Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user. A pending sign-in that waits for an authenticator app sends no mail and answers 409 `pending_sign_in_not_resendable`.
          */
         post: operations["resendSignInCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The pending sign-in that the latest password step or resend named */
+                pendingSignInId: components["parameters"]["PendingSignInId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete a pending sign-in by connecting the required authenticator app
+         * @description Public, because it creates the session the caller does not have yet. A code the setup secret generated connects the app, and the answer carries the session and ten recovery codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the password step, was destroyed by wrong codes, was replaced by a later password step or waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+         */
+        post: operations["confirmSignInAuthenticatorAppSetup"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1804,8 +1944,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Email root admin a code that confirms a master-key export
-         * @description Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+         * Ask root admin's second factor to confirm a master-key export
+         * @description Only root admin requests one, and only an instance that requires two-factor sign-in needs it; without the requirement the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: the export then takes a current app code or an unused recovery code. Otherwise a code is emailed: without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The emailed code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
          */
         post: operations["requestMasterKeyConfirmation"];
         delete?: never;
@@ -1825,7 +1965,7 @@ export interface paths {
         put?: never;
         /**
          * Get a single-use token that downloads the master key
-         * @description Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+         * @description Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
          */
         post: operations["createMasterKeyExport"];
         delete?: never;
@@ -1930,8 +2070,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Email root admin a code that confirms applying this recovery
-         * @description Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+         * Ask root admin's second factor to confirm applying this recovery
+         * @description Only root admin requests one. While the instance does not require two-factor sign-in the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: apply then takes a current app code or an unused recovery code. Otherwise an emailed code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session; without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`. A recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
          */
         post: operations["requestInstanceRecoveryConfirmation"];
         delete?: never;
@@ -1954,7 +2094,7 @@ export interface paths {
         put?: never;
         /**
          * Replace this installation with the prepared recovery
-         * @description Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+         * @description Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
          */
         post: operations["applyInstanceRecovery"];
         delete?: never;
@@ -2221,8 +2361,8 @@ export interface components {
             /** @description The redirect URI the code was issued for */
             redirectUri: string;
         };
-        /** @description The session, or the pending sign-in that waits for the emailed code */
-        SignInOutcome: components["schemas"]["SignInCompleted"] | components["schemas"]["SignInCodeRequired"];
+        /** @description The session, or the pending sign-in that waits for the second factor */
+        SignInOutcome: components["schemas"]["SignInCompleted"] | components["schemas"]["SignInCodeRequired"] | components["schemas"]["SignInAuthenticatorCodeRequired"] | components["schemas"]["SignInAuthenticatorSetupRequired"];
         /** @description The user is signed in */
         SignInCompleted: {
             /**
@@ -2255,9 +2395,58 @@ export interface components {
             /** @description The address the code went to */
             email: string;
         };
-        /** @description The code emailed for a pending sign-in */
+        /** @description The password was correct, and the user's authenticator app proves the second factor */
+        SignInAuthenticatorCodeRequired: {
+            /**
+             * @description Always `AUTHENTICATOR_CODE_REQUIRED` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            outcome: "AUTHENTICATOR_CODE_REQUIRED";
+            /**
+             * Format: uuid
+             * @description The pending sign-in that an app code or a recovery code completes
+             */
+            pendingSignInId: string;
+        };
+        /** @description The password was correct, and the instance requires an authenticator app the user has not connected yet; the user connects one before signing in */
+        SignInAuthenticatorSetupRequired: {
+            /**
+             * @description Always `AUTHENTICATOR_SETUP_REQUIRED` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            outcome: "AUTHENTICATOR_SETUP_REQUIRED";
+            /**
+             * Format: uuid
+             * @description The pending sign-in that confirming the setup completes
+             */
+            pendingSignInId: string;
+            /** @description The base32 secret to type into the app, returned only in this response */
+            secret: string;
+            /** @description The `otpauth://totp/` address of the secret, for the QR code, returned only in this response */
+            otpauthUri: string;
+            /**
+             * Format: date-time
+             * @description When the setup stops being confirmable
+             */
+            expiresAt: string;
+        };
+        /** @description The connected app's recovery codes and the session of the signed-in user */
+        AuthenticatorAppSetupSession: {
+            /**
+             * Format: uuid
+             * @description The ID of the signed-in user
+             */
+            userId: string;
+            /** @description The address of the signed-in user */
+            email: string;
+            /** @description The session token to send as `Authorization: Bearer <token>`, returned once */
+            token: string;
+            /** @description Ten single-use codes that replace an app code, returned only in this response */
+            recoveryCodes: string[];
+        };
+        /** @description The code that completes a pending sign-in */
         VerifySignInCodeRequest: {
-            /** @description The six digits from the message */
+            /** @description The six digits from the message or the app, or an unused recovery code */
             code: string;
             /** @description The answer to the human-verification challenge, required when the instance has one */
             cloudflareTurnstileToken?: string;
@@ -2302,6 +2491,45 @@ export interface components {
              * @description When the user was created
              */
             createdAt: string;
+            /**
+             * Format: date-time
+             * @description When the user's authenticator app was connected; null without an app
+             */
+            authenticatorAppConnectedAt: string | null;
+            /** @description How many recovery codes the user has not used yet; null without an app */
+            unusedRecoveryCodeCount: number | null;
+        };
+        /** @description A current second factor of the signed-in user */
+        SecondFactorProof: {
+            /** @description A current app code or an unused recovery code */
+            code?: string;
+        };
+        /** @description A code from an authenticator app */
+        AuthenticatorAppCode: {
+            /** @description The six digits the app shows */
+            code: string;
+        };
+        /** @description A started authenticator app setup */
+        AuthenticatorAppSetup: {
+            /**
+             * Format: uuid
+             * @description The setup that confirmAuthenticatorAppSetup confirms
+             */
+            authenticatorAppSetupId: string;
+            /** @description The base32 secret to type into the app, returned only in this response */
+            secret: string;
+            /** @description The `otpauth://totp/` address of the secret, for the QR code, returned only in this response */
+            otpauthUri: string;
+            /**
+             * Format: date-time
+             * @description When the setup stops being confirmable
+             */
+            expiresAt: string;
+        };
+        /** @description A new set of recovery codes */
+        RecoveryCodes: {
+            /** @description Ten single-use codes that replace an app code, returned only in this response */
+            recoveryCodes: string[];
         };
         /** @description A request for a password reset code */
         PasswordResetRequest: {
@@ -2360,8 +2588,7 @@ export interface components {
             isAllowMemberInvitations: boolean;
             /** @description A user who is not an instance admin may create workspaces */
             isMemberAllowedToCreateWorkspaces: boolean;
-            /** @description A password sign-in also needs a code emailed to the user */
-            isTwoFactorAuthRequired: boolean;
+            twoFactorRequirement: components["schemas"]["TwoFactorRequirement"];
             /** @description Whether the operator configured a mail server; it cannot be changed here */
             isEmailConfigured: boolean;
         };
@@ -2373,9 +2600,13 @@ export interface components {
             isAllowMemberInvitations: boolean;
             /** @description A user who is not an instance admin may create workspaces */
             isMemberAllowedToCreateWorkspaces: boolean;
-            /** @description A password sign-in also needs a code emailed to the user */
-            isTwoFactorAuthRequired: boolean;
+            twoFactorRequirement: components["schemas"]["TwoFactorRequirement"];
         };
+        /**
+         * @description The second factor a password sign-in needs: none, a code emailed to the user, or a code from an authenticator app the user connects at the next sign-in. A user with a connected app presents the app under every value. Requiring `EMAIL` needs a mail server and a usable address on every active administrator.
+         * @enum {string}
+         */
+        TwoFactorRequirement: "OFF" | "EMAIL" | "AUTHENTICATOR_APP";
         /** @description A test email the instance tried to deliver */
         TestEmail: {
             /** @description The address of the administrator the message went to */
@@ -3498,7 +3729,7 @@ export interface components {
             isRootEmailUsable: boolean;
             /** @description Whether root admin confirmed saving the current master key */
             isMasterKeyAcknowledged: boolean;
-            /** @description Whether a master-key export and a recovery apply need a code emailed to root admin, because the instance requires two-factor sign-in */
+            /** @description Whether a master-key export and a recovery apply need a confirmation by root admin's second factor, because the instance requires two-factor sign-in */
             isConfirmationCodeRequired: boolean;
             reminder: components["schemas"]["InstanceBackupReminder"];
             /** @description The latest recovery of the local journal, null when there was none */
@@ -3638,17 +3869,22 @@ export interface components {
              */
             expiresAt: string;
         };
-        /** @description An emailed identity code that was sent */
+        /** @description How root admin confirms the operation */
         IdentityConfirmation: {
             /**
-             * Format: date-time
-             * @description When the code stops working
+             * @description `EMAIL` when a code was emailed, `AUTHENTICATOR_APP` when root admin confirms with a current app code or an unused recovery code and nothing was sent
+             * @enum {string}
              */
-            expiresAt: string;
+            method: "EMAIL" | "AUTHENTICATOR_APP";
+            /**
+             * Format: date-time
+             * @description When the emailed code stops working, present only for `EMAIL`
+             */
+            expiresAt?: string;
         };
         /** @description The confirmation for a master-key export */
         MasterKeyExportCreate: {
-            /** @description The emailed confirmation code; required when the instance requires two-factor sign-in */
+            /** @description The emailed confirmation code, or root admin's app code or recovery code; required when the instance requires two-factor sign-in */
             code?: string;
         };
         /** @description A single-use token that downloads the master key within 60 seconds */
@@ -3733,11 +3969,11 @@ export interface components {
             /** @description The source installation's master key as text; its exact UTF-8 bytes are used */
             masterKey: string;
         };
-        /** @description The replacement confirmation, with the emailed code while two-factor sign-in is required */
+        /** @description The replacement confirmation, with the confirmation code while two-factor sign-in is required */
         InstanceRecoveryApply: {
             /** @description Root admin accepted that current users, settings and backup catalog are replaced */
             isReplacementConfirmed: boolean;
-            /** @description The code emailed for this recovery; required while the instance requires two-factor sign-in and ignored otherwise */
+            /** @description The code emailed for this recovery, or root admin's app code or recovery code; required while the instance requires two-factor sign-in and ignored otherwise */
             code?: string;
         };
         /**
@@ -3763,7 +3999,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "email_not_found" | "password_incorrect" | "registration_incomplete" | "password_not_set" | "password_not_set_google" | "password_not_set_github" | "password_not_set_google_github" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "cleanup_pending" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "instance_unhealthy" | "databasus_backup_in_use" | "storage_unavailable" | "recovery_incompatible" | "recovery_not_ready" | "identity_proof_invalid" | "identity_proof_unavailable" | "archive_too_large" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "email_not_found" | "password_incorrect" | "registration_incomplete" | "password_not_set" | "password_not_set_google" | "password_not_set_github" | "password_not_set_google_github" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "pending_sign_in_not_resendable" | "second_factor_invalid" | "too_many_wrong_codes" | "authenticator_app_required" | "authenticator_setup_not_usable" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "cleanup_pending" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "instance_unhealthy" | "databasus_backup_in_use" | "storage_unavailable" | "recovery_incompatible" | "recovery_not_ready" | "identity_proof_invalid" | "identity_proof_unavailable" | "archive_too_large" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -4816,6 +5052,8 @@ export interface components {
     parameters: {
         /** @description The ID of the user */
         UserId: string;
+        /** @description The setup that startAuthenticatorAppSetup named */
+        AuthenticatorAppSetupId: string;
         /** @description The pending sign-in that the latest password step or resend named */
         PendingSignInId: string;
         /** @description The ID of the workspace */
@@ -5084,6 +5322,168 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
+    startAuthenticatorAppSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        /** @description A current second factor, required when the user already has an app. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SecondFactorProof"];
+            };
+        };
+        responses: {
+            /** @description The started setup with its secret */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatorAppSetup"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    confirmAuthenticatorAppSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+                /** @description The setup that startAuthenticatorAppSetup named */
+                authenticatorAppSetupId: components["parameters"]["AuthenticatorAppSetupId"];
+            };
+            cookie?: never;
+        };
+        /** @description The code from the new app. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthenticatorAppCode"];
+            };
+        };
+        responses: {
+            /** @description The app is connected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            410: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    disconnectAuthenticatorApp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        /** @description A current second factor. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SecondFactorProof"];
+            };
+        };
+        responses: {
+            /** @description The user after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    regenerateRecoveryCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        /** @description A current second factor. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SecondFactorProof"];
+            };
+        };
+        responses: {
+            /** @description The new recovery codes */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    resetAuthenticatorApp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
     signIn: {
         parameters: {
             query?: never;
@@ -5098,7 +5498,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The session, or the pending sign-in that waits for the emailed code */
+            /** @description The session, or the pending sign-in that waits for the second factor */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5359,9 +5759,42 @@ export interface operations {
                 };
             };
             400: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             410: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    confirmSignInAuthenticatorAppSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The pending sign-in that the latest password step or resend named */
+                pendingSignInId: components["parameters"]["PendingSignInId"];
+            };
+            cookie?: never;
+        };
+        /** @description The code from the new app and the answer to the human-verification challenge. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifySignInCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The app is connected and the user is signed in */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatorAppSetupSession"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            410: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -8020,7 +8453,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The code was sent */
+            /** @description The method of the confirmation, and the emailed code's expiry when one was sent */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -8043,7 +8476,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        /** @description The emailed code, when the instance requires two-factor sign-in. */
+        /** @description The confirmation code, when the instance requires two-factor sign-in. */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["MasterKeyExportCreate"];
@@ -8196,7 +8629,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The code was sent */
+            /** @description The method of the confirmation, and the emailed code's expiry when one was sent */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -8224,7 +8657,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        /** @description The replacement confirmation and, with two-factor sign-in, the emailed code. */
+        /** @description The replacement confirmation and, with two-factor sign-in, the confirmation code. */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["InstanceRecoveryApply"];

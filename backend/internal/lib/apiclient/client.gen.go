@@ -343,6 +343,24 @@ func (e HealthReportStatus) Valid() bool {
 	}
 }
 
+// Defines values for IdentityConfirmationMethod.
+const (
+	IdentityConfirmationMethodAUTHENTICATORAPP IdentityConfirmationMethod = "AUTHENTICATOR_APP"
+	IdentityConfirmationMethodEMAIL            IdentityConfirmationMethod = "EMAIL"
+)
+
+// Valid indicates whether the value is a known member of the IdentityConfirmationMethod enum.
+func (e IdentityConfirmationMethod) Valid() bool {
+	switch e {
+	case IdentityConfirmationMethodAUTHENTICATORAPP:
+		return true
+	case IdentityConfirmationMethodEMAIL:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InstanceBackupCopyStatus.
 const (
 	InstanceBackupCopyStatusDELETED     InstanceBackupCopyStatus = "DELETED"
@@ -1296,55 +1314,60 @@ func (e PostgresqlVersion) Valid() bool {
 
 // Defines values for ProblemCode.
 const (
-	ProblemCodeAdminEmailMissing          ProblemCode = "admin_email_missing"
-	ProblemCodeAlreadyMember              ProblemCode = "already_member"
-	ProblemCodeAlreadyRunning             ProblemCode = "already_running"
-	ProblemCodeArchiveTooLarge            ProblemCode = "archive_too_large"
-	ProblemCodeBackupNotCompleted         ProblemCode = "backup_not_completed"
-	ProblemCodeCannotChangeOwnRole        ProblemCode = "cannot_change_own_role"
-	ProblemCodeCleanupPending             ProblemCode = "cleanup_pending"
-	ProblemCodeDatabaseConnectionFailed   ProblemCode = "database_connection_failed"
-	ProblemCodeDatabasusBackupInUse       ProblemCode = "databasus_backup_in_use"
-	ProblemCodeEmailNotConfigured         ProblemCode = "email_not_configured"
-	ProblemCodeEmailNotFound              ProblemCode = "email_not_found"
-	ProblemCodeEmailTaken                 ProblemCode = "email_taken"
-	ProblemCodeHumanVerificationFailed    ProblemCode = "human_verification_failed"
-	ProblemCodeIdentityProofInvalid       ProblemCode = "identity_proof_invalid"
-	ProblemCodeIdentityProofUnavailable   ProblemCode = "identity_proof_unavailable"
-	ProblemCodeInUse                      ProblemCode = "in_use"
-	ProblemCodeInstanceUnhealthy          ProblemCode = "instance_unhealthy"
-	ProblemCodeInsufficientDiskSpace      ProblemCode = "insufficient_disk_space"
-	ProblemCodeInternal                   ProblemCode = "internal"
-	ProblemCodeInvalidRequest             ProblemCode = "invalid_request"
-	ProblemCodeInvalidResetCode           ProblemCode = "invalid_reset_code"
-	ProblemCodeNoExtendableChain          ProblemCode = "no_extendable_chain"
-	ProblemCodeNoRestorableBackup         ProblemCode = "no_restorable_backup"
-	ProblemCodeNotFound                   ProblemCode = "not_found"
-	ProblemCodeNotRunning                 ProblemCode = "not_running"
-	ProblemCodeOauthFailed                ProblemCode = "oauth_failed"
-	ProblemCodeOauthNotConfigured         ProblemCode = "oauth_not_configured"
-	ProblemCodeOwnerRequiresTransfer      ProblemCode = "owner_requires_transfer"
-	ProblemCodePasswordIncorrect          ProblemCode = "password_incorrect"
-	ProblemCodePasswordNotSet             ProblemCode = "password_not_set"
-	ProblemCodePasswordNotSetGithub       ProblemCode = "password_not_set_github"
-	ProblemCodePasswordNotSetGoogle       ProblemCode = "password_not_set_google"
-	ProblemCodePasswordNotSetGoogleGithub ProblemCode = "password_not_set_google_github"
-	ProblemCodePendingSignInNotUsable     ProblemCode = "pending_sign_in_not_usable"
-	ProblemCodePermissionDenied           ProblemCode = "permission_denied"
-	ProblemCodeRateLimited                ProblemCode = "rate_limited"
-	ProblemCodeRecoveryIncompatible       ProblemCode = "recovery_incompatible"
-	ProblemCodeRecoveryNotReady           ProblemCode = "recovery_not_ready"
-	ProblemCodeRegistrationClosed         ProblemCode = "registration_closed"
-	ProblemCodeRegistrationIncomplete     ProblemCode = "registration_incomplete"
-	ProblemCodeSignInCodeIncorrect        ProblemCode = "sign_in_code_incorrect"
-	ProblemCodeSignInCodeNotSent          ProblemCode = "sign_in_code_not_sent"
-	ProblemCodeSignInCodeResentTooSoon    ProblemCode = "sign_in_code_resent_too_soon"
-	ProblemCodeStorageUnavailable         ProblemCode = "storage_unavailable"
-	ProblemCodeTargetTimeUnreachable      ProblemCode = "target_time_unreachable"
-	ProblemCodeTooManySignInCodes         ProblemCode = "too_many_sign_in_codes"
-	ProblemCodeUnauthenticated            ProblemCode = "unauthenticated"
-	ProblemCodeUserDeactivated            ProblemCode = "user_deactivated"
-	ProblemCodeWorkspaceNotEmpty          ProblemCode = "workspace_not_empty"
+	ProblemCodeAdminEmailMissing           ProblemCode = "admin_email_missing"
+	ProblemCodeAlreadyMember               ProblemCode = "already_member"
+	ProblemCodeAlreadyRunning              ProblemCode = "already_running"
+	ProblemCodeArchiveTooLarge             ProblemCode = "archive_too_large"
+	ProblemCodeAuthenticatorAppRequired    ProblemCode = "authenticator_app_required"
+	ProblemCodeAuthenticatorSetupNotUsable ProblemCode = "authenticator_setup_not_usable"
+	ProblemCodeBackupNotCompleted          ProblemCode = "backup_not_completed"
+	ProblemCodeCannotChangeOwnRole         ProblemCode = "cannot_change_own_role"
+	ProblemCodeCleanupPending              ProblemCode = "cleanup_pending"
+	ProblemCodeDatabaseConnectionFailed    ProblemCode = "database_connection_failed"
+	ProblemCodeDatabasusBackupInUse        ProblemCode = "databasus_backup_in_use"
+	ProblemCodeEmailNotConfigured          ProblemCode = "email_not_configured"
+	ProblemCodeEmailNotFound               ProblemCode = "email_not_found"
+	ProblemCodeEmailTaken                  ProblemCode = "email_taken"
+	ProblemCodeHumanVerificationFailed     ProblemCode = "human_verification_failed"
+	ProblemCodeIdentityProofInvalid        ProblemCode = "identity_proof_invalid"
+	ProblemCodeIdentityProofUnavailable    ProblemCode = "identity_proof_unavailable"
+	ProblemCodeInUse                       ProblemCode = "in_use"
+	ProblemCodeInstanceUnhealthy           ProblemCode = "instance_unhealthy"
+	ProblemCodeInsufficientDiskSpace       ProblemCode = "insufficient_disk_space"
+	ProblemCodeInternal                    ProblemCode = "internal"
+	ProblemCodeInvalidRequest              ProblemCode = "invalid_request"
+	ProblemCodeInvalidResetCode            ProblemCode = "invalid_reset_code"
+	ProblemCodeNoExtendableChain           ProblemCode = "no_extendable_chain"
+	ProblemCodeNoRestorableBackup          ProblemCode = "no_restorable_backup"
+	ProblemCodeNotFound                    ProblemCode = "not_found"
+	ProblemCodeNotRunning                  ProblemCode = "not_running"
+	ProblemCodeOauthFailed                 ProblemCode = "oauth_failed"
+	ProblemCodeOauthNotConfigured          ProblemCode = "oauth_not_configured"
+	ProblemCodeOwnerRequiresTransfer       ProblemCode = "owner_requires_transfer"
+	ProblemCodePasswordIncorrect           ProblemCode = "password_incorrect"
+	ProblemCodePasswordNotSet              ProblemCode = "password_not_set"
+	ProblemCodePasswordNotSetGithub        ProblemCode = "password_not_set_github"
+	ProblemCodePasswordNotSetGoogle        ProblemCode = "password_not_set_google"
+	ProblemCodePasswordNotSetGoogleGithub  ProblemCode = "password_not_set_google_github"
+	ProblemCodePendingSignInNotResendable  ProblemCode = "pending_sign_in_not_resendable"
+	ProblemCodePendingSignInNotUsable      ProblemCode = "pending_sign_in_not_usable"
+	ProblemCodePermissionDenied            ProblemCode = "permission_denied"
+	ProblemCodeRateLimited                 ProblemCode = "rate_limited"
+	ProblemCodeRecoveryIncompatible        ProblemCode = "recovery_incompatible"
+	ProblemCodeRecoveryNotReady            ProblemCode = "recovery_not_ready"
+	ProblemCodeRegistrationClosed          ProblemCode = "registration_closed"
+	ProblemCodeRegistrationIncomplete      ProblemCode = "registration_incomplete"
+	ProblemCodeSecondFactorInvalid         ProblemCode = "second_factor_invalid"
+	ProblemCodeSignInCodeIncorrect         ProblemCode = "sign_in_code_incorrect"
+	ProblemCodeSignInCodeNotSent           ProblemCode = "sign_in_code_not_sent"
+	ProblemCodeSignInCodeResentTooSoon     ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeStorageUnavailable          ProblemCode = "storage_unavailable"
+	ProblemCodeTargetTimeUnreachable       ProblemCode = "target_time_unreachable"
+	ProblemCodeTooManySignInCodes          ProblemCode = "too_many_sign_in_codes"
+	ProblemCodeTooManyWrongCodes           ProblemCode = "too_many_wrong_codes"
+	ProblemCodeUnauthenticated             ProblemCode = "unauthenticated"
+	ProblemCodeUserDeactivated             ProblemCode = "user_deactivated"
+	ProblemCodeWorkspaceNotEmpty           ProblemCode = "workspace_not_empty"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
@@ -1357,6 +1380,10 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeAlreadyRunning:
 		return true
 	case ProblemCodeArchiveTooLarge:
+		return true
+	case ProblemCodeAuthenticatorAppRequired:
+		return true
+	case ProblemCodeAuthenticatorSetupNotUsable:
 		return true
 	case ProblemCodeBackupNotCompleted:
 		return true
@@ -1416,6 +1443,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodePasswordNotSetGoogleGithub:
 		return true
+	case ProblemCodePendingSignInNotResendable:
+		return true
 	case ProblemCodePendingSignInNotUsable:
 		return true
 	case ProblemCodePermissionDenied:
@@ -1430,6 +1459,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeRegistrationIncomplete:
 		return true
+	case ProblemCodeSecondFactorInvalid:
+		return true
 	case ProblemCodeSignInCodeIncorrect:
 		return true
 	case ProblemCodeSignInCodeNotSent:
@@ -1441,6 +1472,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeTargetTimeUnreachable:
 		return true
 	case ProblemCodeTooManySignInCodes:
+		return true
+	case ProblemCodeTooManyWrongCodes:
 		return true
 	case ProblemCodeUnauthenticated:
 		return true
@@ -1591,6 +1624,36 @@ const (
 func (e SftpStorageSettingsType) Valid() bool {
 	switch e {
 	case SftpStorageSettingsTypeSFTP:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignInAuthenticatorCodeRequiredOutcome.
+const (
+	SignInAuthenticatorCodeRequiredOutcomeAUTHENTICATORCODEREQUIRED SignInAuthenticatorCodeRequiredOutcome = "AUTHENTICATOR_CODE_REQUIRED"
+)
+
+// Valid indicates whether the value is a known member of the SignInAuthenticatorCodeRequiredOutcome enum.
+func (e SignInAuthenticatorCodeRequiredOutcome) Valid() bool {
+	switch e {
+	case SignInAuthenticatorCodeRequiredOutcomeAUTHENTICATORCODEREQUIRED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignInAuthenticatorSetupRequiredOutcome.
+const (
+	SignInAuthenticatorSetupRequiredOutcomeAUTHENTICATORSETUPREQUIRED SignInAuthenticatorSetupRequiredOutcome = "AUTHENTICATOR_SETUP_REQUIRED"
+)
+
+// Valid indicates whether the value is a known member of the SignInAuthenticatorSetupRequiredOutcome enum.
+func (e SignInAuthenticatorSetupRequiredOutcome) Valid() bool {
+	switch e {
+	case SignInAuthenticatorSetupRequiredOutcomeAUTHENTICATORSETUPREQUIRED:
 		return true
 	default:
 		return false
@@ -1765,6 +1828,27 @@ const (
 func (e TelegramNotifierSettingsType) Valid() bool {
 	switch e {
 	case TelegramNotifierSettingsTypeTELEGRAM:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TwoFactorRequirement.
+const (
+	TwoFactorRequirementAUTHENTICATORAPP TwoFactorRequirement = "AUTHENTICATOR_APP"
+	TwoFactorRequirementEMAIL            TwoFactorRequirement = "EMAIL"
+	TwoFactorRequirementOFF              TwoFactorRequirement = "OFF"
+)
+
+// Valid indicates whether the value is a known member of the TwoFactorRequirement enum.
+func (e TwoFactorRequirement) Valid() bool {
+	switch e {
+	case TwoFactorRequirementAUTHENTICATORAPP:
+		return true
+	case TwoFactorRequirementEMAIL:
+		return true
+	case TwoFactorRequirementOFF:
 		return true
 	default:
 		return false
@@ -2249,6 +2333,42 @@ type AuditEventWorkspace struct {
 
 	// Name The current name of the workspace, null when the workspace has been deleted
 	Name *string `json:"name"`
+}
+
+// AuthenticatorAppCode A code from an authenticator app
+type AuthenticatorAppCode struct {
+	// Code The six digits the app shows
+	Code *string `json:"code,omitempty"`
+}
+
+// AuthenticatorAppSetup A started authenticator app setup
+type AuthenticatorAppSetup struct {
+	// AuthenticatorAppSetupId The setup that confirmAuthenticatorAppSetup confirms
+	AuthenticatorAppSetupId openapi_types.UUID `json:"authenticatorAppSetupId"`
+
+	// ExpiresAt When the setup stops being confirmable
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// OtpauthUri The `otpauth://totp/` address of the secret, for the QR code, returned only in this response
+	OtpauthUri string `json:"otpauthUri"`
+
+	// Secret The base32 secret to type into the app, returned only in this response
+	Secret string `json:"secret"`
+}
+
+// AuthenticatorAppSetupSession The connected app's recovery codes and the session of the signed-in user
+type AuthenticatorAppSetupSession struct {
+	// Email The address of the signed-in user
+	Email string `json:"email"`
+
+	// RecoveryCodes Ten single-use codes that replace an app code, returned only in this response
+	RecoveryCodes []string `json:"recoveryCodes"`
+
+	// Token The session token to send as `Authorization: Bearer <token>`, returned once
+	Token string `json:"token"`
+
+	// UserId The ID of the signed-in user
+	UserId openapi_types.UUID `json:"userId"`
 }
 
 // AzureBlobAuthMethod How the storage signs in to Azure
@@ -2745,11 +2865,17 @@ type HealthcheckConfigInput struct {
 	IsNotificationEnabled bool `json:"isNotificationEnabled"`
 }
 
-// IdentityConfirmation An emailed identity code that was sent
+// IdentityConfirmation How root admin confirms the operation
 type IdentityConfirmation struct {
-	// ExpiresAt When the code stops working
-	ExpiresAt time.Time `json:"expiresAt"`
+	// ExpiresAt When the emailed code stops working, present only for `EMAIL`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// Method `EMAIL` when a code was emailed, `AUTHENTICATOR_APP` when root admin confirms with a current app code or an unused recovery code and nothing was sent
+	Method IdentityConfirmationMethod `json:"method"`
 }
+
+// IdentityConfirmationMethod `EMAIL` when a code was emailed, `AUTHENTICATOR_APP` when root admin confirms with a current app code or an unused recovery code and nothing was sent
+type IdentityConfirmationMethod string
 
 // InstanceBackup One encrypted snapshot of the internal database and its copies
 type InstanceBackup struct {
@@ -2963,7 +3089,7 @@ type InstanceBackupStatus struct {
 	// Incident The open incident, null when protection has no problem
 	Incident *InstanceBackupIncident `json:"incident,omitempty"`
 
-	// IsConfirmationCodeRequired Whether a master-key export and a recovery apply need a code emailed to root admin, because the instance requires two-factor sign-in
+	// IsConfirmationCodeRequired Whether a master-key export and a recovery apply need a confirmation by root admin's second factor, because the instance requires two-factor sign-in
 	IsConfirmationCodeRequired bool `json:"isConfirmationCodeRequired"`
 
 	// IsEmailConfigured Whether the operator configured the system mail server
@@ -3027,9 +3153,9 @@ type InstanceRecovery struct {
 	Status InstanceRecoveryStatus `json:"status"`
 }
 
-// InstanceRecoveryApply The replacement confirmation, with the emailed code while two-factor sign-in is required
+// InstanceRecoveryApply The replacement confirmation, with the confirmation code while two-factor sign-in is required
 type InstanceRecoveryApply struct {
-	// Code The code emailed for this recovery; required while the instance requires two-factor sign-in and ignored otherwise
+	// Code The code emailed for this recovery, or root admin's app code or recovery code; required while the instance requires two-factor sign-in and ignored otherwise
 	Code *string `json:"code,omitempty"`
 
 	// IsReplacementConfirmed Root admin accepted that current users, settings and backup catalog are replaced
@@ -3068,8 +3194,8 @@ type InstanceSettings struct {
 	// IsMemberAllowedToCreateWorkspaces A user who is not an instance admin may create workspaces
 	IsMemberAllowedToCreateWorkspaces bool `json:"isMemberAllowedToCreateWorkspaces"`
 
-	// IsTwoFactorAuthRequired A password sign-in also needs a code emailed to the user
-	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
+	// TwoFactorRequirement The second factor a password sign-in needs: none, a code emailed to the user, or a code from an authenticator app the user connects at the next sign-in. A user with a connected app presents the app under every value. Requiring `EMAIL` needs a mail server and a usable address on every active administrator.
+	TwoFactorRequirement TwoFactorRequirement `json:"twoFactorRequirement"`
 }
 
 // InstanceSettingsUpdate The editable instance settings
@@ -3083,8 +3209,8 @@ type InstanceSettingsUpdate struct {
 	// IsMemberAllowedToCreateWorkspaces A user who is not an instance admin may create workspaces
 	IsMemberAllowedToCreateWorkspaces bool `json:"isMemberAllowedToCreateWorkspaces"`
 
-	// IsTwoFactorAuthRequired A password sign-in also needs a code emailed to the user
-	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
+	// TwoFactorRequirement The second factor a password sign-in needs: none, a code emailed to the user, or a code from an authenticator app the user connects at the next sign-in. A user with a connected app presents the app under every value. Requiring `EMAIL` needs a mail server and a usable address on every active administrator.
+	TwoFactorRequirement TwoFactorRequirement `json:"twoFactorRequirement"`
 }
 
 // JobHealth A copied observation of a job and its permitted pass duration
@@ -3368,7 +3494,7 @@ type MasterKeyExport struct {
 
 // MasterKeyExportCreate The confirmation for a master-key export
 type MasterKeyExportCreate struct {
-	// Code The emailed confirmation code; required when the instance requires two-factor sign-in
+	// Code The emailed confirmation code, or root admin's app code or recovery code; required when the instance requires two-factor sign-in
 	Code *string `json:"code,omitempty"`
 }
 
@@ -4096,6 +4222,12 @@ type Problem struct {
 // ProblemCode The cause of the error for programs; a value never changes its meaning
 type ProblemCode string
 
+// RecoveryCodes A new set of recovery codes
+type RecoveryCodes struct {
+	// RecoveryCodes Ten single-use codes that replace an app code, returned only in this response
+	RecoveryCodes []string `json:"recoveryCodes"`
+}
+
 // ResendSignInCodeRequest A request for a new code
 type ResendSignInCodeRequest struct {
 	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
@@ -4212,6 +4344,12 @@ type Schedule struct {
 // ScheduleType How often a schedule runs
 type ScheduleType string
 
+// SecondFactorProof A current second factor of the signed-in user
+type SecondFactorProof struct {
+	// Code A current app code or an unused recovery code
+	Code *string `json:"code,omitempty"`
+}
+
 // Session A session of a signed-in user. The operation that creates it returns the token once; no other operation returns it
 type Session struct {
 	// Email The address of the signed-in user
@@ -4260,6 +4398,39 @@ type SftpStorageSettings struct {
 // SftpStorageSettingsType Always `SFTP`
 type SftpStorageSettingsType string
 
+// SignInAuthenticatorCodeRequired The password was correct, and the user's authenticator app proves the second factor
+type SignInAuthenticatorCodeRequired struct {
+	// Outcome Always `AUTHENTICATOR_CODE_REQUIRED`
+	Outcome SignInAuthenticatorCodeRequiredOutcome `json:"outcome"`
+
+	// PendingSignInId The pending sign-in that an app code or a recovery code completes
+	PendingSignInId openapi_types.UUID `json:"pendingSignInId"`
+}
+
+// SignInAuthenticatorCodeRequiredOutcome Always `AUTHENTICATOR_CODE_REQUIRED`
+type SignInAuthenticatorCodeRequiredOutcome string
+
+// SignInAuthenticatorSetupRequired The password was correct, and the instance requires an authenticator app the user has not connected yet; the user connects one before signing in
+type SignInAuthenticatorSetupRequired struct {
+	// ExpiresAt When the setup stops being confirmable
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// OtpauthUri The `otpauth://totp/` address of the secret, for the QR code, returned only in this response
+	OtpauthUri string `json:"otpauthUri"`
+
+	// Outcome Always `AUTHENTICATOR_SETUP_REQUIRED`
+	Outcome SignInAuthenticatorSetupRequiredOutcome `json:"outcome"`
+
+	// PendingSignInId The pending sign-in that confirming the setup completes
+	PendingSignInId openapi_types.UUID `json:"pendingSignInId"`
+
+	// Secret The base32 secret to type into the app, returned only in this response
+	Secret string `json:"secret"`
+}
+
+// SignInAuthenticatorSetupRequiredOutcome Always `AUTHENTICATOR_SETUP_REQUIRED`
+type SignInAuthenticatorSetupRequiredOutcome string
+
 // SignInCodeRequired The password was correct, and a code went to the user's address
 type SignInCodeRequired struct {
 	// Email The address the code went to
@@ -4299,7 +4470,7 @@ type SignInOptions struct {
 	HasAnyUser bool `json:"hasAnyUser"`
 }
 
-// SignInOutcome The session, or the pending sign-in that waits for the emailed code
+// SignInOutcome The session, or the pending sign-in that waits for the second factor
 type SignInOutcome struct {
 	union json.RawMessage
 }
@@ -4542,8 +4713,14 @@ type TestEmail struct {
 	RecipientEmail string `json:"recipientEmail"`
 }
 
+// TwoFactorRequirement The second factor a password sign-in needs: none, a code emailed to the user, or a code from an authenticator app the user connects at the next sign-in. A user with a connected app presents the app under every value. Requiring `EMAIL` needs a mail server and a usable address on every active administrator.
+type TwoFactorRequirement string
+
 // User A user of the instance
 type User struct {
+	// AuthenticatorAppConnectedAt When the user's authenticator app was connected; null without an app
+	AuthenticatorAppConnectedAt *time.Time `json:"authenticatorAppConnectedAt"`
+
 	// CreatedAt When the user was created
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -4564,6 +4741,9 @@ type User struct {
 
 	// Status `INVITED` for a user who was invited and has not finished sign-up, `ACTIVE`, or `INACTIVE` for a deactivated user
 	Status UserStatus `json:"status"`
+
+	// UnusedRecoveryCodeCount How many recovery codes the user has not used yet; null without an app
+	UnusedRecoveryCodeCount *int `json:"unusedRecoveryCodeCount"`
 }
 
 // UserPage One page of users, the newest first
@@ -4741,12 +4921,12 @@ type VerificationTableStat struct {
 // VerificationTrigger Verification Trigger
 type VerificationTrigger string
 
-// VerifySignInCodeRequest The code emailed for a pending sign-in
+// VerifySignInCodeRequest The code that completes a pending sign-in
 type VerifySignInCodeRequest struct {
 	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
 	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
 
-	// Code The six digits from the message
+	// Code The six digits from the message or the app, or an unused recovery code
 	Code *string `json:"code,omitempty"`
 }
 
@@ -5242,6 +5422,9 @@ type WorkspaceUpdate struct {
 	Name string `json:"name"`
 }
 
+// AuthenticatorAppSetupId defines model for AuthenticatorAppSetupId.
+type AuthenticatorAppSetupId = openapi_types.UUID
+
 // BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
 type BackupConfigDatabaseId = openapi_types.UUID
 
@@ -5608,6 +5791,9 @@ type CompletePasswordResetJSONRequestBody = PasswordResetCompletion
 // RequestPasswordResetJSONRequestBody defines body for RequestPasswordReset for application/json ContentType.
 type RequestPasswordResetJSONRequestBody = PasswordResetRequest
 
+// ConfirmSignInAuthenticatorAppSetupJSONRequestBody defines body for ConfirmSignInAuthenticatorAppSetup for application/json ContentType.
+type ConfirmSignInAuthenticatorAppSetupJSONRequestBody = VerifySignInCodeRequest
+
 // ResendSignInCodeJSONRequestBody defines body for ResendSignInCode for application/json ContentType.
 type ResendSignInCodeJSONRequestBody = ResendSignInCodeRequest
 
@@ -5644,8 +5830,20 @@ type SignUpJSONRequestBody = SignUpRequest
 // UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
 type UpdateUserJSONRequestBody = UserUpdate
 
+// StartAuthenticatorAppSetupJSONRequestBody defines body for StartAuthenticatorAppSetup for application/json ContentType.
+type StartAuthenticatorAppSetupJSONRequestBody = SecondFactorProof
+
+// ConfirmAuthenticatorAppSetupJSONRequestBody defines body for ConfirmAuthenticatorAppSetup for application/json ContentType.
+type ConfirmAuthenticatorAppSetupJSONRequestBody = AuthenticatorAppCode
+
+// DisconnectAuthenticatorAppJSONRequestBody defines body for DisconnectAuthenticatorApp for application/json ContentType.
+type DisconnectAuthenticatorAppJSONRequestBody = SecondFactorProof
+
 // ChangeUserPasswordJSONRequestBody defines body for ChangeUserPassword for application/json ContentType.
 type ChangeUserPasswordJSONRequestBody = PasswordChange
+
+// RegenerateRecoveryCodesJSONRequestBody defines body for RegenerateRecoveryCodes for application/json ContentType.
+type RegenerateRecoveryCodesJSONRequestBody = SecondFactorProof
 
 // ChangeUserRoleJSONRequestBody defines body for ChangeUserRole for application/json ContentType.
 type ChangeUserRoleJSONRequestBody = UserRoleChange
@@ -6708,6 +6906,74 @@ func (t *SignInOutcome) MergeSignInCodeRequired(v SignInCodeRequired) error {
 	return err
 }
 
+// AsSignInAuthenticatorCodeRequired returns the union data inside the SignInOutcome as a SignInAuthenticatorCodeRequired
+func (t SignInOutcome) AsSignInAuthenticatorCodeRequired() (SignInAuthenticatorCodeRequired, error) {
+	var body SignInAuthenticatorCodeRequired
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSignInAuthenticatorCodeRequired overwrites any union data inside the SignInOutcome as the provided SignInAuthenticatorCodeRequired
+func (t *SignInOutcome) FromSignInAuthenticatorCodeRequired(v SignInAuthenticatorCodeRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"AUTHENTICATOR_CODE_REQUIRED"}`))
+	t.union = b
+	return err
+}
+
+// MergeSignInAuthenticatorCodeRequired performs a merge with any union data inside the SignInOutcome, using the provided SignInAuthenticatorCodeRequired
+func (t *SignInOutcome) MergeSignInAuthenticatorCodeRequired(v SignInAuthenticatorCodeRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"AUTHENTICATOR_CODE_REQUIRED"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSignInAuthenticatorSetupRequired returns the union data inside the SignInOutcome as a SignInAuthenticatorSetupRequired
+func (t SignInOutcome) AsSignInAuthenticatorSetupRequired() (SignInAuthenticatorSetupRequired, error) {
+	var body SignInAuthenticatorSetupRequired
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSignInAuthenticatorSetupRequired overwrites any union data inside the SignInOutcome as the provided SignInAuthenticatorSetupRequired
+func (t *SignInOutcome) FromSignInAuthenticatorSetupRequired(v SignInAuthenticatorSetupRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"AUTHENTICATOR_SETUP_REQUIRED"}`))
+	t.union = b
+	return err
+}
+
+// MergeSignInAuthenticatorSetupRequired performs a merge with any union data inside the SignInOutcome, using the provided SignInAuthenticatorSetupRequired
+func (t *SignInOutcome) MergeSignInAuthenticatorSetupRequired(v SignInAuthenticatorSetupRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"AUTHENTICATOR_SETUP_REQUIRED"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
 func (t SignInOutcome) Discriminator() (string, error) {
 	var discriminator struct {
 		Discriminator string `json:"outcome"`
@@ -6722,6 +6988,10 @@ func (t SignInOutcome) ValueByDiscriminator() (interface{}, error) {
 		return nil, err
 	}
 	switch discriminator {
+	case "AUTHENTICATOR_CODE_REQUIRED":
+		return t.AsSignInAuthenticatorCodeRequired()
+	case "AUTHENTICATOR_SETUP_REQUIRED":
+		return t.AsSignInAuthenticatorSetupRequired()
 	case "CODE_REQUIRED":
 		return t.AsSignInCodeRequired()
 	case "COMPLETED":
@@ -7389,7 +7659,7 @@ type ClientInterface interface {
 
 	// ApplyInstanceRecoveryWithBody Replace this installation with the prepared recovery
 	//
-	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7398,7 +7668,7 @@ type ClientInterface interface {
 
 	// ApplyInstanceRecovery Replace this installation with the prepared recovery
 	//
-	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7412,9 +7682,9 @@ type ClientInterface interface {
 	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/cancel (the `CancelInstanceRecovery` operationId).
 	CancelInstanceRecovery(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// RequestInstanceRecoveryConfirmation Email root admin a code that confirms applying this recovery
+	// RequestInstanceRecoveryConfirmation Ask root admin's second factor to confirm applying this recovery
 	//
-	// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+	// Only root admin requests one. While the instance does not require two-factor sign-in the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: apply then takes a current app code or an unused recovery code. Otherwise an emailed code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session; without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`. A recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
 	//
 	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/confirmations (the `RequestInstanceRecoveryConfirmation` operationId).
 	RequestInstanceRecoveryConfirmation(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7551,9 +7821,9 @@ type ClientInterface interface {
 	// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
 	AcknowledgeMasterKey(ctx context.Context, body AcknowledgeMasterKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// RequestMasterKeyConfirmation Email root admin a code that confirms a master-key export
+	// RequestMasterKeyConfirmation Ask root admin's second factor to confirm a master-key export
 	//
-	// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+	// Only root admin requests one, and only an instance that requires two-factor sign-in needs it; without the requirement the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: the export then takes a current app code or an unused recovery code. Otherwise a code is emailed: without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The emailed code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
 	//
 	// Corresponds with POST /master-key-confirmations (the `RequestMasterKeyConfirmation` operationId).
 	RequestMasterKeyConfirmation(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7567,7 +7837,7 @@ type ClientInterface interface {
 
 	// CreateMasterKeyExportWithBody Get a single-use token that downloads the master key
 	//
-	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7576,7 +7846,7 @@ type ClientInterface interface {
 
 	// CreateMasterKeyExport Get a single-use token that downloads the master key
 	//
-	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7719,9 +7989,27 @@ type ClientInterface interface {
 	// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
 	RequestPasswordReset(ctx context.Context, body RequestPasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ConfirmSignInAuthenticatorAppSetupWithBody Complete a pending sign-in by connecting the required authenticator app
+	//
+	// Public, because it creates the session the caller does not have yet. A code the setup secret generated connects the app, and the answer carries the session and ten recovery codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the password step, was destroyed by wrong codes, was replaced by a later password step or waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup (the `ConfirmSignInAuthenticatorAppSetup` operationId).
+	ConfirmSignInAuthenticatorAppSetupWithBody(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ConfirmSignInAuthenticatorAppSetup Complete a pending sign-in by connecting the required authenticator app
+	//
+	// Public, because it creates the session the caller does not have yet. A code the setup secret generated connects the app, and the answer carries the session and ten recovery codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the password step, was destroyed by wrong codes, was replaced by a later password step or waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup (the `ConfirmSignInAuthenticatorAppSetup` operationId).
+	ConfirmSignInAuthenticatorAppSetup(ctx context.Context, pendingSignInId PendingSignInId, body ConfirmSignInAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ResendSignInCodeWithBody Send a new code that replaces the pending sign-in
 	//
-	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user. A pending sign-in that waits for an authenticator app sends no mail and answers 409 `pending_sign_in_not_resendable`.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7730,25 +8018,25 @@ type ClientInterface interface {
 
 	// ResendSignInCode Send a new code that replaces the pending sign-in
 	//
-	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user. A pending sign-in that waits for an authenticator app sends no mail and answers 409 `pending_sign_in_not_resendable`.
 	//
 	// Takes a body of the `application/json` content type.
 	//
 	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
 	ResendSignInCode(ctx context.Context, pendingSignInId PendingSignInId, body ResendSignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// VerifySignInCodeWithBody Complete a pending sign-in with the emailed code
+	// VerifySignInCodeWithBody Complete a pending sign-in with the emailed code or the authenticator app code
 	//
-	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after it was created and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is completed by `confirmSignInAuthenticatorAppSetup` instead.
 	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
 	VerifySignInCodeWithBody(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// VerifySignInCode Complete a pending sign-in with the emailed code
+	// VerifySignInCode Complete a pending sign-in with the emailed code or the authenticator app code
 	//
-	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after it was created and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is completed by `confirmSignInAuthenticatorAppSetup` instead.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7867,7 +8155,7 @@ type ClientInterface interface {
 
 	// SignInWithBody Sign in with an email address and a password
 	//
-	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. After a correct password the answer names the second factor that follows: a user with a connected authenticator app gets `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a requirement the session is issued. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7876,7 +8164,7 @@ type ClientInterface interface {
 
 	// SignIn Sign in with an email address and a password
 	//
-	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. After a correct password the answer names the second factor that follows: a user with a connected authenticator app gets `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a requirement the session is issued. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -8089,12 +8377,66 @@ type ClientInterface interface {
 	// Corresponds with POST /users/{userId}/activate (the `ActivateUser` operationId).
 	ActivateUser(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// StartAuthenticatorAppSetupWithBody Start connecting an authenticator app to the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer carries a new secret and its `otpauth://` address, returned only here; no later answer returns them. The setup replaces the user's earlier unconfirmed setup and stops being confirmable thirty minutes later or after five wrong codes. A user who already has an app replaces it this way and sends a current app code or an unused recovery code in `code`; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected app keeps working until the new one is confirmed.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /users/{userId}/authenticator-app-setups (the `StartAuthenticatorAppSetup` operationId).
+	StartAuthenticatorAppSetupWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartAuthenticatorAppSetup Start connecting an authenticator app to the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer carries a new secret and its `otpauth://` address, returned only here; no later answer returns them. The setup replaces the user's earlier unconfirmed setup and stops being confirmable thirty minutes later or after five wrong codes. A user who already has an app replaces it this way and sends a current app code or an unused recovery code in `code`; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected app keeps working until the new one is confirmed.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /users/{userId}/authenticator-app-setups (the `StartAuthenticatorAppSetup` operationId).
+	StartAuthenticatorAppSetup(ctx context.Context, userId UserId, body StartAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ConfirmAuthenticatorAppSetupWithBody Connect the authenticator app with a code it generated
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the setup secret generated connects the app, replaces any app connected before together with its recovery codes, and answers ten new recovery codes, returned only here. A wrong code gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that expired, was replaced or was destroyed by wrong codes gets 410 `authenticator_setup_not_usable`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm (the `ConfirmAuthenticatorAppSetup` operationId).
+	ConfirmAuthenticatorAppSetupWithBody(ctx context.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ConfirmAuthenticatorAppSetup Connect the authenticator app with a code it generated
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the setup secret generated connects the app, replaces any app connected before together with its recovery codes, and answers ten new recovery codes, returned only here. A wrong code gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that expired, was replaced or was destroyed by wrong codes gets 410 `authenticator_setup_not_usable`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm (the `ConfirmAuthenticatorAppSetup` operationId).
+	ConfirmAuthenticatorAppSetup(ctx context.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, body ConfirmAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// DeactivateUser Deactivate a user
 	//
 	// Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
 	//
 	// Corresponds with POST /users/{userId}/deactivate (the `DeactivateUser` operationId).
 	DeactivateUser(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DisconnectAuthenticatorAppWithBody Disconnect the signed-in user's authenticator app
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app method the answer is 409 `authenticator_app_required`. The app and its recovery codes are removed, and pending sign-ins that wait for its code stop working.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /users/{userId}/disconnect-authenticator-app (the `DisconnectAuthenticatorApp` operationId).
+	DisconnectAuthenticatorAppWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DisconnectAuthenticatorApp Disconnect the signed-in user's authenticator app
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app method the answer is 409 `authenticator_app_required`. The app and its recovery codes are removed, and pending sign-ins that wait for its code stop working.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /users/{userId}/disconnect-authenticator-app (the `DisconnectAuthenticatorApp` operationId).
+	DisconnectAuthenticatorApp(ctx context.Context, userId UserId, body DisconnectAuthenticatorAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ChangeUserPasswordWithBody Replace the password of the signed-in user
 	//
@@ -8113,6 +8455,31 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
 	ChangeUserPassword(ctx context.Context, userId UserId, body ChangeUserPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RegenerateRecoveryCodesWithBody Replace the signed-in user's recovery codes with a new set
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one, or a user without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery code stops working, and the ten new codes are returned only here.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /users/{userId}/recovery-codes (the `RegenerateRecoveryCodes` operationId).
+	RegenerateRecoveryCodesWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RegenerateRecoveryCodes Replace the signed-in user's recovery codes with a new set
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one, or a user without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery code stops working, and the ten new codes are returned only here.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /users/{userId}/recovery-codes (the `RegenerateRecoveryCodes` operationId).
+	RegenerateRecoveryCodes(ctx context.Context, userId UserId, body RegenerateRecoveryCodesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResetAuthenticatorApp Remove a user's authenticator app and recovery codes
+	//
+	// For a user who lost the app. The same rules as deactivation decide who may reset whom: resetting yourself or the bootstrap administrator gets 403 `permission_denied`, and so does resetting an instance admin for anyone but the bootstrap administrator. Pending sign-ins that wait for the app's code stop working; sessions survive. A user without an app is answered unchanged.
+	//
+	// Corresponds with POST /users/{userId}/reset-authenticator-app (the `ResetAuthenticatorApp` operationId).
+	ResetAuthenticatorApp(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ChangeUserRoleWithBody Replace the global role of a user
 	//
@@ -9111,7 +9478,7 @@ func (c *Client) GetInstanceRecovery(ctx context.Context, instanceRecoveryId Ins
 
 // ApplyInstanceRecoveryWithBody Replace this installation with the prepared recovery
 //
-// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9130,7 +9497,7 @@ func (c *Client) ApplyInstanceRecoveryWithBody(ctx context.Context, instanceReco
 
 // ApplyInstanceRecovery Replace this installation with the prepared recovery
 //
-// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9164,9 +9531,9 @@ func (c *Client) CancelInstanceRecovery(ctx context.Context, instanceRecoveryId 
 	return c.Client.Do(req)
 }
 
-// RequestInstanceRecoveryConfirmation Email root admin a code that confirms applying this recovery
+// RequestInstanceRecoveryConfirmation Ask root admin's second factor to confirm applying this recovery
 //
-// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+// Only root admin requests one. While the instance does not require two-factor sign-in the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: apply then takes a current app code or an unused recovery code. Otherwise an emailed code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session; without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`. A recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
 //
 // Corresponds with POST /instance-recoveries/{instanceRecoveryId}/confirmations (the `RequestInstanceRecoveryConfirmation` operationId).
 func (c *Client) RequestInstanceRecoveryConfirmation(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9473,9 +9840,9 @@ func (c *Client) AcknowledgeMasterKey(ctx context.Context, body AcknowledgeMaste
 	return c.Client.Do(req)
 }
 
-// RequestMasterKeyConfirmation Email root admin a code that confirms a master-key export
+// RequestMasterKeyConfirmation Ask root admin's second factor to confirm a master-key export
 //
-// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+// Only root admin requests one, and only an instance that requires two-factor sign-in needs it; without the requirement the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: the export then takes a current app code or an unused recovery code. Otherwise a code is emailed: without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The emailed code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
 //
 // Corresponds with POST /master-key-confirmations (the `RequestMasterKeyConfirmation` operationId).
 func (c *Client) RequestMasterKeyConfirmation(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9509,7 +9876,7 @@ func (c *Client) DownloadMasterKey(ctx context.Context, params *DownloadMasterKe
 
 // CreateMasterKeyExportWithBody Get a single-use token that downloads the master key
 //
-// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9528,7 +9895,7 @@ func (c *Client) CreateMasterKeyExportWithBody(ctx context.Context, contentType 
 
 // CreateMasterKeyExport Get a single-use token that downloads the master key
 //
-// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9841,9 +10208,47 @@ func (c *Client) RequestPasswordReset(ctx context.Context, body RequestPasswordR
 	return c.Client.Do(req)
 }
 
+// ConfirmSignInAuthenticatorAppSetupWithBody Complete a pending sign-in by connecting the required authenticator app
+//
+// Public, because it creates the session the caller does not have yet. A code the setup secret generated connects the app, and the answer carries the session and ten recovery codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the password step, was destroyed by wrong codes, was replaced by a later password step or waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup (the `ConfirmSignInAuthenticatorAppSetup` operationId).
+func (c *Client) ConfirmSignInAuthenticatorAppSetupWithBody(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmSignInAuthenticatorAppSetupRequestWithBody(c.Server, pendingSignInId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ConfirmSignInAuthenticatorAppSetup Complete a pending sign-in by connecting the required authenticator app
+//
+// Public, because it creates the session the caller does not have yet. A code the setup secret generated connects the app, and the answer carries the session and ten recovery codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the password step, was destroyed by wrong codes, was replaced by a later password step or waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup (the `ConfirmSignInAuthenticatorAppSetup` operationId).
+func (c *Client) ConfirmSignInAuthenticatorAppSetup(ctx context.Context, pendingSignInId PendingSignInId, body ConfirmSignInAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmSignInAuthenticatorAppSetupRequest(c.Server, pendingSignInId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ResendSignInCodeWithBody Send a new code that replaces the pending sign-in
 //
-// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user. A pending sign-in that waits for an authenticator app sends no mail and answers 409 `pending_sign_in_not_resendable`.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9862,7 +10267,7 @@ func (c *Client) ResendSignInCodeWithBody(ctx context.Context, pendingSignInId P
 
 // ResendSignInCode Send a new code that replaces the pending sign-in
 //
-// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user. A pending sign-in that waits for an authenticator app sends no mail and answers 409 `pending_sign_in_not_resendable`.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9879,9 +10284,9 @@ func (c *Client) ResendSignInCode(ctx context.Context, pendingSignInId PendingSi
 	return c.Client.Do(req)
 }
 
-// VerifySignInCodeWithBody Complete a pending sign-in with the emailed code
+// VerifySignInCodeWithBody Complete a pending sign-in with the emailed code or the authenticator app code
 //
-// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after it was created and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is completed by `confirmSignInAuthenticatorAppSetup` instead.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9898,9 +10303,9 @@ func (c *Client) VerifySignInCodeWithBody(ctx context.Context, pendingSignInId P
 	return c.Client.Do(req)
 }
 
-// VerifySignInCode Complete a pending sign-in with the emailed code
+// VerifySignInCode Complete a pending sign-in with the emailed code or the authenticator app code
 //
-// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after it was created and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is completed by `confirmSignInAuthenticatorAppSetup` instead.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -10169,7 +10574,7 @@ func (c *Client) CancelRestore(ctx context.Context, restoreId RestoreId, reqEdit
 
 // SignInWithBody Sign in with an email address and a password
 //
-// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. After a correct password the answer names the second factor that follows: a user with a connected authenticator app gets `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a requirement the session is issued. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 //
 // Takes any type of body and a specified content type.
 //
@@ -10188,7 +10593,7 @@ func (c *Client) SignInWithBody(ctx context.Context, contentType string, body io
 
 // SignIn Sign in with an email address and a password
 //
-// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. After a correct password the answer names the second factor that follows: a user with a connected authenticator app gets `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a requirement the session is issued. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -10671,6 +11076,82 @@ func (c *Client) ActivateUser(ctx context.Context, userId UserId, reqEditors ...
 	return c.Client.Do(req)
 }
 
+// StartAuthenticatorAppSetupWithBody Start connecting an authenticator app to the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer carries a new secret and its `otpauth://` address, returned only here; no later answer returns them. The setup replaces the user's earlier unconfirmed setup and stops being confirmable thirty minutes later or after five wrong codes. A user who already has an app replaces it this way and sends a current app code or an unused recovery code in `code`; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected app keeps working until the new one is confirmed.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /users/{userId}/authenticator-app-setups (the `StartAuthenticatorAppSetup` operationId).
+func (c *Client) StartAuthenticatorAppSetupWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartAuthenticatorAppSetupRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartAuthenticatorAppSetup Start connecting an authenticator app to the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer carries a new secret and its `otpauth://` address, returned only here; no later answer returns them. The setup replaces the user's earlier unconfirmed setup and stops being confirmable thirty minutes later or after five wrong codes. A user who already has an app replaces it this way and sends a current app code or an unused recovery code in `code`; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected app keeps working until the new one is confirmed.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /users/{userId}/authenticator-app-setups (the `StartAuthenticatorAppSetup` operationId).
+func (c *Client) StartAuthenticatorAppSetup(ctx context.Context, userId UserId, body StartAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartAuthenticatorAppSetupRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ConfirmAuthenticatorAppSetupWithBody Connect the authenticator app with a code it generated
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the setup secret generated connects the app, replaces any app connected before together with its recovery codes, and answers ten new recovery codes, returned only here. A wrong code gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that expired, was replaced or was destroyed by wrong codes gets 410 `authenticator_setup_not_usable`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm (the `ConfirmAuthenticatorAppSetup` operationId).
+func (c *Client) ConfirmAuthenticatorAppSetupWithBody(ctx context.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmAuthenticatorAppSetupRequestWithBody(c.Server, userId, authenticatorAppSetupId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ConfirmAuthenticatorAppSetup Connect the authenticator app with a code it generated
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the setup secret generated connects the app, replaces any app connected before together with its recovery codes, and answers ten new recovery codes, returned only here. A wrong code gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that expired, was replaced or was destroyed by wrong codes gets 410 `authenticator_setup_not_usable`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm (the `ConfirmAuthenticatorAppSetup` operationId).
+func (c *Client) ConfirmAuthenticatorAppSetup(ctx context.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, body ConfirmAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmAuthenticatorAppSetupRequest(c.Server, userId, authenticatorAppSetupId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // DeactivateUser Deactivate a user
 //
 // Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
@@ -10678,6 +11159,44 @@ func (c *Client) ActivateUser(ctx context.Context, userId UserId, reqEditors ...
 // Corresponds with POST /users/{userId}/deactivate (the `DeactivateUser` operationId).
 func (c *Client) DeactivateUser(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeactivateUserRequest(c.Server, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DisconnectAuthenticatorAppWithBody Disconnect the signed-in user's authenticator app
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app method the answer is 409 `authenticator_app_required`. The app and its recovery codes are removed, and pending sign-ins that wait for its code stop working.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /users/{userId}/disconnect-authenticator-app (the `DisconnectAuthenticatorApp` operationId).
+func (c *Client) DisconnectAuthenticatorAppWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDisconnectAuthenticatorAppRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DisconnectAuthenticatorApp Disconnect the signed-in user's authenticator app
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app method the answer is 409 `authenticator_app_required`. The app and its recovery codes are removed, and pending sign-ins that wait for its code stop working.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /users/{userId}/disconnect-authenticator-app (the `DisconnectAuthenticatorApp` operationId).
+func (c *Client) DisconnectAuthenticatorApp(ctx context.Context, userId UserId, body DisconnectAuthenticatorAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDisconnectAuthenticatorAppRequest(c.Server, userId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -10716,6 +11235,61 @@ func (c *Client) ChangeUserPasswordWithBody(ctx context.Context, userId UserId, 
 // Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
 func (c *Client) ChangeUserPassword(ctx context.Context, userId UserId, body ChangeUserPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewChangeUserPasswordRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RegenerateRecoveryCodesWithBody Replace the signed-in user's recovery codes with a new set
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one, or a user without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery code stops working, and the ten new codes are returned only here.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /users/{userId}/recovery-codes (the `RegenerateRecoveryCodes` operationId).
+func (c *Client) RegenerateRecoveryCodesWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegenerateRecoveryCodesRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RegenerateRecoveryCodes Replace the signed-in user's recovery codes with a new set
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one, or a user without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery code stops working, and the ten new codes are returned only here.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /users/{userId}/recovery-codes (the `RegenerateRecoveryCodes` operationId).
+func (c *Client) RegenerateRecoveryCodes(ctx context.Context, userId UserId, body RegenerateRecoveryCodesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegenerateRecoveryCodesRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ResetAuthenticatorApp Remove a user's authenticator app and recovery codes
+//
+// For a user who lost the app. The same rules as deactivation decide who may reset whom: resetting yourself or the bootstrap administrator gets 403 `permission_denied`, and so does resetting an instance admin for anyone but the bootstrap administrator. Pending sign-ins that wait for the app's code stop working; sessions survive. A user without an app is answered unchanged.
+//
+// Corresponds with POST /users/{userId}/reset-authenticator-app (the `ResetAuthenticatorApp` operationId).
+func (c *Client) ResetAuthenticatorApp(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetAuthenticatorAppRequest(c.Server, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -13858,6 +14432,53 @@ func NewRequestPasswordResetRequestWithBody(server string, contentType string, b
 	return req, nil
 }
 
+// NewConfirmSignInAuthenticatorAppSetupRequest calls the generic ConfirmSignInAuthenticatorAppSetup builder with application/json body
+func NewConfirmSignInAuthenticatorAppSetupRequest(server string, pendingSignInId PendingSignInId, body ConfirmSignInAuthenticatorAppSetupJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewConfirmSignInAuthenticatorAppSetupRequestWithBody(server, pendingSignInId, "application/json", bodyReader)
+}
+
+// NewConfirmSignInAuthenticatorAppSetupRequestWithBody constructs an http.Request for the ConfirmSignInAuthenticatorAppSetup method, with any body, and a specified content type
+func NewConfirmSignInAuthenticatorAppSetupRequestWithBody(server string, pendingSignInId PendingSignInId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "pendingSignInId", pendingSignInId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/pending-sign-ins/%s/confirm-authenticator-app-setup", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewResendSignInCodeRequest calls the generic ResendSignInCode builder with application/json body
 func NewResendSignInCodeRequest(server string, pendingSignInId PendingSignInId, body ResendSignInCodeJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -15338,6 +15959,107 @@ func NewActivateUserRequest(server string, userId UserId) (*http.Request, error)
 	return req, nil
 }
 
+// NewStartAuthenticatorAppSetupRequest calls the generic StartAuthenticatorAppSetup builder with application/json body
+func NewStartAuthenticatorAppSetupRequest(server string, userId UserId, body StartAuthenticatorAppSetupJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewStartAuthenticatorAppSetupRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewStartAuthenticatorAppSetupRequestWithBody constructs an http.Request for the StartAuthenticatorAppSetup method, with any body, and a specified content type
+func NewStartAuthenticatorAppSetupRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s/authenticator-app-setups", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewConfirmAuthenticatorAppSetupRequest calls the generic ConfirmAuthenticatorAppSetup builder with application/json body
+func NewConfirmAuthenticatorAppSetupRequest(server string, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, body ConfirmAuthenticatorAppSetupJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewConfirmAuthenticatorAppSetupRequestWithBody(server, userId, authenticatorAppSetupId, "application/json", bodyReader)
+}
+
+// NewConfirmAuthenticatorAppSetupRequestWithBody constructs an http.Request for the ConfirmAuthenticatorAppSetup method, with any body, and a specified content type
+func NewConfirmAuthenticatorAppSetupRequestWithBody(server string, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "authenticatorAppSetupId", authenticatorAppSetupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s/authenticator-app-setups/%s/confirm", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewDeactivateUserRequest constructs an http.Request for the DeactivateUser method
 func NewDeactivateUserRequest(server string, userId UserId) (*http.Request, error) {
 	var err error
@@ -15368,6 +16090,53 @@ func NewDeactivateUserRequest(server string, userId UserId) (*http.Request, erro
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewDisconnectAuthenticatorAppRequest calls the generic DisconnectAuthenticatorApp builder with application/json body
+func NewDisconnectAuthenticatorAppRequest(server string, userId UserId, body DisconnectAuthenticatorAppJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewDisconnectAuthenticatorAppRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewDisconnectAuthenticatorAppRequestWithBody constructs an http.Request for the DisconnectAuthenticatorApp method, with any body, and a specified content type
+func NewDisconnectAuthenticatorAppRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s/disconnect-authenticator-app", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -15415,6 +16184,87 @@ func NewChangeUserPasswordRequestWithBody(server string, userId UserId, contentT
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRegenerateRecoveryCodesRequest calls the generic RegenerateRecoveryCodes builder with application/json body
+func NewRegenerateRecoveryCodesRequest(server string, userId UserId, body RegenerateRecoveryCodesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRegenerateRecoveryCodesRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewRegenerateRecoveryCodesRequestWithBody constructs an http.Request for the RegenerateRecoveryCodes method, with any body, and a specified content type
+func NewRegenerateRecoveryCodesRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s/recovery-codes", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewResetAuthenticatorAppRequest constructs an http.Request for the ResetAuthenticatorApp method
+func NewResetAuthenticatorAppRequest(server string, userId UserId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s/reset-authenticator-app", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -16893,7 +17743,7 @@ type ClientWithResponsesInterface interface {
 
 	// ApplyInstanceRecoveryWithBodyWithResponse Replace this installation with the prepared recovery
 	//
-	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -16902,7 +17752,7 @@ type ClientWithResponsesInterface interface {
 
 	// ApplyInstanceRecoveryWithResponse Replace this installation with the prepared recovery
 	//
-	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+	// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -16918,9 +17768,9 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /instance-recoveries/{instanceRecoveryId}/cancel (the `CancelInstanceRecovery` operationId).
 	CancelInstanceRecoveryWithResponse(ctx context.Context, instanceRecoveryId InstanceRecoveryId, reqEditors ...RequestEditorFn) (*CancelInstanceRecoveryResponse, error)
 
-	// RequestInstanceRecoveryConfirmationWithResponse Email root admin a code that confirms applying this recovery
+	// RequestInstanceRecoveryConfirmationWithResponse Ask root admin's second factor to confirm applying this recovery
 	//
-	// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+	// Only root admin requests one. While the instance does not require two-factor sign-in the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: apply then takes a current app code or an unused recovery code. Otherwise an emailed code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session; without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`. A recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17071,9 +17921,9 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /master-key-acknowledgments (the `AcknowledgeMasterKey` operationId).
 	AcknowledgeMasterKeyWithResponse(ctx context.Context, body AcknowledgeMasterKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*AcknowledgeMasterKeyResponse, error)
 
-	// RequestMasterKeyConfirmationWithResponse Email root admin a code that confirms a master-key export
+	// RequestMasterKeyConfirmationWithResponse Ask root admin's second factor to confirm a master-key export
 	//
-	// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+	// Only root admin requests one, and only an instance that requires two-factor sign-in needs it; without the requirement the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: the export then takes a current app code or an unused recovery code. Otherwise a code is emailed: without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The emailed code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -17091,7 +17941,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateMasterKeyExportWithBodyWithResponse Get a single-use token that downloads the master key
 	//
-	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17100,7 +17950,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateMasterKeyExportWithResponse Get a single-use token that downloads the master key
 	//
-	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+	// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17251,9 +18101,27 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
 	RequestPasswordResetWithResponse(ctx context.Context, body RequestPasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*RequestPasswordResetResponse, error)
 
+	// ConfirmSignInAuthenticatorAppSetupWithBodyWithResponse Complete a pending sign-in by connecting the required authenticator app
+	//
+	// Public, because it creates the session the caller does not have yet. A code the setup secret generated connects the app, and the answer carries the session and ten recovery codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the password step, was destroyed by wrong codes, was replaced by a later password step or waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup (the `ConfirmSignInAuthenticatorAppSetup` operationId).
+	ConfirmSignInAuthenticatorAppSetupWithBodyWithResponse(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmSignInAuthenticatorAppSetupResponse, error)
+
+	// ConfirmSignInAuthenticatorAppSetupWithResponse Complete a pending sign-in by connecting the required authenticator app
+	//
+	// Public, because it creates the session the caller does not have yet. A code the setup secret generated connects the app, and the answer carries the session and ten recovery codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the password step, was destroyed by wrong codes, was replaced by a later password step or waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup (the `ConfirmSignInAuthenticatorAppSetup` operationId).
+	ConfirmSignInAuthenticatorAppSetupWithResponse(ctx context.Context, pendingSignInId PendingSignInId, body ConfirmSignInAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmSignInAuthenticatorAppSetupResponse, error)
+
 	// ResendSignInCodeWithBodyWithResponse Send a new code that replaces the pending sign-in
 	//
-	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user. A pending sign-in that waits for an authenticator app sends no mail and answers 409 `pending_sign_in_not_resendable`.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17262,25 +18130,25 @@ type ClientWithResponsesInterface interface {
 
 	// ResendSignInCodeWithResponse Send a new code that replaces the pending sign-in
 	//
-	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user. A pending sign-in that waits for an authenticator app sends no mail and answers 409 `pending_sign_in_not_resendable`.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
 	ResendSignInCodeWithResponse(ctx context.Context, pendingSignInId PendingSignInId, body ResendSignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*ResendSignInCodeResponse, error)
 
-	// VerifySignInCodeWithBodyWithResponse Complete a pending sign-in with the emailed code
+	// VerifySignInCodeWithBodyWithResponse Complete a pending sign-in with the emailed code or the authenticator app code
 	//
-	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after it was created and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is completed by `confirmSignInAuthenticatorAppSetup` instead.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
 	VerifySignInCodeWithBodyWithResponse(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*VerifySignInCodeResponse, error)
 
-	// VerifySignInCodeWithResponse Complete a pending sign-in with the emailed code
+	// VerifySignInCodeWithResponse Complete a pending sign-in with the emailed code or the authenticator app code
 	//
-	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after it was created and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is completed by `confirmSignInAuthenticatorAppSetup` instead.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17415,7 +18283,7 @@ type ClientWithResponsesInterface interface {
 
 	// SignInWithBodyWithResponse Sign in with an email address and a password
 	//
-	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. After a correct password the answer names the second factor that follows: a user with a connected authenticator app gets `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a requirement the session is issued. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17424,7 +18292,7 @@ type ClientWithResponsesInterface interface {
 
 	// SignInWithResponse Sign in with an email address and a password
 	//
-	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+	// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. After a correct password the answer names the second factor that follows: a user with a connected authenticator app gets `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a requirement the session is issued. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17665,6 +18533,42 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /users/{userId}/activate (the `ActivateUser` operationId).
 	ActivateUserWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*ActivateUserResponse, error)
 
+	// StartAuthenticatorAppSetupWithBodyWithResponse Start connecting an authenticator app to the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer carries a new secret and its `otpauth://` address, returned only here; no later answer returns them. The setup replaces the user's earlier unconfirmed setup and stops being confirmable thirty minutes later or after five wrong codes. A user who already has an app replaces it this way and sends a current app code or an unused recovery code in `code`; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected app keeps working until the new one is confirmed.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/authenticator-app-setups (the `StartAuthenticatorAppSetup` operationId).
+	StartAuthenticatorAppSetupWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartAuthenticatorAppSetupResponse, error)
+
+	// StartAuthenticatorAppSetupWithResponse Start connecting an authenticator app to the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer carries a new secret and its `otpauth://` address, returned only here; no later answer returns them. The setup replaces the user's earlier unconfirmed setup and stops being confirmable thirty minutes later or after five wrong codes. A user who already has an app replaces it this way and sends a current app code or an unused recovery code in `code`; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected app keeps working until the new one is confirmed.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/authenticator-app-setups (the `StartAuthenticatorAppSetup` operationId).
+	StartAuthenticatorAppSetupWithResponse(ctx context.Context, userId UserId, body StartAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*StartAuthenticatorAppSetupResponse, error)
+
+	// ConfirmAuthenticatorAppSetupWithBodyWithResponse Connect the authenticator app with a code it generated
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the setup secret generated connects the app, replaces any app connected before together with its recovery codes, and answers ten new recovery codes, returned only here. A wrong code gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that expired, was replaced or was destroyed by wrong codes gets 410 `authenticator_setup_not_usable`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm (the `ConfirmAuthenticatorAppSetup` operationId).
+	ConfirmAuthenticatorAppSetupWithBodyWithResponse(ctx context.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmAuthenticatorAppSetupResponse, error)
+
+	// ConfirmAuthenticatorAppSetupWithResponse Connect the authenticator app with a code it generated
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the setup secret generated connects the app, replaces any app connected before together with its recovery codes, and answers ten new recovery codes, returned only here. A wrong code gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that expired, was replaced or was destroyed by wrong codes gets 410 `authenticator_setup_not_usable`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm (the `ConfirmAuthenticatorAppSetup` operationId).
+	ConfirmAuthenticatorAppSetupWithResponse(ctx context.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, body ConfirmAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmAuthenticatorAppSetupResponse, error)
+
 	// DeactivateUserWithResponse Deactivate a user
 	//
 	// Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
@@ -17673,6 +18577,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /users/{userId}/deactivate (the `DeactivateUser` operationId).
 	DeactivateUserWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeactivateUserResponse, error)
+
+	// DisconnectAuthenticatorAppWithBodyWithResponse Disconnect the signed-in user's authenticator app
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app method the answer is 409 `authenticator_app_required`. The app and its recovery codes are removed, and pending sign-ins that wait for its code stop working.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/disconnect-authenticator-app (the `DisconnectAuthenticatorApp` operationId).
+	DisconnectAuthenticatorAppWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DisconnectAuthenticatorAppResponse, error)
+
+	// DisconnectAuthenticatorAppWithResponse Disconnect the signed-in user's authenticator app
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app method the answer is 409 `authenticator_app_required`. The app and its recovery codes are removed, and pending sign-ins that wait for its code stop working.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/disconnect-authenticator-app (the `DisconnectAuthenticatorApp` operationId).
+	DisconnectAuthenticatorAppWithResponse(ctx context.Context, userId UserId, body DisconnectAuthenticatorAppJSONRequestBody, reqEditors ...RequestEditorFn) (*DisconnectAuthenticatorAppResponse, error)
 
 	// ChangeUserPasswordWithBodyWithResponse Replace the password of the signed-in user
 	//
@@ -17691,6 +18613,33 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
 	ChangeUserPasswordWithResponse(ctx context.Context, userId UserId, body ChangeUserPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeUserPasswordResponse, error)
+
+	// RegenerateRecoveryCodesWithBodyWithResponse Replace the signed-in user's recovery codes with a new set
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one, or a user without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery code stops working, and the ten new codes are returned only here.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/recovery-codes (the `RegenerateRecoveryCodes` operationId).
+	RegenerateRecoveryCodesWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegenerateRecoveryCodesResponse, error)
+
+	// RegenerateRecoveryCodesWithResponse Replace the signed-in user's recovery codes with a new set
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one, or a user without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery code stops working, and the ten new codes are returned only here.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/recovery-codes (the `RegenerateRecoveryCodes` operationId).
+	RegenerateRecoveryCodesWithResponse(ctx context.Context, userId UserId, body RegenerateRecoveryCodesJSONRequestBody, reqEditors ...RequestEditorFn) (*RegenerateRecoveryCodesResponse, error)
+
+	// ResetAuthenticatorAppWithResponse Remove a user's authenticator app and recovery codes
+	//
+	// For a user who lost the app. The same rules as deactivation decide who may reset whom: resetting yourself or the bootstrap administrator gets 403 `permission_denied`, and so does resetting an instance admin for anyone but the bootstrap administrator. Pending sign-ins that wait for the app's code stop working; sessions survive. A user without an app is answered unchanged.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/reset-authenticator-app (the `ResetAuthenticatorApp` operationId).
+	ResetAuthenticatorAppWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*ResetAuthenticatorAppResponse, error)
 
 	// ChangeUserRoleWithBodyWithResponse Replace the global role of a user
 	//
@@ -22174,6 +23123,75 @@ func (r RequestPasswordResetResponse) ContentType() string {
 	return ""
 }
 
+type ConfirmSignInAuthenticatorAppSetupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *AuthenticatorAppSetupSession
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON410 the response for an HTTP 410 `application/problem+json` response
+	ApplicationproblemJSON410 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ConfirmSignInAuthenticatorAppSetupResponse) GetJSON200() *AuthenticatorAppSetupSession {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ConfirmSignInAuthenticatorAppSetupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON410 returns the response for an HTTP 410 `application/problem+json` response
+func (r ConfirmSignInAuthenticatorAppSetupResponse) GetApplicationproblemJSON410() *Problem {
+	return r.ApplicationproblemJSON410
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ConfirmSignInAuthenticatorAppSetupResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ConfirmSignInAuthenticatorAppSetupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ConfirmSignInAuthenticatorAppSetupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ConfirmSignInAuthenticatorAppSetupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ConfirmSignInAuthenticatorAppSetupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ConfirmSignInAuthenticatorAppSetupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ResendSignInCodeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -22181,6 +23199,8 @@ type ResendSignInCodeResponse struct {
 	JSON200 *PendingSignIn
 	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
 	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSON410 the response for an HTTP 410 `application/problem+json` response
 	ApplicationproblemJSON410 *Problem
 	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
@@ -22199,6 +23219,11 @@ func (r ResendSignInCodeResponse) GetJSON200() *PendingSignIn {
 // GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
 func (r ResendSignInCodeResponse) GetApplicationproblemJSON400() *Problem {
 	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r ResendSignInCodeResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
 }
 
 // GetApplicationproblemJSON410 returns the response for an HTTP 410 `application/problem+json` response
@@ -24591,6 +25616,158 @@ func (r ActivateUserResponse) ContentType() string {
 	return ""
 }
 
+type StartAuthenticatorAppSetupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *AuthenticatorAppSetup
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r StartAuthenticatorAppSetupResponse) GetJSON201() *AuthenticatorAppSetup {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r StartAuthenticatorAppSetupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r StartAuthenticatorAppSetupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r StartAuthenticatorAppSetupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r StartAuthenticatorAppSetupResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r StartAuthenticatorAppSetupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartAuthenticatorAppSetupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartAuthenticatorAppSetupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartAuthenticatorAppSetupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartAuthenticatorAppSetupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ConfirmAuthenticatorAppSetupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RecoveryCodes
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON410 the response for an HTTP 410 `application/problem+json` response
+	ApplicationproblemJSON410 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ConfirmAuthenticatorAppSetupResponse) GetJSON200() *RecoveryCodes {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ConfirmAuthenticatorAppSetupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ConfirmAuthenticatorAppSetupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ConfirmAuthenticatorAppSetupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON410 returns the response for an HTTP 410 `application/problem+json` response
+func (r ConfirmAuthenticatorAppSetupResponse) GetApplicationproblemJSON410() *Problem {
+	return r.ApplicationproblemJSON410
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ConfirmAuthenticatorAppSetupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ConfirmAuthenticatorAppSetupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ConfirmAuthenticatorAppSetupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ConfirmAuthenticatorAppSetupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ConfirmAuthenticatorAppSetupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type DeactivateUserResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -24660,6 +25837,89 @@ func (r DeactivateUserResponse) ContentType() string {
 	return ""
 }
 
+type DisconnectAuthenticatorAppResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *User
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r DisconnectAuthenticatorAppResponse) GetJSON200() *User {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DisconnectAuthenticatorAppResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DisconnectAuthenticatorAppResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DisconnectAuthenticatorAppResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DisconnectAuthenticatorAppResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r DisconnectAuthenticatorAppResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DisconnectAuthenticatorAppResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DisconnectAuthenticatorAppResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DisconnectAuthenticatorAppResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DisconnectAuthenticatorAppResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DisconnectAuthenticatorAppResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ChangeUserPasswordResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -24716,6 +25976,151 @@ func (r ChangeUserPasswordResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ChangeUserPasswordResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RegenerateRecoveryCodesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *RecoveryCodes
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r RegenerateRecoveryCodesResponse) GetJSON201() *RecoveryCodes {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r RegenerateRecoveryCodesResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r RegenerateRecoveryCodesResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r RegenerateRecoveryCodesResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r RegenerateRecoveryCodesResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r RegenerateRecoveryCodesResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RegenerateRecoveryCodesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RegenerateRecoveryCodesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RegenerateRecoveryCodesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RegenerateRecoveryCodesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ResetAuthenticatorAppResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *User
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ResetAuthenticatorAppResponse) GetJSON200() *User {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ResetAuthenticatorAppResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ResetAuthenticatorAppResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ResetAuthenticatorAppResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ResetAuthenticatorAppResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ResetAuthenticatorAppResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ResetAuthenticatorAppResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResetAuthenticatorAppResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ResetAuthenticatorAppResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -27101,7 +28506,7 @@ func (c *ClientWithResponses) GetInstanceRecoveryWithResponse(ctx context.Contex
 
 // ApplyInstanceRecoveryWithBodyWithResponse Replace this installation with the prepared recovery
 //
-// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27116,7 +28521,7 @@ func (c *ClientWithResponses) ApplyInstanceRecoveryWithBodyWithResponse(ctx cont
 
 // ApplyInstanceRecoveryWithResponse Replace this installation with the prepared recovery
 //
-// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
+// Only root admin applies, with `isReplacementConfirmed`. While the instance requires two-factor sign-in the apply also needs the code emailed for this recovery in this session, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing or wrong code, a master-key export code or a code for another recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`. The answer is 202 once the apply is recorded durably, before the service stops. Publication then drains all work, replaces the database and the master key, and serves the recovered installation in the same process with its schedules running; every session ends, and sign-in uses the accounts of the snapshot. Repeating apply for an accepted recovery returns its current state without a second publication.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27144,9 +28549,9 @@ func (c *ClientWithResponses) CancelInstanceRecoveryWithResponse(ctx context.Con
 	return ParseCancelInstanceRecoveryResponse(rsp)
 }
 
-// RequestInstanceRecoveryConfirmationWithResponse Email root admin a code that confirms applying this recovery
+// RequestInstanceRecoveryConfirmationWithResponse Ask root admin's second factor to confirm applying this recovery
 //
-// Only root admin requests one. The code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session. While the instance does not require two-factor sign-in, or without a system mail server or a usable address, the answer is 409 `identity_proof_unavailable`; a recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
+// Only root admin requests one. While the instance does not require two-factor sign-in the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: apply then takes a current app code or an unused recovery code. Otherwise an emailed code expires after five minutes and confirms only this recovery with its archive fingerprint, for the current session; without a system mail server or a usable address the answer is 409 `identity_proof_unavailable`. A recovery that is not ready gets 409 `recovery_not_ready`. One code a minute.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27399,9 +28804,9 @@ func (c *ClientWithResponses) AcknowledgeMasterKeyWithResponse(ctx context.Conte
 	return ParseAcknowledgeMasterKeyResponse(rsp)
 }
 
-// RequestMasterKeyConfirmationWithResponse Email root admin a code that confirms a master-key export
+// RequestMasterKeyConfirmationWithResponse Ask root admin's second factor to confirm a master-key export
 //
-// Only root admin requests one, and only an instance that requires two-factor sign-in needs it. Without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
+// Only root admin requests one, and only an instance that requires two-factor sign-in needs it; without the requirement the answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: the export then takes a current app code or an unused recovery code. Otherwise a code is emailed: without a system mail server or a usable address on root admin's account the answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key from the host. The emailed code is bound to the requesting session, expires after five minutes and confirms only a master-key export. One code a minute.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -27431,7 +28836,7 @@ func (c *ClientWithResponses) DownloadMasterKeyWithResponse(ctx context.Context,
 
 // CreateMasterKeyExportWithBodyWithResponse Get a single-use token that downloads the master key
 //
-// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27446,7 +28851,7 @@ func (c *ClientWithResponses) CreateMasterKeyExportWithBodyWithResponse(ctx cont
 
 // CreateMasterKeyExportWithResponse Get a single-use token that downloads the master key
 //
-// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
+// Only root admin exports the key. When the instance does not require two-factor sign-in, root admin's session is enough and `code` is ignored. When it does, the request carries the emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused recovery code when root admin has a connected authenticator app; a missing, wrong, expired, used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here, downloads the key once and expires after 60 seconds. This is the one operation chain that lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing master key as an attachment, and no JSON response ever carries it. The audit log records the export without the code, the token or the key.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27699,9 +29104,39 @@ func (c *ClientWithResponses) RequestPasswordResetWithResponse(ctx context.Conte
 	return ParseRequestPasswordResetResponse(rsp)
 }
 
+// ConfirmSignInAuthenticatorAppSetupWithBodyWithResponse Complete a pending sign-in by connecting the required authenticator app
+//
+// Public, because it creates the session the caller does not have yet. A code the setup secret generated connects the app, and the answer carries the session and ten recovery codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the password step, was destroyed by wrong codes, was replaced by a later password step or waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup (the `ConfirmSignInAuthenticatorAppSetup` operationId).
+func (c *ClientWithResponses) ConfirmSignInAuthenticatorAppSetupWithBodyWithResponse(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmSignInAuthenticatorAppSetupResponse, error) {
+	rsp, err := c.ConfirmSignInAuthenticatorAppSetupWithBody(ctx, pendingSignInId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmSignInAuthenticatorAppSetupResponse(rsp)
+}
+
+// ConfirmSignInAuthenticatorAppSetupWithResponse Complete a pending sign-in by connecting the required authenticator app
+//
+// Public, because it creates the session the caller does not have yet. A code the setup secret generated connects the app, and the answer carries the session and ten recovery codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the password step, was destroyed by wrong codes, was replaced by a later password step or waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup (the `ConfirmSignInAuthenticatorAppSetup` operationId).
+func (c *ClientWithResponses) ConfirmSignInAuthenticatorAppSetupWithResponse(ctx context.Context, pendingSignInId PendingSignInId, body ConfirmSignInAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmSignInAuthenticatorAppSetupResponse, error) {
+	rsp, err := c.ConfirmSignInAuthenticatorAppSetup(ctx, pendingSignInId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmSignInAuthenticatorAppSetupResponse(rsp)
+}
+
 // ResendSignInCodeWithBodyWithResponse Send a new code that replaces the pending sign-in
 //
-// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user. A pending sign-in that waits for an authenticator app sends no mail and answers 409 `pending_sign_in_not_resendable`.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27716,7 +29151,7 @@ func (c *ClientWithResponses) ResendSignInCodeWithBodyWithResponse(ctx context.C
 
 // ResendSignInCodeWithResponse Send a new code that replaces the pending sign-in
 //
-// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user. A pending sign-in that waits for an authenticator app sends no mail and answers 409 `pending_sign_in_not_resendable`.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27729,9 +29164,9 @@ func (c *ClientWithResponses) ResendSignInCodeWithResponse(ctx context.Context, 
 	return ParseResendSignInCodeResponse(rsp)
 }
 
-// VerifySignInCodeWithBodyWithResponse Complete a pending sign-in with the emailed code
+// VerifySignInCodeWithBodyWithResponse Complete a pending sign-in with the emailed code or the authenticator app code
 //
-// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after it was created and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is completed by `confirmSignInAuthenticatorAppSetup` instead.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27744,9 +29179,9 @@ func (c *ClientWithResponses) VerifySignInCodeWithBodyWithResponse(ctx context.C
 	return ParseVerifySignInCodeResponse(rsp)
 }
 
-// VerifySignInCodeWithResponse Complete a pending sign-in with the emailed code
+// VerifySignInCodeWithResponse Complete a pending sign-in with the emailed code or the authenticator app code
 //
-// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after it was created and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is completed by `confirmSignInAuthenticatorAppSetup` instead.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27971,7 +29406,7 @@ func (c *ClientWithResponses) CancelRestoreWithResponse(ctx context.Context, res
 
 // SignInWithBodyWithResponse Sign in with an email address and a password
 //
-// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. After a correct password the answer names the second factor that follows: a user with a connected authenticator app gets `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a requirement the session is issued. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -27986,7 +29421,7 @@ func (c *ClientWithResponses) SignInWithBodyWithResponse(ctx context.Context, co
 
 // SignInWithResponse Sign in with an email address and a password
 //
-// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. When the instance requires the second factor, a successful password step names a pending sign-in and sends its code. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+// Public, because it creates the session the caller does not have yet. Refusals answer 401 with `email_not_found`, `password_incorrect`, `registration_incomplete` or `password_not_set`. Accounts without a password recommend linked, configured providers through `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`. A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise its refusal matches an equivalent active account. Human verification and the per-address rate limit run before these refusals. After a correct password the answer names the second factor that follows: a user with a connected authenticator app gets `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a requirement the session is issued. A refused step sends no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -28389,6 +29824,66 @@ func (c *ClientWithResponses) ActivateUserWithResponse(ctx context.Context, user
 	return ParseActivateUserResponse(rsp)
 }
 
+// StartAuthenticatorAppSetupWithBodyWithResponse Start connecting an authenticator app to the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer carries a new secret and its `otpauth://` address, returned only here; no later answer returns them. The setup replaces the user's earlier unconfirmed setup and stops being confirmable thirty minutes later or after five wrong codes. A user who already has an app replaces it this way and sends a current app code or an unused recovery code in `code`; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected app keeps working until the new one is confirmed.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/authenticator-app-setups (the `StartAuthenticatorAppSetup` operationId).
+func (c *ClientWithResponses) StartAuthenticatorAppSetupWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartAuthenticatorAppSetupResponse, error) {
+	rsp, err := c.StartAuthenticatorAppSetupWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartAuthenticatorAppSetupResponse(rsp)
+}
+
+// StartAuthenticatorAppSetupWithResponse Start connecting an authenticator app to the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer carries a new secret and its `otpauth://` address, returned only here; no later answer returns them. The setup replaces the user's earlier unconfirmed setup and stops being confirmable thirty minutes later or after five wrong codes. A user who already has an app replaces it this way and sends a current app code or an unused recovery code in `code`; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected app keeps working until the new one is confirmed.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/authenticator-app-setups (the `StartAuthenticatorAppSetup` operationId).
+func (c *ClientWithResponses) StartAuthenticatorAppSetupWithResponse(ctx context.Context, userId UserId, body StartAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*StartAuthenticatorAppSetupResponse, error) {
+	rsp, err := c.StartAuthenticatorAppSetup(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartAuthenticatorAppSetupResponse(rsp)
+}
+
+// ConfirmAuthenticatorAppSetupWithBodyWithResponse Connect the authenticator app with a code it generated
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the setup secret generated connects the app, replaces any app connected before together with its recovery codes, and answers ten new recovery codes, returned only here. A wrong code gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that expired, was replaced or was destroyed by wrong codes gets 410 `authenticator_setup_not_usable`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm (the `ConfirmAuthenticatorAppSetup` operationId).
+func (c *ClientWithResponses) ConfirmAuthenticatorAppSetupWithBodyWithResponse(ctx context.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmAuthenticatorAppSetupResponse, error) {
+	rsp, err := c.ConfirmAuthenticatorAppSetupWithBody(ctx, userId, authenticatorAppSetupId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmAuthenticatorAppSetupResponse(rsp)
+}
+
+// ConfirmAuthenticatorAppSetupWithResponse Connect the authenticator app with a code it generated
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the setup secret generated connects the app, replaces any app connected before together with its recovery codes, and answers ten new recovery codes, returned only here. A wrong code gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that expired, was replaced or was destroyed by wrong codes gets 410 `authenticator_setup_not_usable`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm (the `ConfirmAuthenticatorAppSetup` operationId).
+func (c *ClientWithResponses) ConfirmAuthenticatorAppSetupWithResponse(ctx context.Context, userId UserId, authenticatorAppSetupId AuthenticatorAppSetupId, body ConfirmAuthenticatorAppSetupJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmAuthenticatorAppSetupResponse, error) {
+	rsp, err := c.ConfirmAuthenticatorAppSetup(ctx, userId, authenticatorAppSetupId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmAuthenticatorAppSetupResponse(rsp)
+}
+
 // DeactivateUserWithResponse Deactivate a user
 //
 // Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
@@ -28402,6 +29897,36 @@ func (c *ClientWithResponses) DeactivateUserWithResponse(ctx context.Context, us
 		return nil, err
 	}
 	return ParseDeactivateUserResponse(rsp)
+}
+
+// DisconnectAuthenticatorAppWithBodyWithResponse Disconnect the signed-in user's authenticator app
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app method the answer is 409 `authenticator_app_required`. The app and its recovery codes are removed, and pending sign-ins that wait for its code stop working.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/disconnect-authenticator-app (the `DisconnectAuthenticatorApp` operationId).
+func (c *ClientWithResponses) DisconnectAuthenticatorAppWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DisconnectAuthenticatorAppResponse, error) {
+	rsp, err := c.DisconnectAuthenticatorAppWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDisconnectAuthenticatorAppResponse(rsp)
+}
+
+// DisconnectAuthenticatorAppWithResponse Disconnect the signed-in user's authenticator app
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app method the answer is 409 `authenticator_app_required`. The app and its recovery codes are removed, and pending sign-ins that wait for its code stop working.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/disconnect-authenticator-app (the `DisconnectAuthenticatorApp` operationId).
+func (c *ClientWithResponses) DisconnectAuthenticatorAppWithResponse(ctx context.Context, userId UserId, body DisconnectAuthenticatorAppJSONRequestBody, reqEditors ...RequestEditorFn) (*DisconnectAuthenticatorAppResponse, error) {
+	rsp, err := c.DisconnectAuthenticatorApp(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDisconnectAuthenticatorAppResponse(rsp)
 }
 
 // ChangeUserPasswordWithBodyWithResponse Replace the password of the signed-in user
@@ -28432,6 +29957,51 @@ func (c *ClientWithResponses) ChangeUserPasswordWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseChangeUserPasswordResponse(rsp)
+}
+
+// RegenerateRecoveryCodesWithBodyWithResponse Replace the signed-in user's recovery codes with a new set
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one, or a user without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery code stops working, and the ten new codes are returned only here.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/recovery-codes (the `RegenerateRecoveryCodes` operationId).
+func (c *ClientWithResponses) RegenerateRecoveryCodesWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegenerateRecoveryCodesResponse, error) {
+	rsp, err := c.RegenerateRecoveryCodesWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegenerateRecoveryCodesResponse(rsp)
+}
+
+// RegenerateRecoveryCodesWithResponse Replace the signed-in user's recovery codes with a new set
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request carries a current app code or an unused recovery code; a wrong or missing one, or a user without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery code stops working, and the ten new codes are returned only here.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/recovery-codes (the `RegenerateRecoveryCodes` operationId).
+func (c *ClientWithResponses) RegenerateRecoveryCodesWithResponse(ctx context.Context, userId UserId, body RegenerateRecoveryCodesJSONRequestBody, reqEditors ...RequestEditorFn) (*RegenerateRecoveryCodesResponse, error) {
+	rsp, err := c.RegenerateRecoveryCodes(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegenerateRecoveryCodesResponse(rsp)
+}
+
+// ResetAuthenticatorAppWithResponse Remove a user's authenticator app and recovery codes
+//
+// For a user who lost the app. The same rules as deactivation decide who may reset whom: resetting yourself or the bootstrap administrator gets 403 `permission_denied`, and so does resetting an instance admin for anyone but the bootstrap administrator. Pending sign-ins that wait for the app's code stop working; sessions survive. A user without an app is answered unchanged.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/reset-authenticator-app (the `ResetAuthenticatorApp` operationId).
+func (c *ClientWithResponses) ResetAuthenticatorAppWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*ResetAuthenticatorAppResponse, error) {
+	rsp, err := c.ResetAuthenticatorApp(ctx, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetAuthenticatorAppResponse(rsp)
 }
 
 // ChangeUserRoleWithBodyWithResponse Replace the global role of a user
@@ -32309,6 +33879,60 @@ func ParseRequestPasswordResetResponse(rsp *http.Response) (*RequestPasswordRese
 	return response, nil
 }
 
+// ParseConfirmSignInAuthenticatorAppSetupResponse parses an HTTP response from a ConfirmSignInAuthenticatorAppSetupWithResponse call
+func ParseConfirmSignInAuthenticatorAppSetupResponse(rsp *http.Response) (*ConfirmSignInAuthenticatorAppSetupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ConfirmSignInAuthenticatorAppSetupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AuthenticatorAppSetupSession
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseResendSignInCodeResponse parses an HTTP response from a ResendSignInCodeWithResponse call
 func ParseResendSignInCodeResponse(rsp *http.Response) (*ResendSignInCodeResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -32336,6 +33960,13 @@ func ParseResendSignInCodeResponse(rsp *http.Response) (*ResendSignInCodeRespons
 			return nil, err
 		}
 		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
 		var dest Problem
@@ -34252,6 +35883,128 @@ func ParseActivateUserResponse(rsp *http.Response) (*ActivateUserResponse, error
 	return response, nil
 }
 
+// ParseStartAuthenticatorAppSetupResponse parses an HTTP response from a StartAuthenticatorAppSetupWithResponse call
+func ParseStartAuthenticatorAppSetupResponse(rsp *http.Response) (*StartAuthenticatorAppSetupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartAuthenticatorAppSetupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest AuthenticatorAppSetup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseConfirmAuthenticatorAppSetupResponse parses an HTTP response from a ConfirmAuthenticatorAppSetupWithResponse call
+func ParseConfirmAuthenticatorAppSetupResponse(rsp *http.Response) (*ConfirmAuthenticatorAppSetupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ConfirmAuthenticatorAppSetupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RecoveryCodes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseDeactivateUserResponse parses an HTTP response from a DeactivateUserWithResponse call
 func ParseDeactivateUserResponse(rsp *http.Response) (*DeactivateUserResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -34306,6 +36059,74 @@ func ParseDeactivateUserResponse(rsp *http.Response) (*DeactivateUserResponse, e
 	return response, nil
 }
 
+// ParseDisconnectAuthenticatorAppResponse parses an HTTP response from a DisconnectAuthenticatorAppWithResponse call
+func ParseDisconnectAuthenticatorAppResponse(rsp *http.Response) (*DisconnectAuthenticatorAppResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DisconnectAuthenticatorAppResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest User
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseChangeUserPasswordResponse parses an HTTP response from a ChangeUserPasswordWithResponse call
 func ParseChangeUserPasswordResponse(rsp *http.Response) (*ChangeUserPasswordResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -34343,6 +36164,121 @@ func ParseChangeUserPasswordResponse(rsp *http.Response) (*ChangeUserPasswordRes
 			return nil, err
 		}
 		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRegenerateRecoveryCodesResponse parses an HTTP response from a RegenerateRecoveryCodesWithResponse call
+func ParseRegenerateRecoveryCodesResponse(rsp *http.Response) (*RegenerateRecoveryCodesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RegenerateRecoveryCodesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest RecoveryCodes
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResetAuthenticatorAppResponse parses an HTTP response from a ResetAuthenticatorAppWithResponse call
+func ParseResetAuthenticatorAppResponse(rsp *http.Response) (*ResetAuthenticatorAppResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResetAuthenticatorAppResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest User
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

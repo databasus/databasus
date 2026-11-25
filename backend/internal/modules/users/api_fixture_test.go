@@ -99,7 +99,7 @@ func defaultSettingsUpdate() apiclient.InstanceSettingsUpdate {
 		IsAllowExternalRegistrations:      true,
 		IsAllowMemberInvitations:          true,
 		IsMemberAllowedToCreateWorkspaces: true,
-		IsTwoFactorAuthRequired:           false,
+		TwoFactorRequirement:              apiclient.TwoFactorRequirementOFF,
 	}
 }
 
