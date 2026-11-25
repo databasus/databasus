@@ -846,6 +846,14 @@ jobs:
             go test -race -p=8 -parallel=4 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
             exit
           fi
+          if [[ "$TEST_GROUP" =~ ^physical-[0-9]+-of-[0-9]+$ ]]; then
+            # Each PostgreSQL major has its own package running the same scenarios. Three packages
+            # at once ran six scenarios on an 8 GB arm64 runner, and the OOM killer stopped one
+            # package. Two packages at once keep four scenarios, which that runner holds.
+            # shellcheck disable=SC2086 # one import path per word
+            go test -race -p=2 -parallel="$TEST_PARALLELISM" -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
+            exit
+          fi
           # Each leg runs one group on its own runner and allows extra time for CI contention.
           # shellcheck disable=SC2086 # one import path per word
           go test -race -p=8 -parallel="$TEST_PARALLELISM" -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages

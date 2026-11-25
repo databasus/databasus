@@ -173,6 +173,33 @@ class BackendCiExecutionTest(unittest.TestCase):
             OTHER_PACKAGES,
         )
 
+    def test_physical_shards_run_two_version_packages_at_once(self) -> None:
+        status, calls, diagnostic = self.run_backend_step(
+            BackendCiStepSpec(group="physical-1-of-3", packages=OTHER_PACKAGES)
+        )
+
+        self.assertEqual(status, 0, diagnostic)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(
+            [argument for argument in calls[0] if argument.startswith("-p=")], ["-p=2"]
+        )
+        self.assertIn("-parallel=2", calls[0])
+        self.assertIn("-race", calls[0])
+        self.assertIn("^(TestSelected)$", calls[0])
+        self.assertCountEqual(
+            [argument for argument in calls[0] if argument.startswith("databasus-")],
+            OTHER_PACKAGES,
+        )
+
+    def test_physical_api_shards_keep_the_default_package_limit(self) -> None:
+        status, calls, diagnostic = self.run_backend_step(
+            BackendCiStepSpec(group="physical-api-1-of-3", packages=OTHER_PACKAGES)
+        )
+
+        self.assertEqual(status, 0, diagnostic)
+        self.assertEqual(len(calls), 1)
+        self.assertIn("-p=8", calls[0])
+
     def test_raises_inotify_limits_only_for_cnpg_shards(self) -> None:
         workflow = (ROOT / ".github/workflows/ci-release.yml").read_text()
         step = get_jobs(workflow)["test-backend"].split(
