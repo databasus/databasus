@@ -30,6 +30,37 @@ then
 fi
 
 export DATABASUS_AGENT_E2E_ENGINE_HOST="unix://$engine_socket"
-go test ${CI:+-race} -count=1 -timeout 30m -v \
-    -run '^(TestVerifyBackup|TestRestoreContainer)$/^(completes_with_an_encrypted_backup_on_postgres_18|fails_after_one_attempt_when_the_backup_is_broken|runs_without_root_or_capabilities_when_restoring_a_backup)$' \
-    ./internal/agent/e2e/...
+
+# go test reports nothing for a pattern that matches no subtest, so a renamed scenario would leave
+# the subset silently. The task therefore checks that every listed scenario finished.
+scenarios=(
+    TestVerifyBackup/completes_with_an_encrypted_backup_on_postgres_19
+    TestVerifyBackup/fails_after_one_attempt_when_the_backup_is_broken
+    TestRestoreContainer/runs_the_pinned_server_version_without_root_or_capabilities_when_restoring_a_backup
+)
+tests=()
+subtests=()
+for scenario in "${scenarios[@]}"; do
+    tests+=("${scenario%%/*}")
+    subtests+=("${scenario#*/}")
+done
+run_pattern="^($(printf '%s\n' "${tests[@]}" | sort -u | paste -sd'|'))\$/^($(printf '%s\n' "${subtests[@]}" | paste -sd'|'))\$"
+
+ran_tests_file=$(mktemp)
+trap 'rm -f "$ran_tests_file"' EXIT
+set -o pipefail
+status=0
+go test ${CI:+-race} -json -count=1 -timeout 30m -run "$run_pattern" ./internal/agent/e2e/... 2>&1 |
+    python3 ../scripts/go_test_report.py "$ran_tests_file" || status=$?
+
+missing=()
+for scenario in "${scenarios[@]}"; do
+    if ! cut -f2 "$ran_tests_file" | grep -qxF "$scenario"; then
+        missing+=("$scenario")
+    fi
+done
+if ((${#missing[@]} > 0)); then
+    printf 'Podman subset scenario reported no result: %s\n' "${missing[@]}" >&2
+    exit 1
+fi
+exit "$status"

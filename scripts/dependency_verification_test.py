@@ -329,43 +329,62 @@ class DependencyVerificationTest(unittest.TestCase):
 
         self.assertEqual(execution.returncode, 0, execution.stdout + execution.stderr)
 
-    def test_rejects_verification_catalog_records_that_disagree_with_pinned_versions(
-        self,
-    ) -> None:
+    def test_accepts_a_pinned_version_without_a_verification_record(self) -> None:
         catalog = self.root / "backend/internal/lib/testimages/images.json"
-        pinned = catalog.read_text()
         pinned_versions = json.loads(
             (self.root / "backend/internal/agent/container/postgres_versions.json").read_text()
         )
-        record_name = f"databasus/verification-postgres:{pinned_versions['18']}"
-
-        document = json.loads(pinned)
-        document["images"].pop(record_name)
+        document = json.loads(catalog.read_text())
+        document["images"].pop(f"databasus/verification-postgres:{pinned_versions['19']}")
         catalog.write_text(json.dumps(document))
 
-        missing_execution = self.run_check()
+        execution = self.run_check()
 
-        self.assertNotEqual(missing_execution.returncode, 0)
-        self.assertIn("no catalog record for pinned version", missing_execution.stdout)
+        self.assertEqual(execution.returncode, 0, execution.stdout + execution.stderr)
 
-        document = json.loads(pinned)
+    def test_rejects_a_verification_record_that_names_no_pinned_version(self) -> None:
+        catalog = self.root / "backend/internal/lib/testimages/images.json"
+        pinned_versions = json.loads(
+            (self.root / "backend/internal/agent/container/postgres_versions.json").read_text()
+        )
+        document = json.loads(catalog.read_text())
         document["images"]["databasus/verification-postgres:18.0"] = document["images"].pop(
-            record_name
+            f"databasus/verification-postgres:{pinned_versions['18']}"
         )
         catalog.write_text(json.dumps(document))
 
-        renamed_execution = self.run_check()
+        execution = self.run_check()
 
-        self.assertNotEqual(renamed_execution.returncode, 0)
-        self.assertIn("no catalog record for pinned version", renamed_execution.stdout)
+        self.assertNotEqual(execution.returncode, 0)
+        self.assertIn("names no pinned PostgreSQL version", execution.stdout)
 
-        document["images"][record_name] = document["images"]["databasus/verification-postgres:18.0"]
+    def test_rejects_a_verification_base_that_disagrees_with_the_catalog(self) -> None:
+        catalog = self.root / "backend/internal/lib/testimages/images.json"
+        document = json.loads(catalog.read_text())
+        document["images"]["postgres:19"]["reference"] = document["images"]["postgres:18"][
+            "reference"
+        ]
         catalog.write_text(json.dumps(document))
 
-        extra_execution = self.run_check()
+        execution = self.run_check()
 
-        self.assertNotEqual(extra_execution.returncode, 0)
-        self.assertIn("names no pinned PostgreSQL version", extra_execution.stdout)
+        self.assertNotEqual(execution.returncode, 0)
+        self.assertIn(
+            "verification PostgreSQL 19: base and catalog digests disagree", execution.stdout
+        )
+
+    def test_rejects_a_pinned_major_without_a_catalog_base(self) -> None:
+        catalog = self.root / "backend/internal/lib/testimages/images.json"
+        document = json.loads(catalog.read_text())
+        document["images"].pop("postgres:19")
+        catalog.write_text(json.dumps(document))
+
+        execution = self.run_check()
+
+        self.assertNotEqual(execution.returncode, 0)
+        self.assertIn(
+            "verification PostgreSQL 19: base and catalog digests disagree", execution.stdout
+        )
 
     def test_rejects_partial_and_mixed_client_refreshes(self) -> None:
         document = json.loads(self.manifest.read_text())
