@@ -241,7 +241,7 @@ export default function DatabasusVsWalGPage() {
                   функции одинаковы для всех поддерживаемых баз.
                 </li>
                 <li>
-                  <strong>Поддержка версий</strong>: PostgreSQL с 12 по 18
+                  <strong>Поддержка версий</strong>: PostgreSQL с 12 по 19
                   версию с оптимизациями под конкретные версии.
                 </li>
                 <li>

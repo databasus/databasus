@@ -317,6 +317,7 @@ const (
 	PostgresqlVersionN16 PostgresqlVersion = "16"
 	PostgresqlVersionN17 PostgresqlVersion = "17"
 	PostgresqlVersionN18 PostgresqlVersion = "18"
+	PostgresqlVersionN19 PostgresqlVersion = "19"
 )
 
 // Valid indicates whether the value is a known member of the PostgresqlVersion enum.
@@ -335,6 +336,8 @@ func (e PostgresqlVersion) Valid() bool {
 	case PostgresqlVersionN17:
 		return true
 	case PostgresqlVersionN18:
+		return true
+	case PostgresqlVersionN19:
 		return true
 	default:
 		return false

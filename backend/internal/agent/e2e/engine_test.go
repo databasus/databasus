@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	cerrdefs "github.com/containerd/errdefs"
 	"github.com/google/uuid"
 	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/api/types/container"
@@ -45,18 +46,30 @@ func newEngine(t *testing.T, agentID uuid.UUID) *client.Client {
 				instance.ID,
 				client.ContainerRemoveOptions{Force: true, RemoveVolumes: true},
 			)
-			require.NoError(t, err)
+			requireRemovedOrGone(t, err)
 		}
 
 		networks, err := engine.NetworkList(ctx, client.NetworkListOptions{Filters: agentFilter(agentID)})
 		require.NoError(t, err)
 		for _, network := range networks.Items {
 			_, err := engine.NetworkRemove(ctx, network.ID, client.NetworkRemoveOptions{})
-			require.NoError(t, err)
+			requireRemovedOrGone(t, err)
 		}
 	})
 
 	return engine
+}
+
+// requireRemovedOrGone accepts a resource the agent removed itself between the listing and the
+// removal: an agent that is still stopping when the test ends cleans up its own job resources.
+func requireRemovedOrGone(t *testing.T, err error) {
+	t.Helper()
+
+	if cerrdefs.IsNotFound(err) {
+		return
+	}
+
+	require.NoError(t, err)
 }
 
 func agentFilter(agentID uuid.UUID) client.Filters {

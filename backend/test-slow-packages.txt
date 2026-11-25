@@ -20,6 +20,7 @@ databasus-backend/internal/engines/mongodb
 databasus-backend/internal/engines/mariadb
 databasus-backend/internal/modules/backups/e2e/mongodb
 databasus-backend/internal/modules/backups/e2e/postgresqlphysical/pg18
+databasus-backend/internal/modules/backups/e2e/postgresqlphysical/pg19
 databasus-backend/internal/modules/storages
 databasus-backend/internal/modules/backups/physicalapitests/backuping
 databasus-backend/internal/modules/backups/e2e/mysql

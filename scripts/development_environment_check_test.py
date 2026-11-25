@@ -105,7 +105,7 @@ class FakeMachineProbe:
     def run_command(self, arguments: list[str]) -> CommandOutput:
         self.run_commands.append(arguments)
         if arguments[0] == "ldd":
-            return self.ldd_outputs.get(Path(arguments[1]), CLEAN_LDD_OUTPUT)
+            return self.ldd_outputs.get(Path(arguments[-1]), CLEAN_LDD_OUTPUT)
 
         return self.commands.get(tuple(arguments), CommandOutput(CommandStatus.NOT_FOUND))
 
@@ -338,6 +338,22 @@ class ClientToolBundlesCheckTest(unittest.TestCase):
         )
         self.assertNotIn("pg_dump", bundles_result.detail)
 
+    def test_names_the_program_and_symbol_when_a_library_is_too_old(self) -> None:
+        probe = FakeMachineProbe()
+        probe.ldd_outputs[BUNDLE_PROGRAMS[0]] = completed(
+            "\tlibpq.so.5 => /lib/x86_64-linux-gnu/libpq.so.5 (0x7f)\n"
+            "undefined symbol: PQchangePassword\t(./psql)\n"
+        )
+
+        bundles_result = get_result(probe, "Client tool bundles")
+
+        self.assertEqual(bundles_result.outcome, Outcome.FAILED)
+        self.assertIn(
+            "assets/tools/x64/postgresql/postgresql-17/bin/pg_dump needs the symbol PQchangePassword",
+            bundles_result.detail,
+        )
+        self.assertNotIn("mariadb", bundles_result.detail)
+
     def test_passes_with_a_statically_linked_program(self) -> None:
         probe = FakeMachineProbe()
         probe.ldd_outputs[BUNDLE_PROGRAMS[0]] = completed(
@@ -363,7 +379,7 @@ class ClientToolBundlesCheckTest(unittest.TestCase):
 
         get_result(probe, "Client tool bundles")
 
-        self.assertIn(["ldd", str(arm_program)], probe.run_commands)
+        self.assertIn(["ldd", "-r", str(arm_program)], probe.run_commands)
 
 
 class PinnedToolsCheckTest(unittest.TestCase):

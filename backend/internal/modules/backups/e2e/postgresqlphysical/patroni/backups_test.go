@@ -9,6 +9,7 @@ import (
 const (
 	postgres17Image = "postgres:17"
 	postgres18Image = "postgres:18"
+	postgres19Image = "postgres:19"
 )
 
 type patroniScenario struct {
@@ -26,6 +27,11 @@ func TestPatroniRecoveryPostgres18(t *testing.T) {
 	runPatroniScenarios(t, postgres18Image, getRecoveryScenarios())
 }
 
+func TestPatroniRecoveryPostgres19(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres19Image, getRecoveryScenarios())
+}
+
 func TestPatroniIndependentRecoveryPostgres17(t *testing.T) {
 	t.Parallel()
 	runPatroniScenarios(t, postgres17Image, getIndependentRecoveryScenarios())
@@ -34,6 +40,11 @@ func TestPatroniIndependentRecoveryPostgres17(t *testing.T) {
 func TestPatroniIndependentRecoveryPostgres18(t *testing.T) {
 	t.Parallel()
 	runPatroniScenarios(t, postgres18Image, getIndependentRecoveryScenarios())
+}
+
+func TestPatroniIndependentRecoveryPostgres19(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres19Image, getIndependentRecoveryScenarios())
 }
 
 func TestPatroniSlotsPostgres17(t *testing.T) {
@@ -46,6 +57,11 @@ func TestPatroniSlotsPostgres18(t *testing.T) {
 	runPatroniScenarios(t, postgres18Image, getSlotScenarios())
 }
 
+func TestPatroniSlotsPostgres19(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres19Image, getSlotScenarios())
+}
+
 func TestPatroniInterruptedBackupsPostgres17(t *testing.T) {
 	t.Parallel()
 	runPatroniScenarios(t, postgres17Image, getInterruptedBackupScenarios())
@@ -56,6 +72,11 @@ func TestPatroniInterruptedBackupsPostgres18(t *testing.T) {
 	runPatroniScenarios(t, postgres18Image, getInterruptedBackupScenarios())
 }
 
+func TestPatroniInterruptedBackupsPostgres19(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres19Image, getInterruptedBackupScenarios())
+}
+
 func TestPatroniRoutingOutagesPostgres17(t *testing.T) {
 	t.Parallel()
 	runPatroniScenarios(t, postgres17Image, getRoutingOutageScenarios())
@@ -64,6 +85,11 @@ func TestPatroniRoutingOutagesPostgres17(t *testing.T) {
 func TestPatroniRoutingOutagesPostgres18(t *testing.T) {
 	t.Parallel()
 	runPatroniScenarios(t, postgres18Image, getRoutingOutageScenarios())
+}
+
+func TestPatroniRoutingOutagesPostgres19(t *testing.T) {
+	t.Parallel()
+	runPatroniScenarios(t, postgres19Image, getRoutingOutageScenarios())
 }
 
 func runPatroniScenarios(t *testing.T, image string, scenarios []patroniScenario) {

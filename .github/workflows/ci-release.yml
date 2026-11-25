@@ -550,7 +550,11 @@ jobs:
         run: |
           # The bundled assets/tools clients are Debian-built; Ubuntu ships no libncurses5/libtinfo5
           # package at all, and the ABI-identical .so.6 satisfies them via these symlinks.
+          # libpq5 comes from the PostgreSQL repository, as in the runtime image: the bundled psql of
+          # the newest major calls libpq functions that Ubuntu's older libpq5 lacks.
           sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y -qq dpkg-dev libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
           library_directory="/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
           sudo ln -sf "${library_directory}/libncurses.so.6" "${library_directory}/libncurses.so.5"
@@ -1414,7 +1418,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        major: ['12', '13', '14', '15', '16', '17', '18']
+        major: ['12', '13', '14', '15', '16', '17', '18', '19']
         arch: [amd64, arm64]
         include:
           - arch: amd64
@@ -1479,7 +1483,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        major: ['12', '13', '14', '15', '16', '17', '18']
+        major: ['12', '13', '14', '15', '16', '17', '18', '19']
     steps:
       - name: Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

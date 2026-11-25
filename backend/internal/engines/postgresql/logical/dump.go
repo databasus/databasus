@@ -95,11 +95,8 @@ func (s *Source) buildDumpArgs(spec DumpSpec) []string {
 	return append(args, getDumpCompressionArgs(spec.Version)...)
 }
 
-// pg_dump learned zstd in PostgreSQL 16, so older versions compress with gzip.
 func getDumpCompressionArgs(version pgshared.Version) []string {
-	isZstdUnsupported := version == pgshared.Version12 || version == pgshared.Version13 ||
-		version == pgshared.Version14 || version == pgshared.Version15
-	if isZstdUnsupported {
+	if !version.CanDumpWithZstd() {
 		return []string{"-Z", strconv.Itoa(dumpCompressionLevel)}
 	}
 

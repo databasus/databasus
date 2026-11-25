@@ -87,7 +87,7 @@ export default function Index() {
               "Monitoreo del estado de las bases de datos",
               "Autoalojado mediante Docker",
               "Código abierto y gratuito",
-              "Soporte para PostgreSQL 12-18",
+              "Soporte para PostgreSQL 12-19",
               "Compresión de copias de seguridad y cifrado AES-256-GCM",
               "Soporte para PostgreSQL, MySQL, MariaDB y MongoDB",
               "Políticas de retención: por periodo de tiempo, cantidad, GFS y límites de tamaño",
@@ -880,7 +880,7 @@ export default function Index() {
 
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">
                 PostgreSQL es la base de datos principal soportada por
-                Databasus. Se admiten todas las versiones de la 12 a la 18
+                Databasus. Se admiten todas las versiones de la 12 a la 19
               </p>
 
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">

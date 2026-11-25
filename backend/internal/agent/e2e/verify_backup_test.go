@@ -31,6 +31,10 @@ func TestVerifyBackup(t *testing.T) {
 			verifyBackup(t, backupScenario{endpoint: endpoint, major: version.major})
 		})
 	}
+	t.Run("completes with an encrypted backup on postgres 19", func(t *testing.T) {
+		endpoint := containers.StartPostgres(t, "postgres:19")
+		verifyBackup(t, backupScenario{endpoint: endpoint, major: "19", isLocallyBuiltImage: true})
+	})
 	t.Run("completes with a timescaledb hypertable and its chunks", func(t *testing.T) {
 		endpoint := containers.StartTimescaleDB(t, timescaleImage)
 		verifyBackup(t, backupScenario{endpoint: endpoint, isTimescale: true})
@@ -54,13 +58,16 @@ func TestVerifyBackup(t *testing.T) {
 }
 
 type backupScenario struct {
-	endpoint     containers.Endpoint
-	major        string
-	isTimescale  bool
-	isPublicOnly bool
-	isBroken     bool
-	isRetry      bool
-	diskCapMb    int
+	endpoint    containers.Endpoint
+	major       string
+	isTimescale bool
+	// isLocallyBuiltImage restores into an image built from the recipe instead of the catalog's
+	// published one.
+	isLocallyBuiltImage bool
+	isPublicOnly        bool
+	isBroken            bool
+	isRetry             bool
+	diskCapMb           int
 }
 
 func verifyBackup(t *testing.T, scenario backupScenario) {
@@ -89,7 +96,11 @@ func verifyBackup(t *testing.T, scenario backupScenario) {
 	engine := newEngine(t, credentials.Agent.ID)
 	gate := newGateway(t, team.App.URL, gatewayOptions{isClaimHeld: scenario.isRetry, diskCapMb: scenario.diskCapMb})
 	agent := newAgentProcess(t, currentBinaryDirectory)
-	if !scenario.isTimescale {
+	switch {
+	case scenario.isTimescale:
+	case scenario.isLocallyBuiltImage:
+		agent.provideLocallyBuiltVerificationImage(t, engine, scenario.major)
+	default:
 		agent.provideVerificationImage(t, engine, scenario.major)
 	}
 

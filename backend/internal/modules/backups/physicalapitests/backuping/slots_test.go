@@ -30,7 +30,7 @@ func (team *backupTeam) slotNames(t *testing.T) (string, string) {
 func TestPhysicalBackupSlots(t *testing.T) {
 	t.Parallel()
 
-	for _, version := range []string{"17", "18"} {
+	for _, version := range []string{"17", "18", "19"} {
 		for _, kind := range []string{"full", "incremental"} {
 			t.Run(
 				"keeps a permanent physical slot during "+kind+" on PostgreSQL "+version+" and removes it after completion",

@@ -381,10 +381,12 @@ Run these steps inside the guest, in this order. Open a shell there:
 
 ### Client libraries
 
-The bundled database clients in [`assets/tools`](../assets/tools/README.md) were built for Debian. They need a few system libraries; install them as CI does. Ubuntu no longer ships the old library names `libncurses.so.5` and `libtinfo.so.5`. The last two commands add them as links to the current versions, which work the same way:
+The bundled database clients in [`assets/tools`](../assets/tools/README.md) were built for Debian. They need a few system libraries; install them as CI does. `libpq5` comes from the PostgreSQL repository, as in the runtime image, because the `psql` of the newest bundled major needs a newer `libpq5` than Ubuntu ships. Ubuntu no longer ships the old library names `libncurses.so.5` and `libtinfo.so.5`. The last two commands add them as links to the current versions, which work the same way:
 
 ```sh
 sudo apt-get update
+sudo apt-get install -y postgresql-common
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
 sudo apt-get install -y dpkg-dev libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
 library_directory="/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
 sudo ln -sf "${library_directory}/libncurses.so.6" "${library_directory}/libncurses.so.5"

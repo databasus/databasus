@@ -87,7 +87,7 @@ export default function Index() {
               "Database health monitoring",
               "Self-hosted via Docker",
               "Open source and free",
-              "Support for PostgreSQL 12-18",
+              "Support for PostgreSQL 12-19",
               "Backup compression and AES-256-GCM encryption",
               "Support for PostgreSQL, MySQL, MariaDB and MongoDB",
               "Retention policies: time period, count, GFS and size limits",
@@ -862,7 +862,7 @@ export default function Index() {
 
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">
                 PostgreSQL is the primary database supported by Databasus. All
-                versions from 12 to 18 are supported
+                versions from 12 to 19 are supported
               </p>
 
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">

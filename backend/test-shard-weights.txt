@@ -182,12 +182,17 @@
 1 TestGetVersion
 # Patroni suite: local amd64, no race, default -parallel, mean of two package runs, 2026-11-11.
 558 TestPatroniIndependentRecoveryPostgres18
+558 TestPatroniIndependentRecoveryPostgres19
 368 TestPatroniRoutingOutagesPostgres18
+368 TestPatroniRoutingOutagesPostgres19
 359 TestPatroniIndependentRecoveryPostgres17
 342 TestPatroniRecoveryPostgres18
+342 TestPatroniRecoveryPostgres19
 339 TestPatroniFixtureLifecycle
 337 TestPatroniSlotsPostgres18
+337 TestPatroniSlotsPostgres19
 299 TestPatroniInterruptedBackupsPostgres18
+299 TestPatroniInterruptedBackupsPostgres19
 246 TestPatroniRoutingOutagesPostgres17
 234 TestPatroniSlotsPostgres17
 218 TestPatroniRecoveryPostgres17

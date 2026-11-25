@@ -193,7 +193,8 @@ Run the schema and sequence scenarios from the repository root with the pinned t
 ```sh
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -run '^TestRestorePhysicalSchemaAndSequences' \
   ./internal/modules/backups/e2e/postgresqlphysical/pg17 \
-  ./internal/modules/backups/e2e/postgresqlphysical/pg18
+  ./internal/modules/backups/e2e/postgresqlphysical/pg18 \
+  ./internal/modules/backups/e2e/postgresqlphysical/pg19
 ```
 
 ## Patroni physical backup tests

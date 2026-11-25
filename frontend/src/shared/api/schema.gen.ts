@@ -3355,7 +3355,7 @@ export interface components {
          * @description The major version the server reported at the last save
          * @enum {string}
          */
-        PostgresqlVersion: "12" | "13" | "14" | "15" | "16" | "17" | "18";
+        PostgresqlVersion: "12" | "13" | "14" | "15" | "16" | "17" | "18" | "19";
         /** @description One PostgreSQL database backed up with pg_dump */
         PostgresqlLogicalSettings: {
             /**

@@ -235,21 +235,26 @@ def check_docker_compose(probe: MachineProbe) -> PrerequisiteCheckResult:
     return build_result("Docker Compose", is_met, detail, "docker")
 
 
-def find_missing_libraries(probe: MachineProbe, program: Path) -> list[str] | str:
-    output = probe.run_command(["ldd", str(program)])
-
+def find_unresolved_dependencies(probe: MachineProbe, program: Path) -> list[str] | str:
+    # -r also resolves symbols, so a library that is present but older than the program needs,
+    # such as an old libpq5, is reported instead of failing only when the program starts.
+    output = probe.run_command(["ldd", "-r", str(program)])
     if output.status is CommandStatus.COMPLETED and "not a dynamic executable" in (
         output.stdout + output.stderr
     ):
         return []
     if output.status is not CommandStatus.COMPLETED or output.exit_code != 0:
-        return describe_unanswered_command(f"ldd {program}", output)
+        return describe_unanswered_command(f"ldd -r {program}", output)
 
-    return [
-        line.split("=>")[0].strip()
-        for line in output.stdout.splitlines()
-        if line.strip().endswith("not found")
-    ]
+    unresolved_dependencies = []
+    for line in (output.stdout + output.stderr).splitlines():
+        if line.strip().endswith("not found"):
+            unresolved_dependencies.append(line.split("=>")[0].strip())
+        elif line.startswith("undefined symbol:"):
+            symbol = line.removeprefix("undefined symbol:").split("\t")[0].strip()
+            unresolved_dependencies.append(f"the symbol {symbol}")
+
+    return unresolved_dependencies
 
 
 def check_client_tool_bundles(probe: MachineProbe) -> PrerequisiteCheckResult:
@@ -270,17 +275,17 @@ def check_client_tool_bundles(probe: MachineProbe) -> PrerequisiteCheckResult:
 
     problems = []
     for program in programs:
-        missing_libraries = find_missing_libraries(probe, program)
+        unresolved_dependencies = find_unresolved_dependencies(probe, program)
         relative_program = program.relative_to(repository_root)
-        if isinstance(missing_libraries, str):
-            problems.append(f"{relative_program} could not be checked: {missing_libraries}")
-        elif missing_libraries:
-            problems.append(f"{relative_program} needs {', '.join(missing_libraries)}")
+        if isinstance(unresolved_dependencies, str):
+            problems.append(f"{relative_program} could not be checked: {unresolved_dependencies}")
+        elif unresolved_dependencies:
+            problems.append(f"{relative_program} needs {', '.join(unresolved_dependencies)}")
 
     if problems:
-        detail = "missing shared libraries: " + "; ".join(problems)
+        detail = "unresolved shared libraries or symbols: " + "; ".join(problems)
     else:
-        detail = f"all {len(programs)} programs find their shared libraries"
+        detail = f"all {len(programs)} programs find their shared libraries and symbols"
 
     return build_result(name, not problems, detail, guide_section)
 

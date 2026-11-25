@@ -59,12 +59,10 @@ func GetClientToolBundles(root string) []clienttools.Bundle {
 	return bundles
 }
 
-// pg_basebackup --incremental and pg_combinebackup exist from PostgreSQL 17, so only those bundles
-// must hold the physical backup clients.
 func getRequiredCommands(version Version) []string {
 	requiredCommands := []string{string(ExecutablePgDump), string(ExecutablePsql)}
 
-	if version == Version17 || version == Version18 {
+	if version.CanBackUpPhysically() {
 		requiredCommands = append(
 			requiredCommands,
 			string(ExecutablePgBasebackup),

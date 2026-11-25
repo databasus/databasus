@@ -87,7 +87,7 @@ export default function Index() {
               "数据库健康监控",
               "通过 Docker 自托管部署",
               "开源且免费",
-              "支持 PostgreSQL 12-18",
+              "支持 PostgreSQL 12-19",
               "备份压缩与 AES-256-GCM 加密",
               "支持 PostgreSQL、MySQL、MariaDB 和 MongoDB",
               "保留策略：按时间段、数量、GFS 和大小限制",
@@ -843,7 +843,7 @@ export default function Index() {
               </h3>
 
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">
-                PostgreSQL 是 Databasus 的核心支持数据库，支持从 12 到 18
+                PostgreSQL 是 Databasus 的核心支持数据库，支持从 12 到 19
                 的所有版本
               </p>
 

@@ -347,7 +347,7 @@ The backup request job SHALL evaluate each pending backup request with the same 
 
 For both Host and Docker recovery, the Script method SHALL show a recovery command and startup instructions that consistently use the restore directory and PostgreSQL version selected in the form. A restore directory containing spaces SHALL remain one shell argument. Relative directories SHALL resolve from the execution directory, and absolute directories SHALL remain absolute.
 
-For Host recovery, a supplied PostgreSQL tools directory SHALL apply to both recovery preparation and the displayed PostgreSQL startup command. For Docker recovery, the selected PostgreSQL image SHALL apply to both recovery preparation and the displayed startup command. The displayed container mount SHALL make PostgreSQL serve the cluster prepared in the selected restore directory, including PostgreSQL 18's version-specific data layout. Following these commands on a prepared recovery machine SHALL start the restored cluster without editing the displayed paths, image or arguments.
+For Host recovery, a supplied PostgreSQL tools directory SHALL apply to both recovery preparation and the displayed PostgreSQL startup command. For Docker recovery, the selected PostgreSQL image SHALL apply to both recovery preparation and the displayed startup command. The displayed container mount SHALL make PostgreSQL serve the cluster prepared in the selected restore directory, including the version-specific data layout of PostgreSQL 18 and later. Following these commands on a prepared recovery machine SHALL start the restored cluster without editing the displayed paths, image or arguments.
 
 #### Scenario: Host recovery with a custom directory
 
@@ -360,9 +360,14 @@ For Host recovery, a supplied PostgreSQL tools directory SHALL apply to both rec
 - **THEN** both commands use the selected image, and startup mounts the selected directory without prepending the execution directory
 - **AND** PostgreSQL serves the restored cluster rather than initializing an empty cluster
 
+#### Scenario: Docker recovery of a PostgreSQL 19 cluster
+
+- **WHEN** a user selects Docker recovery for a PostgreSQL 19 database
+- **THEN** the startup command mounts the restore directory at the image's volume root, so that PostgreSQL 19 serves the cluster prepared under its version-specific data directory
+
 ### Requirement: Physical recovery preserves committed schema changes
 
-On PostgreSQL 17 and 18, restoring to the latest available point on one timeline SHALL preserve the committed schema and rows represented by the selected backups and contiguous archived WAL. This SHALL hold both for a FULL followed only by WAL and for a FULL followed by incremental backups and WAL. Changes made after the last completed backup SHALL be recovered from the subsequent WAL. Rolled-back transactional DDL SHALL leave no changes in the recovered schema.
+On PostgreSQL 17, 18 and 19, restoring to the latest available point on one timeline SHALL preserve the committed schema and rows represented by the selected backups and contiguous archived WAL. This SHALL hold both for a FULL followed only by WAL and for a FULL followed by incremental backups and WAL. Changes made after the last completed backup SHALL be recovered from the subsequent WAL. Rolled-back transactional DDL SHALL leave no changes in the recovered schema.
 
 The preserved schema SHALL include created schemas and tables, added and renamed columns, column types and defaults, indexes, constraints, and committed object renames and deletions. A column type conversion that rewrites stored rows SHALL preserve both the converted values and the resulting definition.
 
@@ -388,7 +393,7 @@ The preserved schema SHALL include created schemas and tables, added and renamed
 
 ### Requirement: Physical recovery preserves sequence configuration and usable ID generation
 
-Physical recovery on PostgreSQL 17 and 18 SHALL preserve logged sequences used by `serial`, identity columns and explicit sequence defaults, including objects created after the FULL. It SHALL preserve their column defaults, identity generation mode, column ownership dependencies and sequence type, start, increment, minimum, maximum, cycle and cache settings at the selected recovery point.
+Physical recovery on PostgreSQL 17, 18 and 19 SHALL preserve logged sequences used by `serial`, identity columns and explicit sequence defaults, including objects created after the FULL. It SHALL preserve their column defaults, identity generation mode, column ownership dependencies and sequence type, start, increment, minimum, maximum, cycle and cache settings at the selected recovery point.
 
 Sequence values after recovery SHALL follow native PostgreSQL recovery semantics. Recovery SHALL NOT promise gapless IDs, an exact next value based on the largest restored ID, or transactional rollback of `nextval` and `setval`. For an ascending, noncycling sequence used consistently to generate IDs, with any explicit repositioning moving it forward, new generated IDs SHALL avoid the restored committed IDs and respect the recovered configuration. A forward `setval` represented by the recovered WAL SHALL not be silently lost even when losing it would not immediately cause a duplicate ID.
 
@@ -434,7 +439,7 @@ For a reachable target after the end of the selected base backup on one timeline
 
 ### Requirement: Physical recovery is independent of inherited replication settings
 
-For PostgreSQL 17 and 18, preparing a physical recovery set SHALL prevent inherited source replication settings, competing recovery targets and recovery signal files from overriding the newly selected recovery operation. An explicit target SHALL govern replay to that target; recovery without an explicit target SHALL NOT stop at a stale inherited target. Startup SHALL use the restored data directory and local archived WAL without depending on the former primary's connection settings or archive command. When local authentication files are copied, source-specific data-directory and authentication-file path overrides SHALL NOT prevent the independent target from using them. This SHALL apply to assignments with or without `=` and to locally included configuration regardless of filename extension, including nested `include`, `include_if_exists` and `include_dir` directives. This SHALL also hold when an explicitly selected completed backup ships no additional archived WAL.
+For PostgreSQL 17, 18 and 19, preparing a physical recovery set SHALL prevent inherited source replication settings, competing recovery targets and recovery signal files from overriding the newly selected recovery operation. An explicit target SHALL govern replay to that target; recovery without an explicit target SHALL NOT stop at a stale inherited target. Startup SHALL use the restored data directory and local archived WAL without depending on the former primary's connection settings or archive command. When local authentication files are copied, source-specific data-directory and authentication-file path overrides SHALL NOT prevent the independent target from using them. This SHALL apply to assignments with or without `=` and to locally included configuration regardless of filename extension, including nested `include`, `include_if_exists` and `include_dir` directives. This SHALL also hold when an explicitly selected completed backup ships no additional archived WAL.
 
 If the source keeps configuration outside its data directory, the recovery script SHALL retain its existing diagnostic and operator-controlled configuration preparation. The test environment SHALL supply an independent recovery configuration without weakening the source's access rules or transport security.
 
@@ -540,7 +545,7 @@ When an explicit target equals the selected completed backup's consistency point
 
 ### Requirement: Cleanup preserves recovery points around repeated Patroni switches
 
-On PostgreSQL 17 and 18, physical backup cleanup and storage file deletion SHALL preserve the files, manifests, WAL and timeline histories required by recovery points still protected by retention after repeated Patroni switches. This SHALL include a reachable target before a switch, a target between a switch and the next completed backup, and a target after that backup.
+On PostgreSQL 17, 18 and 19, physical backup cleanup and storage file deletion SHALL preserve the files, manifests, WAL and timeline histories required by recovery points still protected by retention after repeated Patroni switches. This SHALL include a reachable target before a switch, a target between a switch and the next completed backup, and a target after that backup.
 
 #### Scenario: Retained targets around switches survive both cleanup stages
 
@@ -554,3 +559,4 @@ On PostgreSQL 17 and 18, physical backup cleanup and storage file deletion SHALL
 - **WHEN** a completed FULL on the former timeline is retained, the promoted timeline's history is published in that FULL's storage, no backup has completed on the promoted timeline yet, a transaction later than a target after the switch is archived, and both cleanup stages have run
 - **THEN** the WAL of the promoted timeline and its history remain archived
 - **AND** that target receives a restore token, and the recovered cluster contains the rows committed up to it
+

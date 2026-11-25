@@ -87,7 +87,7 @@ export default function Index() {
               "Supervision de l'état des bases de données",
               "Auto-hébergé via Docker",
               "Open source et gratuit",
-              "Prise en charge de PostgreSQL 12-18",
+              "Prise en charge de PostgreSQL 12-19",
               "Compression des sauvegardes et chiffrement AES-256-GCM",
               "Prise en charge de PostgreSQL, MySQL, MariaDB et MongoDB",
               "Politiques de rétention : période, nombre, GFS et limites de taille",
@@ -881,7 +881,7 @@ export default function Index() {
 
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">
                 PostgreSQL est la base de données principale prise en charge par
-                Databasus. Toutes les versions de 12 à 18 sont prises en charge
+                Databasus. Toutes les versions de 12 à 19 sont prises en charge
               </p>
 
               <p className="text-gray-400 text-sm md:text-base text-center mb-4">

@@ -22,7 +22,7 @@ import (
 const connCloseTimeout = 5 * time.Second
 
 func getSupportedVersionImages() []string {
-	return []string{"postgres:17", "postgres:18"}
+	return []string{"postgres:17", "postgres:18", "postgres:19"}
 }
 
 func getAdminRole() testRole {
