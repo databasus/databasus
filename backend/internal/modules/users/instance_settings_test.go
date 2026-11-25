@@ -27,7 +27,7 @@ func TestGetInstanceSettings(t *testing.T) {
 		assert.True(t, response.JSON200.IsAllowExternalRegistrations)
 		assert.True(t, response.JSON200.IsAllowMemberInvitations)
 		assert.True(t, response.JSON200.IsMemberAllowedToCreateWorkspaces)
-		assert.False(t, response.JSON200.IsTwoFactorAuthRequired)
+		assert.Equal(t, apiclient.TwoFactorRequirementOFF, response.JSON200.TwoFactorRequirement)
 		assert.True(t, response.JSON200.IsEmailConfigured)
 	})
 
@@ -82,18 +82,18 @@ func TestUpdateInstanceSettings(t *testing.T) {
 			IsAllowExternalRegistrations:      false,
 			IsAllowMemberInvitations:          false,
 			IsMemberAllowedToCreateWorkspaces: false,
-			IsTwoFactorAuthRequired:           true,
+			TwoFactorRequirement:              apiclient.TwoFactorRequirementEMAIL,
 		})
 
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 		assert.False(t, response.JSON200.IsAllowExternalRegistrations)
 		assert.False(t, response.JSON200.IsAllowMemberInvitations)
 		assert.False(t, response.JSON200.IsMemberAllowedToCreateWorkspaces)
-		assert.True(t, response.JSON200.IsTwoFactorAuthRequired)
+		assert.Equal(t, apiclient.TwoFactorRequirementEMAIL, response.JSON200.TwoFactorRequirement)
 
 		readSettings, err := admin.Client.GetInstanceSettingsWithResponse(t.Context())
 		require.NoError(t, err)
-		assert.True(t, readSettings.JSON200.IsTwoFactorAuthRequired)
+		assert.Equal(t, apiclient.TwoFactorRequirementEMAIL, readSettings.JSON200.TwoFactorRequirement)
 		assert.False(t, readSettings.JSON200.IsAllowExternalRegistrations)
 	})
 
@@ -104,7 +104,7 @@ func TestUpdateInstanceSettings(t *testing.T) {
 		admin := app.CreateAdmin(t)
 		member := app.CreateNonAdminUser(t, admin)
 		twoFactorUpdate := defaultSettingsUpdate()
-		twoFactorUpdate.IsTwoFactorAuthRequired = true
+		twoFactorUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementEMAIL
 
 		response := updateInstanceSettings(t, member.Client, twoFactorUpdate)
 
@@ -113,7 +113,7 @@ func TestUpdateInstanceSettings(t *testing.T) {
 
 		readSettings, err := admin.Client.GetInstanceSettingsWithResponse(t.Context())
 		require.NoError(t, err)
-		assert.False(t, readSettings.JSON200.IsTwoFactorAuthRequired)
+		assert.Equal(t, apiclient.TwoFactorRequirementOFF, readSettings.JSON200.TwoFactorRequirement)
 	})
 
 	t.Run("returns 401 without a session", func(t *testing.T) {
@@ -154,7 +154,7 @@ func TestUpdateInstanceSettings(t *testing.T) {
 
 		request, err := http.NewRequestWithContext(t.Context(), http.MethodPut, app.URL+"/api/v1/instance-settings",
 			jsonBody(t, `{"isAllowExternalRegistrations":true,"isAllowMemberInvitations":true,`+
-				`"isMemberAllowedToCreateWorkspaces":true,"isTwoFactorAuthRequired":false,"isEmailConfigured":false}`))
+				`"isMemberAllowedToCreateWorkspaces":true,"twoFactorRequirement":"OFF","isEmailConfigured":false}`))
 		require.NoError(t, err)
 		request.Header.Set("Authorization", "Bearer "+admin.Token)
 		request.Header.Set("Content-Type", "application/json")
@@ -206,7 +206,7 @@ func TestTwoFactorSetting(t *testing.T) {
 		app := apptest.New(t, apptest.WithoutMailServer())
 		admin := app.CreateAdmin(t)
 		twoFactorUpdate := defaultSettingsUpdate()
-		twoFactorUpdate.IsTwoFactorAuthRequired = true
+		twoFactorUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementEMAIL
 
 		response := updateInstanceSettings(t, admin.Client, twoFactorUpdate)
 
@@ -224,7 +224,7 @@ func TestTwoFactorSetting(t *testing.T) {
 			placeholderAdmin := app.CreateNonAdminUser(t, admin)
 			app.ExecuteSQL(t, "UPDATE users SET role = 'ADMIN', email = 'admin' WHERE id = ?", placeholderAdmin.UserID)
 			twoFactorUpdate := defaultSettingsUpdate()
-			twoFactorUpdate.IsTwoFactorAuthRequired = true
+			twoFactorUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementEMAIL
 
 			response := updateInstanceSettings(t, admin.Client, twoFactorUpdate)
 
@@ -234,7 +234,7 @@ func TestTwoFactorSetting(t *testing.T) {
 
 			readSettings, err := admin.Client.GetInstanceSettingsWithResponse(t.Context())
 			require.NoError(t, err)
-			assert.False(t, readSettings.JSON200.IsTwoFactorAuthRequired)
+			assert.Equal(t, apiclient.TwoFactorRequirementOFF, readSettings.JSON200.TwoFactorRequirement)
 		})
 
 	t.Run("turns the second factor on when the admin without a usable address is deactivated", func(t *testing.T) {
@@ -246,7 +246,7 @@ func TestTwoFactorSetting(t *testing.T) {
 		app.ExecuteSQL(t, "UPDATE users SET role = 'ADMIN', email = 'admin', status = 'INACTIVE' WHERE id = ?",
 			placeholderAdmin.UserID)
 		twoFactorUpdate := defaultSettingsUpdate()
-		twoFactorUpdate.IsTwoFactorAuthRequired = true
+		twoFactorUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementEMAIL
 
 		response := updateInstanceSettings(t, admin.Client, twoFactorUpdate)
 
@@ -263,7 +263,70 @@ func TestTwoFactorSetting(t *testing.T) {
 		response := updateInstanceSettings(t, admin.Client, defaultSettingsUpdate())
 
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
-		assert.False(t, response.JSON200.IsTwoFactorAuthRequired)
+		assert.Equal(t, apiclient.TwoFactorRequirementOFF, response.JSON200.TwoFactorRequirement)
+	})
+
+	t.Run("requires the authenticator app method on an instance without a mail server", func(t *testing.T) {
+		t.Parallel()
+
+		app := apptest.New(t, apptest.WithoutMailServer())
+		admin := app.CreateAdmin(t)
+		appUpdate := defaultSettingsUpdate()
+		appUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementAUTHENTICATORAPP
+
+		response := updateInstanceSettings(t, admin.Client, appUpdate)
+
+		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+		assert.Equal(t, apiclient.TwoFactorRequirementAUTHENTICATORAPP, response.JSON200.TwoFactorRequirement)
+		assert.Contains(t, listGlobalAuditMessages(t, admin), "twoFactorRequirement: OFF -> AUTHENTICATOR_APP")
+	})
+
+	t.Run("refuses moving from the authenticator app to the emailed code without a mail server", func(t *testing.T) {
+		t.Parallel()
+
+		app := apptest.New(t, apptest.WithoutMailServer())
+		admin := app.CreateAdmin(t)
+		appUpdate := defaultSettingsUpdate()
+		appUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementAUTHENTICATORAPP
+		require.Equal(t, http.StatusOK, updateInstanceSettings(t, admin.Client, appUpdate).StatusCode())
+		emailUpdate := defaultSettingsUpdate()
+		emailUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementEMAIL
+
+		response := updateInstanceSettings(t, admin.Client, emailUpdate)
+
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusConflict,
+			apiclient.ProblemCodeEmailNotConfigured)
+		readSettings, err := admin.Client.GetInstanceSettingsWithResponse(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, apiclient.TwoFactorRequirementAUTHENTICATORAPP, readSettings.JSON200.TwoFactorRequirement)
+	})
+
+	t.Run("returns 400 when the requirement is not a known method", func(t *testing.T) {
+		t.Parallel()
+
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		unknownUpdate := defaultSettingsUpdate()
+		unknownUpdate.TwoFactorRequirement = "SMS"
+
+		response := updateInstanceSettings(t, admin.Client, unknownUpdate)
+
+		require.Equal(t, http.StatusBadRequest, response.StatusCode(), string(response.Body))
+	})
+
+	t.Run("keeps a session working when the method changes", func(t *testing.T) {
+		t.Parallel()
+
+		app, admin := newTwoFactorApp(t)
+		member := app.CreateNonAdminUser(t, admin)
+		appUpdate := defaultSettingsUpdate()
+		appUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementAUTHENTICATORAPP
+
+		response := updateInstanceSettings(t, admin.Client, appUpdate)
+
+		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+		readUser := getUser(t, member.Client, member.UserID)
+		require.Equal(t, http.StatusOK, readUser.StatusCode(), string(readUser.Body))
 	})
 
 	t.Run("keeps a session that predates the switch working", func(t *testing.T) {
@@ -273,7 +336,7 @@ func TestTwoFactorSetting(t *testing.T) {
 		admin := app.CreateAdmin(t)
 		member := app.CreateNonAdminUser(t, admin)
 		twoFactorUpdate := defaultSettingsUpdate()
-		twoFactorUpdate.IsTwoFactorAuthRequired = true
+		twoFactorUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementEMAIL
 		require.Equal(t, http.StatusOK, updateInstanceSettings(t, admin.Client, twoFactorUpdate).StatusCode())
 
 		response := getUser(t, member.Client, member.UserID)

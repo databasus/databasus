@@ -1,5 +1,5 @@
 // Package signin signs users up and in: the first-user rule through accounts, password sign-in
-// with the emailed second factor, GitHub and Google sign-in, and the sessions they issue.
+// with the emailed or authenticator app second factor, GitHub and Google sign-in, and the sessions they issue.
 package signin
 
 import (

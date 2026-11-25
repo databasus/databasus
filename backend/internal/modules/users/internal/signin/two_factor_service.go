@@ -53,15 +53,19 @@ func (s *Service) issueSignInCode(
 	}
 
 	now := s.clock.Now()
+	hashedCodeText := string(hashedCode)
 	newPendingSignIn := PendingSignIn{
-		ID:                 uuid.New(),
-		UserID:             user.ID,
-		HashedCode:         string(hashedCode),
-		PasswordVersion:    user.PasswordVersion,
-		ExpiresAt:          now.Add(signInCodeLifetime),
-		IsUsed:             false,
-		FailedAttemptCount: 0,
-		CreatedAt:          now,
+		ID:                   uuid.New(),
+		UserID:               user.ID,
+		Kind:                 PendingSignInKindEmailCode,
+		HashedCode:           &hashedCodeText,
+		AuthenticatorAppID:   nil,
+		AuthenticatorSetupID: nil,
+		PasswordVersion:      user.PasswordVersion,
+		ExpiresAt:            now.Add(signInCodeLifetime),
+		IsUsed:               false,
+		FailedAttemptCount:   0,
+		CreatedAt:            now,
 	}
 
 	livePendingSignIn, isLive, err := s.createPendingSignIn(ctx, newPendingSignIn, shouldReuseLiveCode)
@@ -70,7 +74,7 @@ func (s *Service) issueSignInCode(
 	}
 
 	if isLive {
-		return PendingSignInView{PendingSignInID: livePendingSignIn.ID, Email: user.Email}, nil
+		return newEmailCodeView(livePendingSignIn.ID, user), nil
 	}
 
 	err = s.mailer.SendEmail(ctx, user.Email, signInCodeSubject, signInCodeBody(code))
@@ -87,7 +91,7 @@ func (s *Service) issueSignInCode(
 		return PendingSignInView{}, ErrSignInCodeNotSent
 	}
 
-	return PendingSignInView{PendingSignInID: newPendingSignIn.ID, Email: user.Email}, nil
+	return newEmailCodeView(newPendingSignIn.ID, user), nil
 }
 
 // createPendingSignIn inserts the pending sign-in within the hourly cap, or hands back the live
@@ -110,16 +114,18 @@ func (s *Service) createPendingSignIn(
 
 		if shouldReuseLiveCode {
 			livePendingSignIn, isLive, err = s.pendingSignIns.getLive(ctx, livePendingSignInFilter{
-				userID:          newPendingSignIn.UserID,
-				passwordVersion: newPendingSignIn.PasswordVersion,
-				now:             newPendingSignIn.CreatedAt,
+				userID:             newPendingSignIn.UserID,
+				kind:               PendingSignInKindEmailCode,
+				authenticatorAppID: nil,
+				passwordVersion:    newPendingSignIn.PasswordVersion,
+				now:                newPendingSignIn.CreatedAt,
 			})
 			if err != nil || isLive {
 				return err
 			}
 		}
 
-		recentCount, err := s.pendingSignIns.countCreatedSince(
+		recentCount, err := s.pendingSignIns.countEmailCodesCreatedSince(
 			ctx, newPendingSignIn.UserID, newPendingSignIn.CreatedAt.Add(-pendingSignInRetention),
 		)
 		if err != nil {
@@ -137,4 +143,13 @@ func (s *Service) createPendingSignIn(
 	}
 
 	return livePendingSignIn, isLive, nil
+}
+
+func newEmailCodeView(pendingSignInID uuid.UUID, user accounts.UserRecord) PendingSignInView {
+	return PendingSignInView{
+		PendingSignInID: pendingSignInID,
+		Email:           user.Email,
+		Kind:            PendingSignInKindEmailCode,
+		Setup:           nil,
+	}
 }

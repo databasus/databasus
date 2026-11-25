@@ -12,6 +12,7 @@ import { activateSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
 import { advanceFakeClock } from '@/shared/lib/test/advanceFakeClock';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { mockSignedInAccount } from '@/shared/lib/test/mockSignedInAccount';
 import { releaseAndSettle } from '@/shared/lib/test/releaseAndSettle';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
@@ -41,8 +42,9 @@ const RecoveryDialogHost = ({ isCodeRequired }: { isCodeRequired: boolean }) => 
   );
 };
 
-const renderImport = ({ isCodeRequired = false } = {}) => {
+const renderImport = ({ isCodeRequired = false, isAuthenticatorAppConnected = false } = {}) => {
   activateSession({ token: 'root-session', userId: 'root' });
+  server.use(mockSignedInAccount({ isAuthenticatorAppConnected }));
 
   return renderScreen(<RecoveryDialogHost isCodeRequired={isCodeRequired} />);
 };
@@ -313,6 +315,7 @@ describe('InstanceRecoveryDialog', () => {
     server.use(
       mockApi.post('/instance-recoveries', 202, readyRecovery),
       mockApi.post('/instance-recoveries/{instanceRecoveryId}/confirmations', 201, {
+        method: 'EMAIL',
         expiresAt: '2026-11-18T10:05:00Z',
       }),
       http.post(`*${API_BASE_PATH}/instance-recoveries/:recoveryId/apply`, async ({ request }) => {
@@ -332,7 +335,7 @@ describe('InstanceRecoveryDialog', () => {
     expect(submit.hasAttribute('disabled')).toBe(true);
 
     await user.click(
-      dialog.getByRole('button', { name: DICTIONARIES.en.masterKey.proof.sendCode }),
+      await dialog.findByRole('button', { name: DICTIONARIES.en.masterKey.proof.sendCode }),
     );
     const codeField = await dialog.findByLabelText(DICTIONARIES.en.masterKey.proof.code);
     await user.type(codeField, '000000');
@@ -361,11 +364,73 @@ describe('InstanceRecoveryDialog', () => {
     await user.click(screen.getByRole('button', { name: text.form.upload }));
     const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
     await user.click(
-      dialog.getByRole('button', { name: DICTIONARIES.en.masterKey.proof.sendCode }),
+      await dialog.findByRole('button', { name: DICTIONARIES.en.masterKey.proof.sendCode }),
     );
 
     expect(await dialog.findByText(DICTIONARIES.en.errors.identityProofUnavailable)).toBeTruthy();
     expect(dialog.queryByLabelText(DICTIONARIES.en.masterKey.proof.code)).toBeNull();
+  });
+
+  it('starts the replacement after a correct app code when root admin has an app', async () => {
+    const applyRequests: unknown[] = [];
+    server.use(
+      mockApi.post('/instance-recoveries', 202, readyRecovery),
+      http.post(`*${API_BASE_PATH}/instance-recoveries/:recoveryId/apply`, async ({ request }) => {
+        applyRequests.push(await request.json());
+        return HttpResponse.json({ ...readyRecovery, status: 'APPLYING' }, { status: 202 });
+      }),
+      mockApi.network('get', '/instance-recoveries/{instanceRecoveryId}'),
+    );
+    const { user } = renderImport({ isCodeRequired: true, isAuthenticatorAppConnected: true });
+
+    await chooseArchive(user);
+    pasteKey('source-key');
+    await user.click(screen.getByRole('button', { name: text.form.upload }));
+    const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
+    await user.click(dialog.getByRole('checkbox', { name: text.apply.confirmReplacement }));
+    await user.type(
+      await dialog.findByLabelText(DICTIONARIES.en.authenticatorApp.code.appCode),
+      '123456',
+    );
+    await user.click(dialog.getByRole('button', { name: text.apply.submit }));
+
+    expect(await screen.findByText(text.form.applying)).toBeTruthy();
+    expect(screen.getByText(text.form.signInWithRestored)).toBeTruthy();
+    expect(applyRequests).toEqual([{ isReplacementConfirmed: true, code: '123456' }]);
+    expect(isRestoredSignInExpected()).toBe(true);
+  });
+
+  it('asks for an app or recovery code without a send action when root admin has an app', async () => {
+    const applyRequests: unknown[] = [];
+    server.use(
+      mockApi.post('/instance-recoveries', 202, readyRecovery),
+      http.post(`*${API_BASE_PATH}/instance-recoveries/:recoveryId/apply`, async ({ request }) => {
+        applyRequests.push(await request.json());
+        return HttpResponse.json(buildProblem('identity_proof_invalid', 400), { status: 400 });
+      }),
+    );
+    const { user } = renderImport({ isCodeRequired: true, isAuthenticatorAppConnected: true });
+    const codeText = DICTIONARIES.en.authenticatorApp.code;
+
+    await chooseArchive(user);
+    pasteKey('source-key');
+    await user.click(screen.getByRole('button', { name: text.form.upload }));
+    const dialog = within(await screen.findByRole('dialog', { name: text.apply.title }));
+    await user.click(dialog.getByRole('checkbox', { name: text.apply.confirmReplacement }));
+    await user.click(await dialog.findByRole('button', { name: codeText.useRecoveryCode }));
+    await user.type(dialog.getByLabelText(codeText.recoveryCode), 'abcde-fghij');
+    await user.click(dialog.getByRole('button', { name: text.apply.submit }));
+
+    expect(await dialog.findByText(DICTIONARIES.en.errors.secondFactorInvalid)).toBeTruthy();
+    expect(
+      dialog.queryByRole('button', { name: DICTIONARIES.en.masterKey.proof.sendCode }),
+    ).toBeNull();
+    expect(applyRequests).toEqual([{ isReplacementConfirmed: true, code: 'abcde-fghij' }]);
+    expect(
+      server
+        .getRequests()
+        .some((request) => new URL(request.url).pathname.endsWith('/confirmations')),
+    ).toBe(false);
   });
 
   it('shows nothing of a preparation that finishes after the session changed', async () => {

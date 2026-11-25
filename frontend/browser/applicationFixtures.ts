@@ -46,6 +46,8 @@ export const applicationFixtures = (): HttpFixture[] => [
       status: 'ACTIVE',
       isRootAdmin: false,
       createdAt: '2026-10-01T00:00:00Z',
+      authenticatorAppConnectedAt: null,
+      unusedRecoveryCodeCount: null,
     },
   }),
   apiResponse({
@@ -65,7 +67,7 @@ export const applicationFixtures = (): HttpFixture[] => [
       isAllowMemberInvitations: false,
       isMemberAllowedToCreateWorkspaces: false,
       isEmailConfigured: true,
-      isTwoFactorAuthRequired: false,
+      twoFactorRequirement: 'OFF',
     },
   }),
   apiResponse({ method: 'get', path: '/databases', status: 200, body: { items: [] } }),

@@ -67,12 +67,12 @@ func (h *Handler) RequestInstanceRecoveryConfirmation(
 		return nil, errNoActor
 	}
 
-	expiresAt, err := h.recoveries.RequestConfirmation(ctx, actor, request.InstanceRecoveryId)
+	confirmation, err := h.recoveries.RequestConfirmation(ctx, actor, request.InstanceRecoveryId)
 	if err != nil {
 		return nil, err
 	}
 
-	return RequestInstanceRecoveryConfirmation201JSONResponse{ExpiresAt: expiresAt}, nil
+	return RequestInstanceRecoveryConfirmation201JSONResponse(toIdentityConfirmationBody(confirmation)), nil
 }
 
 func (h *Handler) ApplyInstanceRecovery(

@@ -156,6 +156,14 @@ export const fr: typeof en = {
       "Le serveur n'a pas pu traiter la requête (HTTP {{status}}). Réessayez plus tard.",
     signInCodeIncorrect: 'Le code est incorrect.',
     pendingSignInNotUsable: 'Cette connexion ne peut plus aboutir. Reconnectez-vous.',
+    pendingSignInNotResendable: "Cette étape de connexion n'envoie pas de code.",
+    secondFactorInvalid: 'Le code est erroné ou a déjà été utilisé.',
+    tooManyWrongCodes:
+      "Trop de codes erronés ont été saisis pour ce compte. Vous pourrez réessayer dans moins d'une heure.",
+    authenticatorAppRequired:
+      "Cette instance exige une application d'authentification, elle ne peut donc pas être dissociée. Vous pouvez la remplacer.",
+    authenticatorSetupNotUsable:
+      "Cette configuration a expiré ou a reçu trop de codes erronés. Recommencez l'association de l'application.",
     signInCodeNotSent:
       "L'instance n'a pas pu envoyer le code de connexion. Réessayez plus tard ou prévenez un administrateur.",
     tooManySignInCodes:
@@ -303,11 +311,17 @@ export const fr: typeof en = {
         "Si l'option est activée, les membres (utilisateurs non administrateurs) peuvent créer des espaces de travail. Sinon, seuls les administrateurs peuvent en créer.",
     },
     twoFactorAuth: {
-      title: 'Activer la connexion en deux étapes',
+      title: 'Exiger la 2FA',
       description:
-        "Une fois activé, la connexion par mot de passe demande aussi un code à six chiffres envoyé à l'adresse du compte. La connexion par Google ou GitHub n'est pas concernée.",
+        'Une fois activée, chaque connexion par mot de passe, y compris celle des administrateurs, doit aussi passer la 2FA.',
+      method: 'Second facteur',
+      methods: {
+        email: 'Code envoyé par e-mail',
+        authenticatorApp: "Application d'authentification",
+      },
+      authenticatorAppExamples: 'Par exemple Google Authenticator, Microsoft Authenticator, etc.',
       mailServerRequired:
-        "Il faut un serveur de messagerie. <docsLink>Configurez le SMTP</docsLink> d'abord.",
+        "Le code envoyé par e-mail nécessite un serveur de messagerie. <mailServerLink>Configurez le SMTP</mailServerLink> d'abord.",
     },
     saving: 'Enregistrement...',
     saveChanges: 'Enregistrer les modifications',
@@ -1005,6 +1019,22 @@ export const fr: typeof en = {
       invalidCode: 'Le code comporte 6 chiffres',
       codeResent: 'Un nouveau code est parti. Le précédent ne fonctionne plus.',
     },
+    signInAuthenticatorCode: {
+      title: "Saisissez le code de l'application",
+      description:
+        "Ouvrez votre application d'authentification et saisissez le code à six chiffres pour Databasus.",
+      recoveryDescription:
+        "Saisissez l'un des codes de récupération enregistrés lors de l'association de l'application.",
+      submit: 'Se connecter',
+      backToSignIn: 'Retour à la connexion',
+    },
+    signInAuthenticatorSetup: {
+      title: "Associez une application d'authentification",
+      description:
+        "Cette instance exige une application d'authentification pour se connecter. Associez-en une maintenant pour continuer.",
+      submit: 'Confirmer',
+      backToSignIn: 'Retour à la connexion',
+    },
     signUp: {
       title: 'Inscription',
       namePlaceholder: 'Jean Dupont',
@@ -1056,6 +1086,35 @@ export const fr: typeof en = {
         signInRequired:
           'Mot de passe modifié. Connectez-vous à nouveau avec votre nouveau mot de passe.',
       },
+      authenticatorApp: {
+        title: 'Authentification à deux facteurs (2FA)',
+        description:
+          "Avec une application associée, la connexion par mot de passe demande un code de l'application au lieu d'un code envoyé par e-mail.",
+        notConnected: "Aucune application d'authentification n'est associée.",
+        connectedAt: 'Associée : {{time}}.',
+        recoveryCodesLeft: 'Codes de récupération inutilisés : {{count}}.',
+        connect: "Associer l'application",
+        replace: "Remplacer l'application",
+        regenerate: 'Obtenir de nouveaux codes de récupération',
+        disconnect: "Dissocier l'application",
+        requiredByInstance:
+          "Cette instance exige une application d'authentification : vous pouvez la remplacer, mais pas la dissocier.",
+        currentCode:
+          'Pour continuer, saisissez un code actuel de votre application ou un code de récupération inutilisé.',
+        connectTitle: "Associer une application d'authentification",
+        replaceTitle: "Remplacer l'application d'authentification",
+        replaceDescription:
+          "Après votre confirmation, l'ancienne application et les anciens codes de récupération cessent de fonctionner.",
+        regenerateTitle: 'Nouveaux codes de récupération',
+        regenerateDescription: 'Les codes de récupération précédents cessent de fonctionner.',
+        disconnectTitle: "Dissocier l'application d'authentification",
+        disconnectDescription:
+          "La connexion par mot de passe ne demandera plus de code de l'application, et les codes de récupération cesseront de fonctionner.",
+        confirm: 'Confirmer',
+        done: 'Terminé',
+        connected: "Application d'authentification associée",
+        disconnected: "Application d'authentification dissociée",
+      },
     },
     list: {
       title: 'Utilisateurs de Databasus',
@@ -1068,7 +1127,14 @@ export const fr: typeof en = {
         systemRole: 'Rôle système',
         isActive: 'Actif',
         created: 'Créé le',
+        authenticatorApp: "Application d'authentification",
       },
+      authenticatorAppConnected: 'Associée',
+      authenticatorAppNotConnected: 'Non associée',
+      resetAuthenticatorApp: "Réinitialiser l'application",
+      resetAuthenticatorAppConfirmation:
+        "Réinitialiser l'application d'authentification de {{email}} ? Ses codes de récupération cesseront de fonctionner. Si l'instance exige une application, cette personne en associera une nouvelle à sa prochaine connexion.",
+      authenticatorAppReset: "Application d'authentification réinitialisée",
       roleLabel: 'Rôle :',
       activeLabel: 'Actif :',
       viewAuditLogs: "Voir les journaux d'audit",
@@ -2282,6 +2348,33 @@ export const fr: typeof en = {
       interrupted: 'La restauration a été interrompue.',
     },
   },
+  authenticatorApp: {
+    setup: {
+      qrCodeAlt: "QR code à scanner avec une application d'authentification",
+      scan: "Scannez le QR code avec une application d'authentification, comme Google Authenticator, Microsoft Authenticator ou 1Password. Si cette page a été rechargée, scannez le code le plus récent.",
+      secret: "Ou saisissez cette clé à la main dans l'application",
+      copySecret: 'Copier la clé',
+      secretCopied: 'Clé copiée',
+      copyFailed: "Le navigateur n'a pas autorisé la copie. Saisissez la clé à la main.",
+    },
+    code: {
+      appCode: "Code de l'application",
+      recoveryCode: 'Code de récupération',
+      useRecoveryCode: 'Utiliser plutôt un code de récupération',
+      useAppCode: "Utiliser plutôt un code de l'application",
+      invalidAppCode: 'Le code comporte 6 chiffres',
+    },
+    recoveryCodes: {
+      title: 'Enregistrez vos codes de récupération',
+      description:
+        "Chaque code remplace une seule fois un code de l'application, par exemple si vous perdez votre téléphone. Ils ne s'affichent que maintenant : conservez-les en lieu sûr, par exemple dans un gestionnaire de mots de passe.",
+      copy: 'Copier les codes',
+      copied: 'Codes copiés',
+      copyFailed: "Le navigateur n'a pas autorisé la copie. Téléchargez plutôt les codes.",
+      download: 'Télécharger',
+      saved: "J'ai enregistré les codes de récupération",
+    },
+  },
   masterKey: {
     title: 'Clé maîtresse',
     open: 'Télécharger la clé maîtresse',
@@ -2296,6 +2389,8 @@ export const fr: typeof en = {
     codeRequired:
       "Cette instance exige la connexion en deux étapes : confirmez l'accès à la clé avec un code envoyé par e-mail.",
     codeFailed: "Si le code n'arrive toujours pas, copiez la clé depuis le serveur à la main.",
+    appCodeRequired:
+      "Cette instance exige la connexion en deux étapes : confirmez l'accès avec un code de votre application d'authentification ou un code de récupération inutilisé.",
     proof: {
       sendCode: "M'envoyer un code de confirmation par e-mail",
       resendCode: 'Envoyer un nouveau code',

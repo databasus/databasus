@@ -175,6 +175,24 @@ def read_api(page: Page, path: str) -> dict[str, object]:
     return get_api_object(json.loads(body))
 
 
+def write_api(page: Page, method: str, path: str, body: dict[str, object]) -> None:
+    """Writes through the API inside the page, so the session token never reaches Python."""
+    response: object = page.evaluate(
+        """async ({ method, path, body }) => {
+            const token = localStorage.getItem('databasus_user_token');
+            const response = await fetch(path, {
+                method,
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            return { isOk: response.ok, status: response.status };
+        }""",
+        {"method": method, "path": path, "body": body},
+    )
+    assert isinstance(response, dict)
+    assert response.get("isOk") is True, f"{method} {path} answered {response.get('status')}"
+
+
 def read_browser_storage(page: Page, key: str) -> str | None:
     value: object = page.evaluate("(key) => localStorage.getItem(key)", key)
     assert value is None or isinstance(value, str)

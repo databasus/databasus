@@ -158,6 +158,14 @@ export const es: typeof en = {
     signInCodeIncorrect: 'El código no es correcto.',
     pendingSignInNotUsable:
       'Este inicio de sesión ya no puede completarse. Vuelva a iniciar sesión.',
+    pendingSignInNotResendable: 'Este paso del inicio de sesión no envía códigos.',
+    secondFactorInvalid: 'El código es incorrecto o ya se ha usado.',
+    tooManyWrongCodes:
+      'Se han introducido demasiados códigos incorrectos para esta cuenta. Podrá volver a intentarlo en menos de una hora.',
+    authenticatorAppRequired:
+      'Esta instancia exige una aplicación de autenticación, así que no se puede desconectar. Sí puede sustituirla.',
+    authenticatorSetupNotUsable:
+      'Esta configuración ha caducado o ha recibido demasiados códigos incorrectos. Vuelva a conectar la aplicación desde el principio.',
     signInCodeNotSent:
       'La instancia no ha podido enviar el código de acceso. Inténtelo más tarde o avise a un administrador.',
     tooManySignInCodes:
@@ -305,11 +313,17 @@ export const es: typeof en = {
         'Si está activado, los miembros (usuarios que no son administradores) pueden crear espacios de trabajo. Si no, solo pueden crearlos los administradores.',
     },
     twoFactorAuth: {
-      title: 'Activar el inicio de sesión en dos pasos',
+      title: 'Exigir 2FA',
       description:
-        'Si se activa, además de la contraseña hay que introducir un código de seis dígitos enviado al correo de la cuenta. No se aplica al inicio de sesión con Google ni con GitHub.',
+        'Si se activa, cada inicio de sesión con contraseña, también el de los administradores, tiene que pasar además la 2FA.',
+      method: 'Segundo factor',
+      methods: {
+        email: 'Código por correo',
+        authenticatorApp: 'Aplicación de autenticación',
+      },
+      authenticatorAppExamples: 'Por ejemplo, Google Authenticator, Microsoft Authenticator, etc.',
       mailServerRequired:
-        'Hace falta un servidor de correo. <docsLink>Configure SMTP</docsLink> primero.',
+        'El código por correo necesita un servidor de correo. <mailServerLink>Configure SMTP</mailServerLink> primero.',
     },
     saving: 'Guardando...',
     saveChanges: 'Guardar cambios',
@@ -1002,6 +1016,22 @@ export const es: typeof en = {
       invalidCode: 'El código tiene 6 dígitos',
       codeResent: 'Hemos enviado un código nuevo. El anterior ya no funciona.',
     },
+    signInAuthenticatorCode: {
+      title: 'Introduzca el código de la aplicación',
+      description:
+        'Abra su aplicación de autenticación e introduzca el código de seis dígitos de Databasus.',
+      recoveryDescription:
+        'Introduzca uno de los códigos de recuperación que guardó al conectar la aplicación.',
+      submit: 'Iniciar sesión',
+      backToSignIn: 'Volver al inicio de sesión',
+    },
+    signInAuthenticatorSetup: {
+      title: 'Conecte una aplicación de autenticación',
+      description:
+        'Esta instancia exige una aplicación de autenticación para iniciar sesión. Conecte una ahora para continuar.',
+      submit: 'Confirmar',
+      backToSignIn: 'Volver al inicio de sesión',
+    },
     signUp: {
       title: 'Registro',
       namePlaceholder: 'Juan Pérez',
@@ -1049,6 +1079,35 @@ export const es: typeof en = {
         submit: 'Cambiar contraseña',
         signInRequired: 'Contraseña cambiada. Vuelve a iniciar sesión con tu nueva contraseña.',
       },
+      authenticatorApp: {
+        title: 'Autenticación en dos pasos (2FA)',
+        description:
+          'Con una aplicación conectada, el inicio de sesión con contraseña pide un código de la aplicación en lugar de uno enviado por correo.',
+        notConnected: 'No hay ninguna aplicación de autenticación conectada.',
+        connectedAt: 'Conectada: {{time}}.',
+        recoveryCodesLeft: 'Códigos de recuperación sin usar: {{count}}.',
+        connect: 'Conectar aplicación',
+        replace: 'Sustituir aplicación',
+        regenerate: 'Obtener nuevos códigos de recuperación',
+        disconnect: 'Desconectar aplicación',
+        requiredByInstance:
+          'Esta instancia exige una aplicación de autenticación, así que puede sustituirla, pero no desconectarla.',
+        currentCode:
+          'Para continuar, introduzca un código actual de su aplicación o un código de recuperación sin usar.',
+        connectTitle: 'Conectar una aplicación de autenticación',
+        replaceTitle: 'Sustituir la aplicación de autenticación',
+        replaceDescription:
+          'Al confirmar, la aplicación anterior y los códigos de recuperación anteriores dejan de funcionar.',
+        regenerateTitle: 'Nuevos códigos de recuperación',
+        regenerateDescription: 'Los códigos de recuperación anteriores dejan de funcionar.',
+        disconnectTitle: 'Desconectar la aplicación de autenticación',
+        disconnectDescription:
+          'El inicio de sesión con contraseña dejará de pedir un código de la aplicación, y los códigos de recuperación dejarán de funcionar.',
+        confirm: 'Confirmar',
+        done: 'Listo',
+        connected: 'Aplicación de autenticación conectada',
+        disconnected: 'Aplicación de autenticación desconectada',
+      },
     },
     list: {
       title: 'Usuarios de Databasus',
@@ -1061,7 +1120,14 @@ export const es: typeof en = {
         systemRole: 'Rol en el sistema',
         isActive: '¿Activo?',
         created: 'Fecha de creación',
+        authenticatorApp: 'Aplicación de autenticación',
       },
+      authenticatorAppConnected: 'Conectada',
+      authenticatorAppNotConnected: 'No conectada',
+      resetAuthenticatorApp: 'Restablecer aplicación',
+      resetAuthenticatorAppConfirmation:
+        '¿Restablecer la aplicación de autenticación de {{email}}? Sus códigos de recuperación dejarán de funcionar. Si la instancia exige una aplicación, el usuario conectará una nueva en su próximo inicio de sesión.',
+      authenticatorAppReset: 'Aplicación de autenticación restablecida',
       roleLabel: 'Rol:',
       activeLabel: 'Activo:',
       viewAuditLogs: 'Ver registros de auditoría',
@@ -2269,6 +2335,33 @@ export const es: typeof en = {
       interrupted: 'La recuperación se interrumpió.',
     },
   },
+  authenticatorApp: {
+    setup: {
+      qrCodeAlt: 'Código QR para escanear con una aplicación de autenticación',
+      scan: 'Escanee el código QR con una aplicación de autenticación, como Google Authenticator, Microsoft Authenticator o 1Password. Si la página se ha recargado, escanee el código más reciente.',
+      secret: 'O introduzca esta clave a mano en la aplicación',
+      copySecret: 'Copiar clave',
+      secretCopied: 'Clave copiada',
+      copyFailed: 'El navegador no ha permitido copiar. Escriba la clave a mano.',
+    },
+    code: {
+      appCode: 'Código de la aplicación',
+      recoveryCode: 'Código de recuperación',
+      useRecoveryCode: 'Usar un código de recuperación',
+      useAppCode: 'Usar un código de la aplicación',
+      invalidAppCode: 'El código tiene 6 dígitos',
+    },
+    recoveryCodes: {
+      title: 'Guarde sus códigos de recuperación',
+      description:
+        'Cada código sustituye una sola vez a un código de la aplicación, por ejemplo si pierde el teléfono. Solo se muestran ahora, así que guárdelos en un lugar seguro, como un gestor de contraseñas.',
+      copy: 'Copiar códigos',
+      copied: 'Códigos copiados',
+      copyFailed: 'El navegador no ha permitido copiar. Descargue los códigos.',
+      download: 'Descargar',
+      saved: 'He guardado los códigos de recuperación',
+    },
+  },
   masterKey: {
     title: 'Clave maestra',
     open: 'Descargar la clave maestra',
@@ -2283,6 +2376,8 @@ export const es: typeof en = {
     codeRequired:
       'Esta instalación exige el inicio de sesión en dos pasos, así que confirme el acceso a la clave con un código enviado a su correo.',
     codeFailed: 'Si el código sigue sin llegar, copie la clave del servidor manualmente.',
+    appCodeRequired:
+      'Esta instalación exige el inicio de sesión en dos pasos, así que confirme el acceso con un código de su aplicación de autenticación o un código de recuperación sin usar.',
     proof: {
       sendCode: 'Enviarme un código de confirmación por correo',
       resendCode: 'Enviar un código nuevo',

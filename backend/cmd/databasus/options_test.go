@@ -56,6 +56,18 @@ func TestSelectCommand(t *testing.T) {
 			expectedConsoleKind: app.ConsoleCommandDisableTwoFactor,
 		},
 		{
+			name:                "resets the authenticator app with --reset-2fa and --email",
+			arguments:           []string{"--reset-2fa", "--email=owner@example.com"},
+			expectedKind:        commandConsole,
+			expectedConsoleKind: app.ConsoleCommandResetTwoFactor,
+		},
+		{
+			name:                "disables the second factor before resetting an app when both flags are given",
+			arguments:           []string{"--reset-2fa", "--email=owner@example.com", "--disable-2fa"},
+			expectedKind:        commandConsole,
+			expectedConsoleKind: app.ConsoleCommandDisableTwoFactor,
+		},
+		{
 			name:         "probes the storage first when several command flags are given",
 			arguments:    []string{"--disable-2fa", "--list-admins", "--test-storage"},
 			expectedKind: commandProbeStorage,
@@ -101,6 +113,11 @@ func TestSelectCommand(t *testing.T) {
 		{
 			name:          "refuses --new-password without --email",
 			arguments:     []string{"--new-password=secret"},
+			expectedError: ErrEmailMissing,
+		},
+		{
+			name:          "refuses --reset-2fa without --email",
+			arguments:     []string{"--reset-2fa"},
 			expectedError: ErrEmailMissing,
 		},
 	}

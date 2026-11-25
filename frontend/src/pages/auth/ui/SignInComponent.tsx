@@ -3,7 +3,7 @@ import { useId } from 'react';
 import { type JSX, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type PendingSignIn, userApi } from '@/entities/users';
+import { type PendingSignIn, type SignInAuthenticatorSetup, userApi } from '@/entities/users';
 import { OAuthSignInButtons } from '@/features/oauth-sign-in';
 import { useCloudflareTurnstile } from '@/pages/auth/model/useCloudflareTurnstile';
 import { CloudflareTurnstileWidget } from '@/pages/auth/ui/CloudflareTurnstileWidget';
@@ -22,12 +22,16 @@ interface SignInComponentProps {
   onSwitchToSignUp?: () => void;
   onSwitchToResetPassword?: () => void;
   onCodeRequired?: (pendingSignIn: PendingSignIn) => void;
+  onAuthenticatorCodeRequired?: (pendingSignInId: string) => void;
+  onAuthenticatorSetupRequired?: (setup: SignInAuthenticatorSetup) => void;
 }
 
 export function SignInComponent({
   onSwitchToSignUp,
   onSwitchToResetPassword,
   onCodeRequired,
+  onAuthenticatorCodeRequired,
+  onAuthenticatorSetupRequired,
 }: SignInComponentProps): JSX.Element {
   const signInMutation = useSessionMutation({
     mutationFn: (parameters: Parameters<typeof userApi.signIn>) => userApi.signIn(...parameters),
@@ -88,6 +92,11 @@ export function SignInComponent({
         if (outcome.outcome === 'CODE_REQUIRED') {
           onCodeRequired?.({ pendingSignInId: outcome.pendingSignInId, email: outcome.email });
         }
+        if (outcome.outcome === 'AUTHENTICATOR_CODE_REQUIRED') {
+          onAuthenticatorCodeRequired?.(outcome.pendingSignInId);
+        }
+        if (outcome.outcome === 'AUTHENTICATOR_SETUP_REQUIRED')
+          onAuthenticatorSetupRequired?.(outcome);
       } catch (e) {
         if (!authOperation.isCurrent(operation)) return;
         setSignInError(e);

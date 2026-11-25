@@ -43,6 +43,7 @@ export default function PasswordResetPage() {
   const listAdminsCommand = `docker exec -it databasus ./main --list-admins`;
   const createUserCommand = `docker exec -it databasus ./main --create-user --email="ops@example.com" --password="YourSecurePassword123" --role=admin`;
   const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
+  const resetTwoFactorCommand = `docker exec -it databasus ./main --reset-2fa --email="owner@example.com"`;
 
   return (
     <>
@@ -234,9 +235,7 @@ export default function PasswordResetPage() {
                 или GitHub, команда завершится ошибкой и ничего не изменит.
               </p>
 
-              <h2 id="disable-two-factor">
-                Перестать запрашивать код при входе
-              </h2>
+              <h2 id="disable-two-factor">Отключить требование 2FA</h2>
 
               <p>
                 Инстанс может требовать при входе шестизначный код, присланный
@@ -261,6 +260,25 @@ export default function PasswordResetPage() {
                 изменение в журнал аудита. Следующий вход по паролю пройдет без
                 кода, а когда почта заработает, администратор может снова
                 включить настройку.
+              </p>
+
+              <h2 id="reset-authenticator-app">Сбросить приложение-аутентификатор аккаунта</h2>
+
+              <p>
+                Если человек потерял телефон с приложением-аутентификатором, удалите приложение из его аккаунта на сервере, где запущен Databasus:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{resetTwoFactorCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={resetTwoFactorCommand} />
+                </div>
+              </div>
+
+              <p>
+                Следующий вход в этот аккаунт пойдет по настройке 2FA инстанса. Администратор может сбросить приложение пользователя и из списка пользователей.
               </p>
             </article>
           </div>

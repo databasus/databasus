@@ -14,7 +14,8 @@ const (
 )
 
 // newExpiredCodesCleanupJob deletes the single-use codes nobody comes back for: the pending sign-ins
-// and the reset codes the hourly caps no longer count.
+// and the reset codes the hourly caps no longer count, the wrong app codes the per-account limit no
+// longer counts, and the authenticator setups that can no longer be confirmed.
 func (m *Module) newExpiredCodesCleanupJob() background.Job {
 	return background.Job{
 		Name:     expiredCodesCleanupJobName,
@@ -35,10 +36,17 @@ func (m *Module) newExpiredCodesCleanupJob() background.Job {
 				return err
 			}
 
+			deletedWrongCodeCount, deletedSetupCount, err := m.authenticator.DeleteExpired(ctx, now)
+			if err != nil {
+				return err
+			}
+
 			m.logger.InfoContext(ctx, "expired codes deleted",
 				slog.Int64("deleted_pending_sign_in_count", deletedPendingSignInCount),
 				slog.Int64("deleted_reset_code_count", deletedResetCodeCount),
-				slog.Int64("deleted_identity_code_count", deletedIdentityCodeCount))
+				slog.Int64("deleted_identity_code_count", deletedIdentityCodeCount),
+				slog.Int64("deleted_wrong_code_count", deletedWrongCodeCount),
+				slog.Int64("deleted_authenticator_setup_count", deletedSetupCount))
 
 			return nil
 		},

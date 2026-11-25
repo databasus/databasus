@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type InstanceSettings } from '@/entities/users';
 import { InstanceSettingsPage } from '@/pages/instance-settings/ui/InstanceSettingsPage';
@@ -18,7 +18,7 @@ const settings: InstanceSettings = {
   isAllowExternalRegistrations: false,
   isAllowMemberInvitations: false,
   isMemberAllowedToCreateWorkspaces: false,
-  isTwoFactorAuthRequired: false,
+  twoFactorRequirement: 'OFF',
   isEmailConfigured: true,
 };
 const openSettings = async (onSettingsChanged = vi.fn(), initialSettings = settings) => {
@@ -84,7 +84,7 @@ describe('InstanceSettingsPage', () => {
     {
       settingName: 'two-factor authentication',
       switchName: DICTIONARIES.en.settings.twoFactorAuth.title,
-      turnedOn: { isTwoFactorAuthRequired: true },
+      turnedOn: { twoFactorRequirement: 'EMAIL' as const },
     },
   ])(
     'sends $settingName turned on and the other settings unchanged when it is saved with mail configured',
@@ -113,7 +113,7 @@ describe('InstanceSettingsPage', () => {
           isAllowExternalRegistrations: false,
           isAllowMemberInvitations: false,
           isMemberAllowedToCreateWorkspaces: false,
-          isTwoFactorAuthRequired: false,
+          twoFactorRequirement: 'OFF',
           ...turnedOn,
         },
       ]);
@@ -205,24 +205,145 @@ describe('InstanceSettingsPage', () => {
   );
 });
 
-it.each([false, true])(
-  'permits only disabling two-factor authentication when mail is unavailable and requirement=%s',
-  async (isTwoFactorAuthRequired) => {
-    await openSettings(vi.fn(), { ...settings, isEmailConfigured: false, isTwoFactorAuthRequired });
-    const toggle = screen.getByRole('switch', {
-      name: DICTIONARIES.en.settings.twoFactorAuth.title,
+const twoFactorSwitch = () =>
+  screen.getByRole('switch', { name: DICTIONARIES.en.settings.twoFactorAuth.title });
+const methodRadio = (name: string) => screen.getByRole('radio', { name }) as HTMLInputElement;
+const twoFactorText = DICTIONARIES.en.settings.twoFactorAuth;
+
+const captureSavedSettings = (savedBodies: unknown[]) =>
+  server.use(
+    http.put(`*${API_BASE_PATH}/instance-settings`, async ({ request }) => {
+      const { body } = await inspectApiRequest(request, {
+        method: 'put',
+        path: '/instance-settings',
+      });
+      savedBodies.push(body);
+
+      return HttpResponse.json({ ...settings, ...(body as object) });
+    }),
+  );
+
+describe('InstanceSettingsPage second factor', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('moves to the mail server section from the explanation of the emailed code method', async () => {
+    const scrollIntoView = vi
+      .spyOn(HTMLElement.prototype, 'scrollIntoView')
+      .mockImplementation(() => {});
+    await openSettings(vi.fn(), { ...settings, isEmailConfigured: false });
+
+    fireEvent.click(twoFactorSwitch());
+    fireEvent.click(methodRadio(twoFactorText.methods.email));
+    const explanation = screen.getByText(/A code sent by email needs a mail server/);
+    fireEvent.click(within(explanation).getByRole('button', { name: 'Configure SMTP' }));
+
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: DICTIONARIES.en.settings.mailServer.title }),
+    );
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it('preselects the authenticator app on an instance without a mail server and saves it', async () => {
+    const savedBodies: unknown[] = [];
+    captureSavedSettings(savedBodies);
+    await openSettings(vi.fn(), { ...settings, isEmailConfigured: false });
+
+    expect(screen.queryByRole('radio')).toBeNull();
+    fireEvent.click(twoFactorSwitch());
+
+    expect(methodRadio(twoFactorText.methods.authenticatorApp).checked).toBe(true);
+    expect(screen.queryByText(/A code sent by email needs a mail server/)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
+    await screen.findByText(DICTIONARIES.en.settings.updated);
+
+    expect(savedBodies).toEqual([
+      expect.objectContaining({ twoFactorRequirement: 'AUTHENTICATOR_APP' }),
+    ]);
+  });
+
+  it('lets the emailed code be chosen without a mail server but not saved', async () => {
+    const savedBodies: unknown[] = [];
+    captureSavedSettings(savedBodies);
+    await openSettings(vi.fn(), { ...settings, isEmailConfigured: false });
+
+    fireEvent.click(twoFactorSwitch());
+    fireEvent.click(methodRadio(twoFactorText.methods.email));
+
+    expect(methodRadio(twoFactorText.methods.email).checked).toBe(true);
+    expect(screen.getByText(/A code sent by email needs a mail server/)).toBeTruthy();
+    const saveButton = screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges });
+    expect(saveButton.hasAttribute('disabled')).toBe(true);
+
+    fireEvent.click(methodRadio(twoFactorText.methods.authenticatorApp));
+
+    expect(screen.queryByText(/A code sent by email needs a mail server/)).toBeNull();
+    expect(saveButton.hasAttribute('disabled')).toBe(false);
+    expect(savedBodies).toEqual([]);
+  });
+
+  it('saves other settings while an email requirement saved earlier lost its mail server', async () => {
+    const savedBodies: unknown[] = [];
+    captureSavedSettings(savedBodies);
+    await openSettings(vi.fn(), {
+      ...settings,
+      isEmailConfigured: false,
+      twoFactorRequirement: 'EMAIL',
     });
-    expect(toggle.hasAttribute('disabled')).toBe(!isTwoFactorAuthRequired);
-    expect(String((toggle as HTMLInputElement).checked)).toBe(String(isTwoFactorAuthRequired));
-    if (isTwoFactorAuthRequired) {
-      fireEvent.click(toggle);
-      expect(String((toggle as HTMLInputElement).checked)).toBe('false');
-      expect(
-        screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }),
-      ).toBeTruthy();
-    }
-  },
-);
+
+    expect(screen.getByText(/A code sent by email needs a mail server/)).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('switch', { name: DICTIONARIES.en.settings.externalRegistrations.title }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
+    await screen.findByText(DICTIONARIES.en.settings.updated);
+
+    expect(savedBodies).toEqual([expect.objectContaining({ twoFactorRequirement: 'EMAIL' })]);
+  });
+
+  it('preselects the emailed code with a mail server and saves the app when it is chosen', async () => {
+    const savedBodies: unknown[] = [];
+    captureSavedSettings(savedBodies);
+    await openSettings();
+
+    fireEvent.click(twoFactorSwitch());
+
+    expect(methodRadio(twoFactorText.methods.email).checked).toBe(true);
+    expect(screen.queryByText(/A code sent by email needs a mail server/)).toBeNull();
+
+    fireEvent.click(methodRadio(twoFactorText.methods.authenticatorApp));
+    fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
+    await screen.findByText(DICTIONARIES.en.settings.updated);
+    expect(savedBodies).toEqual([
+      expect.objectContaining({ twoFactorRequirement: 'AUTHENTICATOR_APP' }),
+    ]);
+  });
+
+  it('shows the required method when the screen opens with the requirement on', async () => {
+    await openSettings(vi.fn(), { ...settings, twoFactorRequirement: 'AUTHENTICATOR_APP' });
+
+    expect(String((twoFactorSwitch() as HTMLInputElement).checked)).toBe('true');
+    expect(methodRadio(twoFactorText.methods.authenticatorApp).checked).toBe(true);
+  });
+
+  it.each(['EMAIL', 'AUTHENTICATOR_APP'] as const)(
+    'hides the method and saves the requirement as off when %s is switched off without a mail server',
+    async (twoFactorRequirement) => {
+      const savedBodies: unknown[] = [];
+      captureSavedSettings(savedBodies);
+      await openSettings(vi.fn(), { ...settings, isEmailConfigured: false, twoFactorRequirement });
+
+      fireEvent.click(twoFactorSwitch());
+
+      expect(screen.queryByRole('radio')).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: DICTIONARIES.en.settings.saveChanges }));
+      await screen.findByText(DICTIONARIES.en.settings.updated);
+      expect(savedBodies).toEqual([expect.objectContaining({ twoFactorRequirement: 'OFF' })]);
+    },
+  );
+});
 
 it('recovers the settings form when the initial request is retried after a refusal', async () => {
   activateSession({ token: 'current-session', userId: 'admin' });

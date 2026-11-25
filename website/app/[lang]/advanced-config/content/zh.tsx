@@ -241,28 +241,6 @@ export default function AdvancedConfigPage() {
                 这是实例的邮件服务器。邮件通知渠道用来报告备份情况，它们在各自的表单里有自己的 SMTP 设置，所以某个通知渠道能收发邮件，并不能说明这台服务器可用。要检查实例的邮件服务器，请打开 <strong>Databasus settings → Mail server</strong> 并点击 <strong>Send test email</strong>。测试邮件会发到你自己的地址，发送失败时会显示邮件服务器的回复。
               </p>
 
-              <div className="bg-[#1f2937]/50 border border-[#ffffff20] border-l-[3px] my-4 border-l-red-500 rounded-lg px-4 py-4 flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-red-500 mt-0.5 shrink-0"
-                >
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <path d="M12 9v4M12 17h.01" />
-                </svg>
-                <div>
-                  <p className="text-gray-300 my-0!">
-                    <strong>如果你的中继不支持 STARTTLS，请在升级前设置 <code>SMTP_SECURITY=none</code>。</strong> 除 465 以外的端口默认使用 <code>starttls</code> 模式，它不会在没有加密的情况下继续，因此在设置这个变量之前，这样的中继收不到任何邮件。如果实例要求通过邮件发送登录验证码，在邮件无法送达期间，任何人都无法用密码登录。要恢复访问，请用 <code>docker exec -it databasus ./main --disable-2fa</code> 关闭第二因素（见<a href="/zh/password/#disable-two-factor" className="text-blue-400 hover:text-blue-300">不再要求登录验证码</a>）。
-                  </p>
-                </div>
-              </div>
-
               <table>
                 <thead>
                   <tr>

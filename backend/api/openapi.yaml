@@ -281,6 +281,191 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /users/{userId}/authenticator-app-setups:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      operationId: startAuthenticatorAppSetup
+      tags: [users]
+      summary: Start connecting an authenticator app to the signed-in user
+      description: >-
+        Only the user's own ID is accepted; any other gets 403 `permission_denied`. The answer
+        carries a new secret and its `otpauth://` address, returned only here; no later answer
+        returns them. The setup replaces the user's earlier unconfirmed setup and stops being
+        confirmable thirty minutes later or after five wrong codes. A user who already has an app
+        replaces it this way and sends a current app code or an unused recovery code in `code`; a
+        wrong or missing one gets 400 `second_factor_invalid` and counts toward the limit of ten
+        wrong codes an hour, beyond which the answer is 429 `too_many_wrong_codes`. The connected
+        app keeps working until the new one is confirmed.
+      requestBody:
+        description: A current second factor, required when the user already has an app.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecondFactorProof"
+      responses:
+        "201":
+          description: The started setup with its secret
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticatorAppSetup"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /users/{userId}/authenticator-app-setups/{authenticatorAppSetupId}/confirm:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+      - $ref: "#/components/parameters/AuthenticatorAppSetupId"
+    post:
+      operationId: confirmAuthenticatorAppSetup
+      tags: [users]
+      summary: Connect the authenticator app with a code it generated
+      description: >-
+        Only the user's own ID is accepted; any other gets 403 `permission_denied`. A code the
+        setup secret generated connects the app, replaces any app connected before together with
+        its recovery codes, and answers ten new recovery codes, returned only here. A wrong code
+        gets 400 `second_factor_invalid` and counts only toward the setup's five. A setup that
+        expired, was replaced or was destroyed by wrong codes gets 410
+        `authenticator_setup_not_usable`.
+      requestBody:
+        description: The code from the new app.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthenticatorAppCode"
+      responses:
+        "200":
+          description: The app is connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCodes"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "410":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /users/{userId}/disconnect-authenticator-app:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      operationId: disconnectAuthenticatorApp
+      tags: [users]
+      summary: Disconnect the signed-in user's authenticator app
+      description: >-
+        Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request
+        carries a current app code or an unused recovery code; a wrong or missing one gets 400
+        `second_factor_invalid` and counts toward the limit of ten wrong codes an hour, beyond which
+        the answer is 429 `too_many_wrong_codes`. While the instance requires the authenticator app
+        method the answer is 409 `authenticator_app_required`. The app and its recovery codes are
+        removed, and pending sign-ins that wait for its code stop working.
+      requestBody:
+        description: A current second factor.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecondFactorProof"
+      responses:
+        "200":
+          description: The user after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /users/{userId}/recovery-codes:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      operationId: regenerateRecoveryCodes
+      tags: [users]
+      summary: Replace the signed-in user's recovery codes with a new set
+      description: >-
+        Only the user's own ID is accepted; any other gets 403 `permission_denied`. The request
+        carries a current app code or an unused recovery code; a wrong or missing one, or a user
+        without an app, gets 400 `second_factor_invalid`, and wrong codes count toward the limit of
+        ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. Every earlier recovery
+        code stops working, and the ten new codes are returned only here.
+      requestBody:
+        description: A current second factor.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecondFactorProof"
+      responses:
+        "201":
+          description: The new recovery codes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCodes"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /users/{userId}/reset-authenticator-app:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      operationId: resetAuthenticatorApp
+      tags: [users]
+      summary: Remove a user's authenticator app and recovery codes
+      description: >-
+        For a user who lost the app. The same rules as deactivation decide who may reset whom:
+        resetting yourself or the bootstrap administrator gets 403 `permission_denied`, and so does
+        resetting an instance admin for anyone but the bootstrap administrator. Pending sign-ins
+        that wait for the app's code stop working; sessions survive. A user without an app is
+        answered unchanged.
+      x-access: admin
+      responses:
+        "200":
+          description: The user after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
   /sessions:
     post:
       operationId: signIn
@@ -293,9 +478,13 @@ paths:
         `password_not_set_google`, `password_not_set_github` or `password_not_set_google_github`.
         A deactivated user gets 403 `user_deactivated` only after the correct password; otherwise
         its refusal matches an equivalent active account. Human verification and the per-address
-        rate limit run before these refusals. When the instance requires the second factor, a
-        successful password step names a pending sign-in and sends its code. A refused step sends
-        no code, creates no new pending sign-in and leaves existing pending sign-ins unchanged.
+        rate limit run before these refusals. After a correct password the answer names the second
+        factor that follows: a user with a connected authenticator app gets
+        `AUTHENTICATOR_CODE_REQUIRED` and no mail; otherwise the emailed code method mails a code
+        and answers `CODE_REQUIRED`, the authenticator app method starts a new app setup and
+        answers `AUTHENTICATOR_SETUP_REQUIRED` with its secret, returned only here, and without a
+        requirement the session is issued. A refused step sends no code, creates no new pending
+        sign-in and leaves existing pending sign-ins unchanged.
       x-access: public
       security: []
       requestBody:
@@ -307,7 +496,7 @@ paths:
               $ref: "#/components/schemas/SignInRequest"
       responses:
         "200":
-          description: The session, or the pending sign-in that waits for the emailed code
+          description: The session, or the pending sign-in that waits for the second factor
           content:
             application/json:
               schema:
@@ -536,11 +725,15 @@ paths:
     post:
       operationId: verifySignInCode
       tags: [users]
-      summary: Complete a pending sign-in with the emailed code
+      summary: Complete a pending sign-in with the emailed code or the authenticator app code
       description: >-
         Public, because it creates the session the caller does not have yet. A pending sign-in
-        expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then
-        it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+        expires ten minutes after it was created and is destroyed by the fifth wrong code; then it
+        answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in. A
+        pending sign-in that waits for an app code also accepts an unused recovery code; wrong ones
+        count toward the user's limit of ten wrong codes an hour, beyond which the answer is 429
+        `too_many_wrong_codes` without checking. A pending sign-in that waits for an app setup is
+        completed by `confirmSignInAuthenticatorAppSetup` instead.
       x-access: public
       security: []
       requestBody:
@@ -575,6 +768,8 @@ paths:
       description: >-
         Public, because the caller is still signing in. The answer names the new pending sign-in,
         and the previous code stops working. One resend a minute and five codes an hour per user.
+        A pending sign-in that waits for an authenticator app sends no mail and answers 409
+        `pending_sign_in_not_resendable`.
       x-access: public
       security: []
       requestBody:
@@ -593,11 +788,52 @@ paths:
                 $ref: "#/components/schemas/PendingSignIn"
         "400":
           $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
         "410":
           $ref: "#/components/responses/Problem"
         "429":
           $ref: "#/components/responses/Problem"
         "503":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /pending-sign-ins/{pendingSignInId}/confirm-authenticator-app-setup:
+    parameters:
+      - $ref: "#/components/parameters/PendingSignInId"
+    post:
+      operationId: confirmSignInAuthenticatorAppSetup
+      tags: [users]
+      summary: Complete a pending sign-in by connecting the required authenticator app
+      description: >-
+        Public, because it creates the session the caller does not have yet. A code the setup
+        secret generated connects the app, and the answer carries the session and ten recovery
+        codes, returned only here. A wrong code gets 400 `sign_in_code_incorrect` and counts only
+        toward the pending sign-in's five. A pending sign-in that expired thirty minutes after the
+        password step, was destroyed by wrong codes, was replaced by a later password step or
+        waits for something else answers 410 `pending_sign_in_not_usable`. Ten attempts a minute
+        per pending sign-in.
+      x-access: public
+      security: []
+      requestBody:
+        description: The code from the new app and the answer to the human-verification challenge.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifySignInCodeRequest"
+      responses:
+        "200":
+          description: The app is connected and the user is signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticatorAppSetupSession"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "410":
+          $ref: "#/components/responses/Problem"
+        "429":
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
@@ -3562,17 +3798,20 @@ paths:
     post:
       operationId: requestMasterKeyConfirmation
       tags: [instancebackups]
-      summary: Email root admin a code that confirms a master-key export
+      summary: Ask root admin's second factor to confirm a master-key export
       description: >-
-        Only root admin requests one, and only an instance that requires two-factor sign-in needs it.
-        Without a system mail server or a usable address on root admin's account the answer is 409
-        `identity_proof_unavailable`, and the interface explains how to copy the key from the host.
-        The code is bound to the requesting session, expires after five minutes and confirms only a
-        master-key export. One code a minute.
+        Only root admin requests one, and only an instance that requires two-factor sign-in needs it;
+        without the requirement the answer is 409 `identity_proof_unavailable`. When root admin has a
+        connected authenticator app, no mail is sent and the answer names the `AUTHENTICATOR_APP`
+        method: the export then takes a current app code or an unused recovery code. Otherwise a code
+        is emailed: without a system mail server or a usable address on root admin's account the
+        answer is 409 `identity_proof_unavailable`, and the interface explains how to copy the key
+        from the host. The emailed code is bound to the requesting session, expires after five
+        minutes and confirms only a master-key export. One code a minute.
       x-access: admin
       responses:
         "201":
-          description: The code was sent
+          description: The method of the confirmation, and the emailed code's expiry when one was sent
           content:
             application/json:
               schema:
@@ -3595,15 +3834,17 @@ paths:
       description: >-
         Only root admin exports the key. When the instance does not require two-factor sign-in, root
         admin's session is enough and `code` is ignored. When it does, the request carries the
-        emailed `code` from `requestMasterKeyConfirmation`; a missing, wrong, expired, used or
-        wrong-purpose code gets 400 `identity_proof_invalid`. The token is returned only here,
+        emailed `code` from `requestMasterKeyConfirmation`, or a current app code or an unused
+        recovery code when root admin has a connected authenticator app; a missing, wrong, expired,
+        used or wrong-purpose code gets 400 `identity_proof_invalid`, and wrong app or recovery codes
+        count toward the limit of ten an hour, beyond which the answer is 429 `too_many_wrong_codes`. The token is returned only here,
         downloads the key once and expires after 60 seconds. This is the one operation chain that
         lets a stored secret leave the server: `downloadMasterKey` returns exactly the existing
         master key as an attachment, and no JSON response ever carries it. The audit log records the
         export without the code, the token or the key.
       x-access: admin
       requestBody:
-        description: The emailed code, when the instance requires two-factor sign-in.
+        description: The confirmation code, when the instance requires two-factor sign-in.
         required: true
         content:
           application/json:
@@ -3778,17 +4019,20 @@ paths:
     post:
       operationId: requestInstanceRecoveryConfirmation
       tags: [instancebackups]
-      summary: Email root admin a code that confirms applying this recovery
+      summary: Ask root admin's second factor to confirm applying this recovery
       description: >-
-        Only root admin requests one. The code expires after five minutes and confirms only this
-        recovery with its archive fingerprint, for the current session. While the instance does not
-        require two-factor sign-in, or without a system mail server or a usable address, the answer
-        is 409 `identity_proof_unavailable`; a recovery that is not
-        ready gets 409 `recovery_not_ready`. One code a minute.
+        Only root admin requests one. While the instance does not require two-factor sign-in the
+        answer is 409 `identity_proof_unavailable`. When root admin has a connected authenticator
+        app, no mail is sent and the answer names the `AUTHENTICATOR_APP` method: apply then takes a
+        current app code or an unused recovery code. Otherwise an emailed code expires after five
+        minutes and confirms only this recovery with its archive fingerprint, for the current
+        session; without a system mail server or a usable address the answer is 409
+        `identity_proof_unavailable`. A recovery that is not ready gets 409 `recovery_not_ready`.
+        One code a minute.
       x-access: admin
       responses:
         "201":
-          description: The code was sent
+          description: The method of the confirmation, and the emailed code's expiry when one was sent
           content:
             application/json:
               schema:
@@ -3816,9 +4060,10 @@ paths:
       summary: Replace this installation with the prepared recovery
       description: >-
         Only root admin applies, with `isReplacementConfirmed`. While the instance requires
-        two-factor sign-in the apply also needs the code emailed for this recovery in this session;
-        a missing or wrong code, a master-key export code or a code for another recovery gets 400
-        `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`.
+        two-factor sign-in the apply also needs the code emailed for this recovery in this session,
+        or a current app code or an unused recovery code when root admin has a connected
+        authenticator app; a missing or wrong code, a master-key export code or a code for another
+        recovery gets 400 `identity_proof_invalid`. A recovery that is not ready gets 409 `recovery_not_ready`.
         The answer is 202 once the apply is recorded durably, before the service stops. Publication
         then drains all work, replaces the database and the master key, and serves the recovered
         installation in the same process with its schedules running; every session ends, and sign-in uses the accounts
@@ -3826,7 +4071,7 @@ paths:
         a second publication.
       x-access: admin
       requestBody:
-        description: The replacement confirmation and, with two-factor sign-in, the emailed code.
+        description: The replacement confirmation and, with two-factor sign-in, the confirmation code.
         required: true
         content:
           application/json:
@@ -3892,6 +4137,14 @@ components:
       in: path
       required: true
       description: The ID of the user
+      schema:
+        type: string
+        format: uuid
+    AuthenticatorAppSetupId:
+      name: authenticatorAppSetupId
+      in: path
+      required: true
+      description: The setup that startAuthenticatorAppSetup named
       schema:
         type: string
         format: uuid
@@ -4383,15 +4636,19 @@ components:
           minLength: 1
           description: The redirect URI the code was issued for
     SignInOutcome:
-      description: The session, or the pending sign-in that waits for the emailed code
+      description: The session, or the pending sign-in that waits for the second factor
       oneOf:
         - $ref: "#/components/schemas/SignInCompleted"
         - $ref: "#/components/schemas/SignInCodeRequired"
+        - $ref: "#/components/schemas/SignInAuthenticatorCodeRequired"
+        - $ref: "#/components/schemas/SignInAuthenticatorSetupRequired"
       discriminator:
         propertyName: outcome
         mapping:
           COMPLETED: "#/components/schemas/SignInCompleted"
           CODE_REQUIRED: "#/components/schemas/SignInCodeRequired"
+          AUTHENTICATOR_CODE_REQUIRED: "#/components/schemas/SignInAuthenticatorCodeRequired"
+          AUTHENTICATOR_SETUP_REQUIRED: "#/components/schemas/SignInAuthenticatorSetupRequired"
     SignInCompleted:
       type: object
       description: The user is signed in
@@ -4427,15 +4684,73 @@ components:
         email:
           type: string
           description: The address the code went to
+    SignInAuthenticatorCodeRequired:
+      type: object
+      description: The password was correct, and the user's authenticator app proves the second factor
+      required: [outcome, pendingSignInId]
+      properties:
+        outcome:
+          type: string
+          enum: [AUTHENTICATOR_CODE_REQUIRED]
+          description: Always `AUTHENTICATOR_CODE_REQUIRED`
+        pendingSignInId:
+          type: string
+          format: uuid
+          description: The pending sign-in that an app code or a recovery code completes
+    SignInAuthenticatorSetupRequired:
+      type: object
+      description: >-
+        The password was correct, and the instance requires an authenticator app the user has not
+        connected yet; the user connects one before signing in
+      required: [outcome, pendingSignInId, secret, otpauthUri, expiresAt]
+      properties:
+        outcome:
+          type: string
+          enum: [AUTHENTICATOR_SETUP_REQUIRED]
+          description: Always `AUTHENTICATOR_SETUP_REQUIRED`
+        pendingSignInId:
+          type: string
+          format: uuid
+          description: The pending sign-in that confirming the setup completes
+        secret:
+          type: string
+          description: The base32 secret to type into the app, returned only in this response
+        otpauthUri:
+          type: string
+          description: The `otpauth://totp/` address of the secret, for the QR code, returned only in this response
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the setup stops being confirmable
+    AuthenticatorAppSetupSession:
+      type: object
+      description: The connected app's recovery codes and the session of the signed-in user
+      required: [userId, email, token, recoveryCodes]
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the signed-in user
+        email:
+          type: string
+          description: The address of the signed-in user
+        token:
+          type: string
+          description: "The session token to send as `Authorization: Bearer <token>`, returned once"
+        recoveryCodes:
+          type: array
+          items:
+            type: string
+          description: Ten single-use codes that replace an app code, returned only in this response
     VerifySignInCodeRequest:
       type: object
-      description: The code emailed for a pending sign-in
+      description: The code that completes a pending sign-in
       required: [code]
       properties:
         code:
           type: string
           writeOnly: true
-          description: The six digits from the message
+          description: The six digits from the message or the app, or an unused recovery code
         cloudflareTurnstileToken:
           type: string
           description: The answer to the human-verification challenge, required when the instance has one
@@ -4469,7 +4784,16 @@ components:
     User:
       type: object
       description: A user of the instance
-      required: [id, email, name, role, status, isRootAdmin, createdAt]
+      required:
+        - id
+        - email
+        - name
+        - role
+        - status
+        - isRootAdmin
+        - createdAt
+        - authenticatorAppConnectedAt
+        - unusedRecoveryCodeCount
       properties:
         id:
           type: string
@@ -4494,6 +4818,61 @@ components:
           type: string
           format: date-time
           description: When the user was created
+        authenticatorAppConnectedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the user's authenticator app was connected; null without an app
+        unusedRecoveryCodeCount:
+          type: integer
+          nullable: true
+          description: How many recovery codes the user has not used yet; null without an app
+    SecondFactorProof:
+      type: object
+      description: A current second factor of the signed-in user
+      properties:
+        code:
+          type: string
+          writeOnly: true
+          description: A current app code or an unused recovery code
+    AuthenticatorAppCode:
+      type: object
+      description: A code from an authenticator app
+      required: [code]
+      properties:
+        code:
+          type: string
+          writeOnly: true
+          description: The six digits the app shows
+    AuthenticatorAppSetup:
+      type: object
+      description: A started authenticator app setup
+      required: [authenticatorAppSetupId, secret, otpauthUri, expiresAt]
+      properties:
+        authenticatorAppSetupId:
+          type: string
+          format: uuid
+          description: The setup that confirmAuthenticatorAppSetup confirms
+        secret:
+          type: string
+          description: The base32 secret to type into the app, returned only in this response
+        otpauthUri:
+          type: string
+          description: The `otpauth://totp/` address of the secret, for the QR code, returned only in this response
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the setup stops being confirmable
+    RecoveryCodes:
+      type: object
+      description: A new set of recovery codes
+      required: [recoveryCodes]
+      properties:
+        recoveryCodes:
+          type: array
+          items:
+            type: string
+          description: Ten single-use codes that replace an app code, returned only in this response
     PasswordResetRequest:
       type: object
       description: A request for a password reset code
@@ -4580,7 +4959,7 @@ components:
         - isAllowExternalRegistrations
         - isAllowMemberInvitations
         - isMemberAllowedToCreateWorkspaces
-        - isTwoFactorAuthRequired
+        - twoFactorRequirement
         - isEmailConfigured
       properties:
         isAllowExternalRegistrations:
@@ -4592,9 +4971,8 @@ components:
         isMemberAllowedToCreateWorkspaces:
           type: boolean
           description: A user who is not an instance admin may create workspaces
-        isTwoFactorAuthRequired:
-          type: boolean
-          description: A password sign-in also needs a code emailed to the user
+        twoFactorRequirement:
+          $ref: "#/components/schemas/TwoFactorRequirement"
         isEmailConfigured:
           type: boolean
           description: Whether the operator configured a mail server; it cannot be changed here
@@ -4605,7 +4983,7 @@ components:
         - isAllowExternalRegistrations
         - isAllowMemberInvitations
         - isMemberAllowedToCreateWorkspaces
-        - isTwoFactorAuthRequired
+        - twoFactorRequirement
       properties:
         isAllowExternalRegistrations:
           type: boolean
@@ -4616,9 +4994,16 @@ components:
         isMemberAllowedToCreateWorkspaces:
           type: boolean
           description: A user who is not an instance admin may create workspaces
-        isTwoFactorAuthRequired:
-          type: boolean
-          description: A password sign-in also needs a code emailed to the user
+        twoFactorRequirement:
+          $ref: "#/components/schemas/TwoFactorRequirement"
+    TwoFactorRequirement:
+      type: string
+      description: >-
+        The second factor a password sign-in needs: none, a code emailed to the user, or a code from
+        an authenticator app the user connects at the next sign-in. A user with a connected app
+        presents the app under every value. Requiring `EMAIL` needs a mail server and a usable
+        address on every active administrator.
+      enum: [OFF, EMAIL, AUTHENTICATOR_APP]
     TestEmail:
       type: object
       description: A test email the instance tried to deliver
@@ -6322,8 +6707,8 @@ components:
         isConfirmationCodeRequired:
           type: boolean
           description: >-
-            Whether a master-key export and a recovery apply need a code emailed to root admin,
-            because the instance requires two-factor sign-in
+            Whether a master-key export and a recovery apply need a confirmation by root admin's
+            second factor, because the instance requires two-factor sign-in
         reminder:
           $ref: "#/components/schemas/InstanceBackupReminder"
         recovery:
@@ -6502,13 +6887,19 @@ components:
           description: When the token stops working
     IdentityConfirmation:
       type: object
-      description: An emailed identity code that was sent
-      required: [expiresAt]
+      description: How root admin confirms the operation
+      required: [method]
       properties:
+        method:
+          type: string
+          enum: [EMAIL, AUTHENTICATOR_APP]
+          description: >-
+            `EMAIL` when a code was emailed, `AUTHENTICATOR_APP` when root admin confirms with a
+            current app code or an unused recovery code and nothing was sent
         expiresAt:
           type: string
           format: date-time
-          description: When the code stops working
+          description: When the emailed code stops working, present only for `EMAIL`
     MasterKeyExportCreate:
       type: object
       description: The confirmation for a master-key export
@@ -6516,7 +6907,9 @@ components:
         code:
           type: string
           writeOnly: true
-          description: The emailed confirmation code; required when the instance requires two-factor sign-in
+          description: >-
+            The emailed confirmation code, or root admin's app code or recovery code; required when the
+            instance requires two-factor sign-in
     MasterKeyExport:
       type: object
       description: A single-use token that downloads the master key within 60 seconds
@@ -6634,7 +7027,7 @@ components:
           description: The source installation's master key as text; its exact UTF-8 bytes are used
     InstanceRecoveryApply:
       type: object
-      description: The replacement confirmation, with the emailed code while two-factor sign-in is required
+      description: The replacement confirmation, with the confirmation code while two-factor sign-in is required
       required: [isReplacementConfirmed]
       properties:
         isReplacementConfirmed:
@@ -6644,8 +7037,8 @@ components:
           type: string
           writeOnly: true
           description: >-
-            The code emailed for this recovery; required while the instance requires two-factor
-            sign-in and ignored otherwise
+            The code emailed for this recovery, or root admin's app code or recovery code; required
+            while the instance requires two-factor sign-in and ignored otherwise
     StorageType:
       type: string
       description: The provider of a storage
@@ -6702,6 +7095,11 @@ components:
         - too_many_sign_in_codes
         - sign_in_code_resent_too_soon
         - sign_in_code_incorrect
+        - pending_sign_in_not_resendable
+        - second_factor_invalid
+        - too_many_wrong_codes
+        - authenticator_app_required
+        - authenticator_setup_not_usable
         - email_not_configured
         - admin_email_missing
         - already_member

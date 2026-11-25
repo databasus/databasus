@@ -78,7 +78,7 @@ func (a *App) CreateNonAdminUser(tb testing.TB, admin Session) Session {
 			IsAllowExternalRegistrations:      true,
 			IsAllowMemberInvitations:          currentSettings.JSON200.IsAllowMemberInvitations,
 			IsMemberAllowedToCreateWorkspaces: currentSettings.JSON200.IsMemberAllowedToCreateWorkspaces,
-			IsTwoFactorAuthRequired:           currentSettings.JSON200.IsTwoFactorAuthRequired,
+			TwoFactorRequirement:              currentSettings.JSON200.TwoFactorRequirement,
 		},
 	)
 	if err != nil || updatedSettings.StatusCode() != http.StatusOK {

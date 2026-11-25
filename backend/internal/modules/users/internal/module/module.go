@@ -4,7 +4,6 @@ package module
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,6 +11,7 @@ import (
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/modules/users/internal/accounts"
+	"databasus-backend/internal/modules/users/internal/authenticator"
 	usershttpapi "databasus-backend/internal/modules/users/internal/httpapi"
 	"databasus-backend/internal/modules/users/internal/identity"
 	"databasus-backend/internal/modules/users/internal/identityproof"
@@ -27,6 +27,7 @@ type Deps struct {
 	Settings      *settings.Service
 	SignIn        *signin.Service
 	IdentityProof *identityproof.Service
+	Authenticator *authenticator.Service
 	Access        *usershttpapi.Access
 	Handler       *usershttpapi.Handler
 	Logger        *slog.Logger
@@ -39,6 +40,7 @@ type Module struct {
 	settings      *settings.Service
 	signIn        *signin.Service
 	identityProof *identityproof.Service
+	authenticator *authenticator.Service
 	access        *usershttpapi.Access
 	handler       *usershttpapi.Handler
 	logger        *slog.Logger
@@ -52,6 +54,7 @@ func New(deps Deps) *Module {
 		settings:      deps.Settings,
 		signIn:        deps.SignIn,
 		identityProof: deps.IdentityProof,
+		authenticator: deps.Authenticator,
 		access:        deps.Access,
 		handler:       deps.Handler,
 		logger:        deps.Logger,
@@ -98,7 +101,7 @@ func (m *Module) SendIdentityCode(
 	ctx context.Context,
 	actor identity.Actor,
 	binding identityproof.Binding,
-) (time.Time, error) {
+) (identityproof.Confirmation, error) {
 	return m.identityProof.SendCode(ctx, actor, binding)
 }
 
@@ -128,7 +131,12 @@ func (m *Module) CanCreateWorkspaces(ctx context.Context, actor identity.Actor) 
 }
 
 func (m *Module) IsTwoFactorAuthRequired(ctx context.Context) (bool, error) {
-	return m.settings.IsTwoFactorAuthRequired(ctx)
+	requirement, err := m.settings.GetTwoFactorRequirement(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return requirement.IsRequired(), nil
 }
 
 func (m *Module) GetUserCount(ctx context.Context) (int64, error) {
@@ -148,6 +156,10 @@ func (m *Module) ChangePasswordFromConsole(ctx context.Context, change accounts.
 
 func (m *Module) DisableTwoFactorAuth(ctx context.Context) (bool, error) {
 	return m.settings.DisableTwoFactorAuthFromConsole(ctx)
+}
+
+func (m *Module) ResetAuthenticatorAppFromConsole(ctx context.Context, email string) (bool, error) {
+	return m.authenticator.ResetAppFromConsole(ctx, email)
 }
 
 func (m *Module) RenderAdminListing(ctx context.Context) (string, error) {

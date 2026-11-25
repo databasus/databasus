@@ -28,8 +28,8 @@ func (h *Handler) ListUsers(ctx context.Context, request ListUsersRequestObject)
 	}
 
 	items := make([]User, 0, len(page.Users))
-	for _, user := range page.Users {
-		items = append(items, toUserBody(user))
+	for _, userWithApp := range page.Users {
+		items = append(items, toUserBody(userWithApp))
 	}
 
 	return ListUsers200JSONResponse{Items: items, NextCursor: page.NextCursor}, nil
@@ -84,4 +84,21 @@ func (h *Handler) ChangeUserRole(
 	}
 
 	return ChangeUserRole200JSONResponse(toUserBody(user)), nil
+}
+
+func (h *Handler) ResetAuthenticatorApp(
+	ctx context.Context,
+	request ResetAuthenticatorAppRequestObject,
+) (ResetAuthenticatorAppResponseObject, error) {
+	actor, err := identity.RequireActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := h.accounts.ResetAuthenticatorApp(ctx, actor, request.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	return ResetAuthenticatorApp200JSONResponse(toUserBody(user)), nil
 }

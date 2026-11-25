@@ -21,13 +21,15 @@ const user = {
   role: 'MEMBER' as const,
   status: 'ACTIVE' as const,
   isRootAdmin: false,
+  authenticatorAppConnectedAt: null,
+  unusedRecoveryCodeCount: null,
   createdAt: '2026-10-01T00:00:00Z',
 };
 const settings = {
   isAllowExternalRegistrations: false,
   isAllowMemberInvitations: false,
   isMemberAllowedToCreateWorkspaces: false,
-  isTwoFactorAuthRequired: false,
+  twoFactorRequirement: 'OFF' as const,
   isEmailConfigured: true,
 };
 const seed = () => {

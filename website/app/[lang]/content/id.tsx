@@ -170,7 +170,7 @@ export default function Index() {
                 name: "Bagaimana Databasus menjaga keamanan?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus menerapkan keamanan pada tiga tingkat: (1) Enkripsi data sensitif: semua password, token, dan kredensial dienkripsi dengan AES-256-GCM dan disimpan terpisah dari database; (2) Enkripsi backup: setiap file backup dienkripsi dengan key unik yang diturunkan dari master key, ID backup, dan salt acak, sehingga backup tidak berguna tanpa key enkripsi kamu meskipun seseorang mendapat akses penyimpanan; (3) Akses database read-only: Databasus hanya memerlukan izin SELECT dan melakukan pemeriksaan menyeluruh untuk memastikan tidak ada hak tulis, sehingga mencegah kerusakan data meskipun alat ini disusupi. Login juga bisa mewajibkan faktor kedua: jika diaktifkan, password yang benar diikuti kode enam digit yang dikirim ke email akun, sedangkan login melalui Google atau GitHub tetap mengandalkan pemeriksaan penyedia tersebut. Sebelum setiap rilis, pemeriksaan otomatis memindai kode, dependency, secret, dan image container. Pengujian memverifikasi siklus backup dan restore lengkap pada container PostgreSQL, MySQL, MariaDB, dan MongoDB sungguhan. Semua pemeriksaan wajib harus lolos sebelum publikasi. Audit berkala Codex Security dari OpenAI melengkapi pemeriksaan ini dan dilakukan terpisah dari proses rilis. Semua operasi berjalan di container yang kamu kendalikan pada server milik kamu. Karena open source, tim keamanan bisa mengaudit setiap baris kode sebelum deployment.",
+                  text: "Databasus menerapkan keamanan pada tiga tingkat: (1) Enkripsi data sensitif: semua password, token, dan kredensial dienkripsi dengan AES-256-GCM dan disimpan terpisah dari database; (2) Enkripsi backup: setiap file backup dienkripsi dengan key unik yang diturunkan dari master key, ID backup, dan salt acak, sehingga backup tidak berguna tanpa key enkripsi kamu meskipun seseorang mendapat akses penyimpanan; (3) Akses database read-only: Databasus hanya memerlukan izin SELECT dan melakukan pemeriksaan menyeluruh untuk memastikan tidak ada hak tulis, sehingga mencegah kerusakan data meskipun alat ini disusupi. Login bisa mewajibkan autentikasi dua faktor: kode yang dikirim lewat email atau kode dari aplikasi autentikator (TOTP). Sebelum setiap rilis, pemeriksaan otomatis memindai kode, dependency, secret, dan image container. Pengujian memverifikasi siklus backup dan restore lengkap pada container PostgreSQL, MySQL, MariaDB, dan MongoDB sungguhan. Semua pemeriksaan wajib harus lolos sebelum publikasi. Audit berkala Codex Security dari OpenAI melengkapi pemeriksaan ini dan dilakukan terpisah dari proses rilis. Semua operasi berjalan di container yang kamu kendalikan pada server milik kamu. Karena open source, tim keamanan bisa mengaudit setiap baris kode sebelum deployment.",
                 },
               },
               {
@@ -1025,9 +1025,7 @@ export default function Index() {
                   sehingga mencegah kerusakan data meskipun alat ini disusupi.
                   <br />
                   <br />
-                  Login juga bisa mewajibkan faktor kedua: jika diaktifkan, password yang benar
-                  diikuti kode enam digit yang dikirim ke email akun, sedangkan login melalui Google
-                  atau GitHub tetap mengandalkan pemeriksaan penyedia tersebut.
+                  Login bisa mewajibkan autentikasi dua faktor: kode yang dikirim lewat email atau kode dari aplikasi autentikator (TOTP).
                   <br />
                   <br />
                   Sebelum setiap rilis, pemeriksaan otomatis memindai kode, dependency,

@@ -31,6 +31,14 @@ export const userManagementApi = {
     );
   },
 
+  async resetAuthenticatorApp(userId: string): Promise<User> {
+    return requireData(
+      await getApiClient().POST('/users/{userId}/reset-authenticator-app', {
+        params: { path: { userId } },
+      }),
+    );
+  },
+
   async changeUserRole(userId: string, role: UserRole): Promise<User> {
     return requireData(
       await getApiClient().PUT('/users/{userId}/role', {

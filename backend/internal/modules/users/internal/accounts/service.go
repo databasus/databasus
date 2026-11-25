@@ -9,57 +9,79 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/users/internal/authenticator"
 	"databasus-backend/internal/modules/users/internal/identity"
 	"databasus-backend/internal/modules/users/internal/oauth"
 	"databasus-backend/internal/modules/users/internal/settings"
 )
 
 type Deps struct {
-	Repositories Repositories
-	Transactor   *database.Transactor
-	Clock        clock.Source
-	AuditLog     *audit.Log
-	Settings     *settings.Service
-	Logger       *slog.Logger
+	Repositories  Repositories
+	Transactor    *database.Transactor
+	Clock         clock.Source
+	AuditLog      *audit.Log
+	Settings      *settings.Service
+	Authenticator *authenticator.Service
+	Logger        *slog.Logger
 }
 
 type Service struct {
-	repository *userRepository
-	transactor *database.Transactor
-	clock      clock.Source
-	auditLog   *audit.Log
-	settings   *settings.Service
-	logger     *slog.Logger
+	repository    *userRepository
+	transactor    *database.Transactor
+	clock         clock.Source
+	auditLog      *audit.Log
+	settings      *settings.Service
+	authenticator *authenticator.Service
+	logger        *slog.Logger
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		repository: deps.Repositories.users,
-		transactor: deps.Transactor,
-		clock:      deps.Clock,
-		auditLog:   deps.AuditLog,
-		settings:   deps.Settings,
-		logger:     deps.Logger,
+		repository:    deps.Repositories.users,
+		transactor:    deps.Transactor,
+		clock:         deps.Clock,
+		auditLog:      deps.AuditLog,
+		settings:      deps.Settings,
+		authenticator: deps.Authenticator,
+		logger:        deps.Logger,
 	}
 }
 
 // GetUser serves a user's own profile and an administrator's view of any user. Anyone else gets
 // permission_denied before the lookup, so the answer does not tell which IDs exist.
-func (s *Service) GetUser(ctx context.Context, actor identity.Actor, userID uuid.UUID) (identity.User, error) {
+func (s *Service) GetUser(
+	ctx context.Context,
+	actor identity.Actor,
+	userID uuid.UUID,
+) (UserWithAuthenticatorApp, error) {
 	if actor.UserID != userID && !actor.IsAdmin() {
-		return identity.User{}, ErrAnotherUser
+		return UserWithAuthenticatorApp{}, ErrAnotherUser
 	}
 
 	record, isFound, err := s.repository.getByID(ctx, userID)
 	if err != nil {
-		return identity.User{}, err
+		return UserWithAuthenticatorApp{}, err
 	}
 
 	if !isFound {
-		return identity.User{}, ErrUserNotFound
+		return UserWithAuthenticatorApp{}, ErrUserNotFound
 	}
 
-	return record.ToUser(), nil
+	return s.withAuthenticatorApp(ctx, record.ToUser())
+}
+
+func (s *Service) DisconnectAuthenticatorApp(
+	ctx context.Context,
+	actor identity.Actor,
+	userID uuid.UUID,
+	code string,
+) (UserWithAuthenticatorApp, error) {
+	err := s.authenticator.Disconnect(ctx, actor, userID, code)
+	if err != nil {
+		return UserWithAuthenticatorApp{}, err
+	}
+
+	return s.GetUser(ctx, actor, userID)
 }
 
 func (s *Service) GetRecord(ctx context.Context, userID uuid.UUID) (UserRecord, bool, error) {

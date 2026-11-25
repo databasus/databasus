@@ -179,7 +179,7 @@ export default function Index() {
                 name: "How does Databasus ensure security?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Databasus enforces security on three levels: (1) Sensitive data encryption — all passwords, tokens and credentials are encrypted with AES-256-GCM and stored separately from the database; (2) Backup encryption — each backup file is encrypted with a unique key derived from a master key, backup ID and random salt, making backups useless without your encryption key even if someone gains storage access; (3) Read-only database access — Databasus only requires SELECT permissions and performs comprehensive checks to ensure no write privileges exist, preventing data corruption even if the tool is compromised. Sign-in itself can require a second factor: with it on, a correct password is followed by a six-digit code emailed to the account, while sign-in through Google or GitHub keeps relying on the provider's own checks. Before each release, automated checks scan code, dependencies, secrets and container images. Tests verify full backup-and-restore cycles against real PostgreSQL, MySQL, MariaDB and MongoDB containers. Required checks must pass before publication. Regular Codex Security audits from OpenAI complement these checks and are separate from the release pipeline. All operations run in containers you control on servers you own, and because it's open source, your security team can audit every line of code before deployment.",
+                  text: "Databasus enforces security on three levels: (1) Sensitive data encryption — all passwords, tokens and credentials are encrypted with AES-256-GCM and stored separately from the database; (2) Backup encryption — each backup file is encrypted with a unique key derived from a master key, backup ID and random salt, making backups useless without your encryption key even if someone gains storage access; (3) Read-only database access — Databasus only requires SELECT permissions and performs comprehensive checks to ensure no write privileges exist, preventing data corruption even if the tool is compromised. Sign-in can require two-factor authentication: a code sent by email or a code from an authenticator app (TOTP). Before each release, automated checks scan code, dependencies, secrets and container images. Tests verify full backup-and-restore cycles against real PostgreSQL, MySQL, MariaDB and MongoDB containers. Required checks must pass before publication. Regular Codex Security audits from OpenAI complement these checks and are separate from the release pipeline. All operations run in containers you control on servers you own, and because it's open source, your security team can audit every line of code before deployment.",
                 },
               },
               {
@@ -1244,10 +1244,7 @@ export default function Index() {
                   tool is compromised.
                   <br />
                   <br />
-                  Sign-in itself can require a second factor: with it on, a
-                  correct password is followed by a six-digit code emailed to
-                  the account, while sign-in through Google or GitHub keeps
-                  relying on the provider&apos;s own checks.
+                  Sign-in can require two-factor authentication: a code sent by email or a code from an authenticator app (TOTP).
                   <br />
                   <br />
                   Before each release, automated checks scan code, dependencies, secrets and

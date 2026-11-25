@@ -70,6 +70,8 @@ export const instanceBackupFixtures = ({
           status: 'ACTIVE',
           isRootAdmin,
           createdAt: '2026-10-01T00:00:00Z',
+          authenticatorAppConnectedAt: null,
+          unusedRecoveryCodeCount: null,
         },
       }),
       apiResponse({
@@ -81,7 +83,7 @@ export const instanceBackupFixtures = ({
           isAllowMemberInvitations: false,
           isMemberAllowedToCreateWorkspaces: false,
           isEmailConfigured: status.isEmailConfigured,
-          isTwoFactorAuthRequired: false,
+          twoFactorRequirement: 'OFF',
         },
       }),
       apiResponse({ method: 'get', path: '/instance-backup-statuses', status: 200, body: status }),

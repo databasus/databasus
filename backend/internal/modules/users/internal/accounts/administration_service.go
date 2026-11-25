@@ -44,11 +44,17 @@ func (s *Service) ListUsers(ctx context.Context, actor identity.Actor, query Use
 		return UserPage{}, err
 	}
 
-	page := UserPage{Users: make([]identity.User, 0, min(len(records), limit)), NextCursor: nil}
-
+	pageUsers := make([]identity.User, 0, min(len(records), limit))
 	for _, record := range records[:min(len(records), limit)] {
-		page.Users = append(page.Users, record.ToUser())
+		pageUsers = append(pageUsers, record.ToUser())
 	}
+
+	pageUsersWithApps, err := s.withAuthenticatorApps(ctx, pageUsers)
+	if err != nil {
+		return UserPage{}, err
+	}
+
+	page := UserPage{Users: pageUsersWithApps, NextCursor: nil}
 
 	if len(records) > limit {
 		lastRecord := records[limit-1]
@@ -59,7 +65,11 @@ func (s *Service) ListUsers(ctx context.Context, actor identity.Actor, query Use
 	return page, nil
 }
 
-func (s *Service) ActivateUser(ctx context.Context, actor identity.Actor, userID uuid.UUID) (identity.User, error) {
+func (s *Service) ActivateUser(
+	ctx context.Context,
+	actor identity.Actor,
+	userID uuid.UUID,
+) (UserWithAuthenticatorApp, error) {
 	return s.administerUser(ctx, actor, userID, func(ctx context.Context, admin, user UserRecord) (UserRecord, error) {
 		if user.Role == identity.RoleAdmin && !admin.IsBootstrapAdmin {
 			return UserRecord{}, ErrOnlyBootstrapAdminManagesAdmins
@@ -78,9 +88,13 @@ func (s *Service) ActivateUser(ctx context.Context, actor identity.Actor, userID
 
 // DeactivateUser ends every session of the user, because a session of a user who is not active is
 // not valid.
-func (s *Service) DeactivateUser(ctx context.Context, actor identity.Actor, userID uuid.UUID) (identity.User, error) {
+func (s *Service) DeactivateUser(
+	ctx context.Context,
+	actor identity.Actor,
+	userID uuid.UUID,
+) (UserWithAuthenticatorApp, error) {
 	if actor.UserID == userID {
-		return identity.User{}, ErrCannotDeactivateYourself
+		return UserWithAuthenticatorApp{}, ErrCannotDeactivateYourself
 	}
 
 	return s.administerUser(ctx, actor, userID, func(ctx context.Context, admin, user UserRecord) (UserRecord, error) {
@@ -103,20 +117,50 @@ func (s *Service) DeactivateUser(ctx context.Context, actor identity.Actor, user
 	})
 }
 
+// ResetAuthenticatorApp removes the app of a user who lost it, under the rules that decide who may
+// deactivate whom. Pending sign-ins that wait for the app's code stop working; sessions stay. A user
+// without an app is answered unchanged and nothing is recorded.
+func (s *Service) ResetAuthenticatorApp(
+	ctx context.Context,
+	actor identity.Actor,
+	userID uuid.UUID,
+) (UserWithAuthenticatorApp, error) {
+	if actor.UserID == userID {
+		return UserWithAuthenticatorApp{}, ErrCannotResetOwnAuthenticatorApp
+	}
+
+	return s.administerUser(ctx, actor, userID, func(ctx context.Context, admin, user UserRecord) (UserRecord, error) {
+		if user.IsBootstrapAdmin {
+			return UserRecord{}, ErrBootstrapAdminProtected
+		}
+
+		if user.Role == identity.RoleAdmin && !admin.IsBootstrapAdmin {
+			return UserRecord{}, ErrOnlyBootstrapAdminManagesAdmins
+		}
+
+		isDeleted, err := s.authenticator.DeleteApp(ctx, user.ID)
+		if err != nil || !isDeleted {
+			return user, err
+		}
+
+		return user, s.recordAuditEvent(ctx, admin, "Authenticator app reset: "+user.Email)
+	})
+}
+
 func (s *Service) ChangeUserRole(
 	ctx context.Context,
 	actor identity.Actor,
 	userID uuid.UUID,
 	newRole identity.Role,
-) (identity.User, error) {
+) (UserWithAuthenticatorApp, error) {
 	if !newRole.IsValid() {
-		return identity.User{}, apierror.NewInvalidFieldsProblem([]apierror.FieldError{
+		return UserWithAuthenticatorApp{}, apierror.NewInvalidFieldsProblem([]apierror.FieldError{
 			{Field: "role", Detail: "is not a role"},
 		})
 	}
 
 	if actor.UserID == userID {
-		return identity.User{}, ErrCannotChangeOwnRole
+		return UserWithAuthenticatorApp{}, ErrCannotChangeOwnRole
 	}
 
 	return s.administerUser(ctx, actor, userID, func(ctx context.Context, admin, user UserRecord) (UserRecord, error) {
@@ -141,19 +185,20 @@ func (s *Service) ChangeUserRole(
 	})
 }
 
-// administerUser loads the administrator and the user in one transaction and applies the change.
-// The bootstrap administrator is read from the record, so the powers survive a change of address.
+// administerUser loads the administrator and the user in one transaction, applies the change and
+// reads the changed account in the same transaction. The bootstrap administrator is read from the
+// record, so the powers survive a change of address.
 func (s *Service) administerUser(
 	ctx context.Context,
 	actor identity.Actor,
 	userID uuid.UUID,
 	change func(ctx context.Context, admin, user UserRecord) (UserRecord, error),
-) (identity.User, error) {
+) (UserWithAuthenticatorApp, error) {
 	if !actor.IsAdmin() {
-		return identity.User{}, ErrNotAdmin
+		return UserWithAuthenticatorApp{}, ErrNotAdmin
 	}
 
-	var changedUser UserRecord
+	var changedUserWithApp UserWithAuthenticatorApp
 
 	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		if err := s.repository.lockAdministration(ctx); err != nil {
@@ -178,13 +223,18 @@ func (s *Service) administerUser(
 			return ErrUserNotFound
 		}
 
-		changedUser, err = change(ctx, admin, user)
+		changedUser, err := change(ctx, admin, user)
+		if err != nil {
+			return err
+		}
+
+		changedUserWithApp, err = s.withAuthenticatorApp(ctx, changedUser.ToUser())
 
 		return err
 	})
 	if err != nil {
-		return identity.User{}, err
+		return UserWithAuthenticatorApp{}, err
 	}
 
-	return changedUser.ToUser(), nil
+	return changedUserWithApp, nil
 }

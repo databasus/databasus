@@ -246,28 +246,6 @@ export default function AdvancedConfigPage() {
                 Это почтовый сервер инстанса. У каналов уведомлений по email, которые сообщают о бекапах, свои настройки SMTP в форме каждого канала. Поэтому если письма от канала уведомлений доходят, это ничего не говорит о почтовом сервере инстанса. Чтобы проверить его, откройте <strong>Databasus settings → Mail server</strong> и нажмите <strong>Send test email</strong>. Письмо придет на ваш адрес, а если доставка не удалась, вы увидите ответ почтового сервера.
               </p>
 
-              <div className="bg-[#1f2937]/50 border border-[#ffffff20] border-l-[3px] my-4 border-l-red-500 rounded-lg px-4 py-4 flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-red-500 mt-0.5 shrink-0"
-                >
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <path d="M12 9v4M12 17h.01" />
-                </svg>
-                <div>
-                  <p className="text-gray-300 my-0!">
-                    <strong>Если ваш релей не поддерживает STARTTLS, задайте <code>SMTP_SECURITY=none</code> до обновления.</strong> На любом порту, кроме 465, по умолчанию действует режим <code>starttls</code>, а он не продолжает работу без шифрования, так что такой релей не получит ни одного письма, пока переменная не задана. Если инстанс требует код входа по почте, то пока письма не доходят, по паролю не войдет никто. Чтобы вернуть доступ, выключите второй фактор командой <code>docker exec -it databasus ./main --disable-2fa</code> (подробнее — в разделе <a href="/ru/password/#disable-two-factor" className="text-blue-400 hover:text-blue-300">Перестать запрашивать код при входе</a>).
-                  </p>
-                </div>
-              </div>
-
               <table>
                 <thead>
                   <tr>

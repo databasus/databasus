@@ -43,7 +43,6 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   const encryptionPipeline = `PostgreSQL pg_dump → Compression → Encryption → Cloud Storage`;
-  const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
 
   return (
     <>
@@ -297,59 +296,7 @@ export default function SecurityPage() {
               </h2>
 
               <p>
-                Un mot de passe seul ouvre tous les identifiants de bases, les
-                clés de stockage et les sauvegardes que l&apos;instance
-                conserve, donc un administrateur peut exiger un second facteur
-                pour la connexion par mot de passe. Une fois activé, un mot de
-                passe correct envoie un code à six chiffres à l&apos;adresse du
-                compte, et la connexion n&apos;aboutit qu&apos;après la saisie
-                de ce code. Le code cesse de fonctionner dix minutes après son
-                envoi ou après cinq essais erronés, et en demander un autre
-                annule le précédent. Activer le réglage protège la prochaine
-                connexion et laisse fonctionner les sessions déjà ouvertes.
-              </p>
-
-              <p>
-                Le réglage couvre la connexion par mot de passe. Se connecter
-                par Google ou GitHub délivre toujours un jeton directement,
-                parce que ces fournisseurs font leurs propres vérifications
-                multifacteurs : une instance qui veut le second facteur pour
-                tout le monde ne les configure tout simplement pas.
-              </p>
-
-              <p>
-                Il ne peut être activé que si l&apos;instance dispose d&apos;un
-                serveur de messagerie et que chaque administrateur actif porte
-                une vraie adresse, pour que personne ne l&apos;active et ne se
-                retrouve bloqué hors de l&apos;instance. Si la messagerie cesse
-                ensuite de distribuer les e-mails, plus personne n&apos;entre
-                avec un mot de passe, et c&apos;est délibéré : un serveur de
-                messagerie en panne ne doit pas ramener discrètement la
-                connexion à un seul facteur. Un opérateur ayant accès au serveur
-                le désactive :
-              </p>
-
-              <div className="relative my-6">
-                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
-                  <code>{disableTwoFactorCommand}</code>
-                </pre>
-                <div className="absolute right-2 top-2">
-                  <CopyButton text={disableTwoFactorCommand} />
-                </div>
-              </div>
-
-              <p>
-                La commande indique ce qu&apos;elle a changé et l&apos;inscrit
-                au journal d&apos;audit, si bien qu&apos;une instance qui a
-                cessé de demander des codes en explique la raison. Elle est
-                documentée à côté de la récupération de mot de passe sur la{" "}
-                <a
-                  href="/fr/password#disable-two-factor"
-                  className="text-blue-400 hover:text-blue-600"
-                >
-                  page mot de passe
-                </a>
-                .
+                Un administrateur peut exiger l&apos;authentification à deux facteurs pour la connexion par mot de passe : un code envoyé par e-mail ou un code d&apos;une application d&apos;authentification (TOTP). Si le second facteur est hors de portée, par exemple parce que le serveur de messagerie ne fonctionne plus ou qu&apos;un téléphone a été perdu, la console du serveur désactive l&apos;exigence ou réinitialise l&apos;application d&apos;un compte, comme le décrit la <a href="/fr/password#disable-two-factor" className="text-blue-400 hover:text-blue-600">page mot de passe</a>.
               </p>
 
               <h2 id="security-and-reliability-engineering">

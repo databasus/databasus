@@ -43,6 +43,7 @@ export default function PasswordResetPage() {
   const listAdminsCommand = `docker exec -it databasus ./main --list-admins`;
   const createUserCommand = `docker exec -it databasus ./main --create-user --email="ops@example.com" --password="YourSecurePassword123" --role=admin`;
   const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
+  const resetTwoFactorCommand = `docker exec -it databasus ./main --reset-2fa --email="owner@example.com"`;
 
   return (
     <>
@@ -234,13 +235,13 @@ export default function PasswordResetPage() {
                 through Google or GitHub, the command fails and changes nothing.
               </p>
 
-              <h2 id="disable-two-factor">Stop requiring a sign-in code</h2>
+              <h2 id="disable-two-factor">Stop requiring 2FA</h2>
 
               <p>
                 An instance can require a six-digit code emailed at sign-in on
                 top of the password. If the mail server stops delivering those
                 codes, nobody gets in with a password, and a password reset
-                alone does not help. Switch the second factor off on the server
+                alone does not help. Switch 2FA off on the server
                 where Databasus is running:
               </p>
 
@@ -259,6 +260,25 @@ export default function PasswordResetPage() {
                 records the change in the audit log. The next password sign-in
                 then needs no code, and an administrator can turn the setting
                 back on once mail works again.
+              </p>
+
+              <h2 id="reset-authenticator-app">Reset an account&apos;s authenticator app</h2>
+
+              <p>
+                If someone has lost the phone with their authenticator app, remove the app from their account on the server where Databasus is running:
+              </p>
+
+              <div className="relative my-6">
+                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                  <code>{resetTwoFactorCommand}</code>
+                </pre>
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={resetTwoFactorCommand} />
+                </div>
+              </div>
+
+              <p>
+                The next sign-in of that account follows the instance&apos;s 2FA setting. An administrator can also reset a user&apos;s app from the user list.
               </p>
             </article>
           </div>

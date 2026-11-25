@@ -86,6 +86,11 @@ var (
 		Detail: "the code is incorrect",
 		Errors: nil,
 	}
+	ErrPendingSignInNotResendable = &apierror.Problem{
+		Code:   apierror.CodePendingSignInNotResendable,
+		Detail: "this sign-in waits for an authenticator app code, which is never sent",
+		Errors: nil,
+	}
 	ErrSignInCodeResentTooSoon = &apierror.Problem{
 		Code:   apierror.CodeSignInCodeResentTooSoon,
 		Detail: "a code was sent less than a minute ago, please wait before requesting another",

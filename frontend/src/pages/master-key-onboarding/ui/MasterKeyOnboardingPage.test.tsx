@@ -10,6 +10,7 @@ import { activateSession } from '@/shared/auth';
 import { DICTIONARIES } from '@/shared/i18n';
 import { BrowserClipboard } from '@/shared/lib/BrowserClipboard';
 import { buildProblem, mockApi, setUpMockApi } from '@/shared/lib/test/mockApi';
+import { mockSignedInAccount } from '@/shared/lib/test/mockSignedInAccount';
 import { renderScreen } from '@/shared/lib/test/renderScreen';
 
 const server = setUpMockApi();
@@ -33,9 +34,11 @@ const buildStatus = (status: Partial<InstanceBackupStatus> = {}): InstanceBackup
 const renderPage = (
   status: InstanceBackupStatus = buildStatus(),
   onAcknowledged: () => Promise<unknown> = async () => {},
+  isAuthenticatorAppConnected = false,
 ) => {
   activateSession({ token: 'root-session', userId: 'root' });
   server.use(
+    mockSignedInAccount({ isAuthenticatorAppConnected }),
     http.get('https://api.github.com/repos/databasus/databasus', () =>
       HttpResponse.json({ stargazers_count: 1 }),
     ),
@@ -241,7 +244,10 @@ describe('Master key onboarding page', () => {
 
   it('reads the key with an emailed code when two-factor sign-in is on', async () => {
     server.use(
-      mockApi.post('/master-key-confirmations', 201, { expiresAt: '2999-01-01T00:00:00Z' }),
+      mockApi.post('/master-key-confirmations', 201, {
+        method: 'EMAIL',
+        expiresAt: '2999-01-01T00:00:00Z',
+      }),
     );
     const exportRequests = useKeyExport();
     const { user } = renderPage(buildStatus({ isConfirmationCodeRequired: true }));
@@ -280,7 +286,10 @@ describe('Master key onboarding page', () => {
 
   it('shows the refusal and no key when the code is wrong', async () => {
     server.use(
-      mockApi.post('/master-key-confirmations', 201, { expiresAt: '2999-01-01T00:00:00Z' }),
+      mockApi.post('/master-key-confirmations', 201, {
+        method: 'EMAIL',
+        expiresAt: '2999-01-01T00:00:00Z',
+      }),
       mockApi.post('/master-key-exports', 400, buildProblem('identity_proof_invalid', 400)),
     );
     const { user } = renderPage(buildStatus({ isConfirmationCodeRequired: true }));
@@ -292,6 +301,52 @@ describe('Master key onboarding page', () => {
 
     expect(await screen.findByText(DICTIONARIES.en.errors.identityProofInvalid)).toBeTruthy();
     expect(screen.queryByRole('button', { name: text.copy })).toBeNull();
+  });
+
+  it('reads the key with an app code and sends no mail when root admin has an app', async () => {
+    const exportRequests = useKeyExport();
+    const { user } = renderPage(
+      buildStatus({ isConfirmationCodeRequired: true }),
+      async () => {},
+      true,
+    );
+    await findTitle();
+
+    expect(await screen.findByText(text.appCodeRequired)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: text.proof.sendCode })).toBeNull();
+
+    await user.type(screen.getByLabelText(DICTIONARIES.en.authenticatorApp.code.appCode), '123456');
+    await user.click(screen.getByRole('button', { name: text.proof.confirm }));
+
+    expect(await screen.findByText(keyPreview)).toBeTruthy();
+    expect(exportRequests).toEqual([{ code: '123456' }]);
+    expect(
+      server
+        .getRequests()
+        .some((request) => new URL(request.url).pathname.endsWith('/master-key-confirmations')),
+    ).toBe(false);
+  });
+
+  it('switches to the app code when the instance answers that it expects one', async () => {
+    server.use(mockApi.post('/master-key-confirmations', 201, { method: 'AUTHENTICATOR_APP' }));
+    const exportRequests = useKeyExport();
+    const { user } = renderPage(buildStatus({ isConfirmationCodeRequired: true }));
+    await findTitle();
+
+    await user.click(await screen.findByRole('button', { name: text.proof.sendCode }));
+    await user.click(
+      await screen.findByRole('button', {
+        name: DICTIONARIES.en.authenticatorApp.code.useRecoveryCode,
+      }),
+    );
+    await user.type(
+      screen.getByLabelText(DICTIONARIES.en.authenticatorApp.code.recoveryCode),
+      'abcde-fghij',
+    );
+    await user.click(screen.getByRole('button', { name: text.proof.confirm }));
+
+    expect(await screen.findByText(keyPreview)).toBeTruthy();
+    expect(exportRequests).toEqual([{ code: 'abcde-fghij' }]);
   });
 
   it('translates the page through its language control', async () => {

@@ -44,6 +44,11 @@ var (
 		Detail: "an administrator cannot deactivate themselves",
 		Errors: nil,
 	}
+	ErrCannotResetOwnAuthenticatorApp = &apierror.Problem{
+		Code:   apierror.CodePermissionDenied,
+		Detail: "an administrator cannot reset their own authenticator app; disconnect or replace it in the profile",
+		Errors: nil,
+	}
 	ErrCannotChangeOwnRole = &apierror.Problem{
 		Code:   apierror.CodePermissionDenied,
 		Detail: "an administrator cannot change their own role",
@@ -51,12 +56,12 @@ var (
 	}
 	ErrBootstrapAdminProtected = &apierror.Problem{
 		Code:   apierror.CodePermissionDenied,
-		Detail: "the bootstrap administrator cannot be deactivated or lose the admin role",
+		Detail: "the bootstrap administrator cannot be deactivated, lose the admin role or have the app reset",
 		Errors: nil,
 	}
 	ErrOnlyBootstrapAdminManagesAdmins = &apierror.Problem{
 		Code:   apierror.CodePermissionDenied,
-		Detail: "only the bootstrap administrator grants, revokes, activates and deactivates instance admins",
+		Detail: "only the bootstrap administrator grants, revokes, activates, deactivates and resets instance admins",
 		Errors: nil,
 	}
 	ErrInvalidCursor = apierror.NewInvalidFieldsProblem([]apierror.FieldError{

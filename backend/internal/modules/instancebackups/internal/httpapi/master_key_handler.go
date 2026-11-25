@@ -20,12 +20,12 @@ func (h *Handler) RequestMasterKeyConfirmation(
 		return nil, errNoActor
 	}
 
-	expiresAt, err := h.keyExport.RequestConfirmation(ctx, actor)
+	confirmation, err := h.keyExport.RequestConfirmation(ctx, actor)
 	if err != nil {
 		return nil, err
 	}
 
-	return RequestMasterKeyConfirmation201JSONResponse{ExpiresAt: expiresAt}, nil
+	return RequestMasterKeyConfirmation201JSONResponse(toIdentityConfirmationBody(confirmation)), nil
 }
 
 func (h *Handler) CreateMasterKeyExport(

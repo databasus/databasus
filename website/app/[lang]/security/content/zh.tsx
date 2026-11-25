@@ -43,7 +43,6 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   const encryptionPipeline = `PostgreSQL pg_dump → Compression → Encryption → Cloud Storage`;
-  const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
 
   return (
     <>
@@ -235,36 +234,7 @@ export default function SecurityPage() {
               <h2 id="two-factor-authentication">登录的双因素验证</h2>
 
               <p>
-                仅凭密码就能拿到实例保管的所有数据库凭据、存储密钥和备份，因此管理员可以为密码登录要求第二重验证。启用后，密码正确会把六位验证码发到账号邮箱，只有输入该验证码才算完成登录。验证码在发送十分钟后或五次错误尝试后失效，重新索取会让上一个验证码作废。启用该设置只保护下一次登录，已经打开的会话仍可继续使用。
-              </p>
-
-              <p>
-                该设置只覆盖密码登录。通过 Google 或 GitHub
-                登录仍然直接签发令牌，因为这些服务商有自己的多因素验证；想让第二重验证覆盖所有人的实例，干脆不要配置它们。
-              </p>
-
-              <p>
-                只有实例配置了邮件服务器、并且每个在用的管理员都填了真实邮箱时才能启用，免得有人打开开关把自己关在门外。如果邮件之后无法送达，谁都无法用密码登录，这是故意的：坏掉的邮件服务器不该悄悄把登录退回到单因素。有服务器访问权限的运维可以再把它关掉：
-              </p>
-
-              <div className="relative my-6">
-                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
-                  <code>{disableTwoFactorCommand}</code>
-                </pre>
-                <div className="absolute right-2 top-2">
-                  <CopyButton text={disableTwoFactorCommand} />
-                </div>
-              </div>
-
-              <p>
-                命令会说明它改了什么，并把这次改动写入审计日志，于是不再要求验证码的实例能说清原因。它和密码找回一起记录在
-                <a
-                  href="/zh/password#disable-two-factor"
-                  className="text-blue-400 hover:text-blue-600"
-                >
-                  密码页面
-                </a>
-                上。
+                管理员可以要求密码登录使用双因素验证：邮件验证码或身份验证器应用（TOTP）生成的验证码。如果第二重验证无法使用，例如邮件服务器停止工作或手机丢失，可以在服务器控制台关闭这项要求，或重置某个账号的应用，具体方法见<a href="/zh/password#disable-two-factor" className="text-blue-400 hover:text-blue-600">密码页面</a>。
               </p>
 
               <h2 id="security-and-reliability-engineering">

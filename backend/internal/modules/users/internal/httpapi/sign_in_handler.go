@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"fmt"
 
 	"databasus-backend/internal/modules/users/internal/signin"
 )
@@ -40,13 +41,7 @@ func toSignInOutcomeBody(outcome signin.SignInOutcome) (SignInOutcome, error) {
 	var body SignInOutcome
 
 	if outcome.PendingSignIn != nil {
-		err := body.FromSignInCodeRequired(SignInCodeRequired{
-			Outcome:         SignInCodeRequiredOutcomeCODEREQUIRED,
-			PendingSignInId: outcome.PendingSignIn.PendingSignInID,
-			Email:           outcome.PendingSignIn.Email,
-		})
-
-		return body, err
+		return toPendingSignInOutcomeBody(*outcome.PendingSignIn)
 	}
 
 	err := body.FromSignInCompleted(SignInCompleted{
@@ -57,6 +52,63 @@ func toSignInOutcomeBody(outcome signin.SignInOutcome) (SignInOutcome, error) {
 	})
 
 	return body, err
+}
+
+func toPendingSignInOutcomeBody(pendingSignIn signin.PendingSignInView) (SignInOutcome, error) {
+	var body SignInOutcome
+
+	switch pendingSignIn.Kind {
+	case signin.PendingSignInKindEmailCode:
+		err := body.FromSignInCodeRequired(SignInCodeRequired{
+			Outcome:         SignInCodeRequiredOutcomeCODEREQUIRED,
+			PendingSignInId: pendingSignIn.PendingSignInID,
+			Email:           pendingSignIn.Email,
+		})
+
+		return body, err
+	case signin.PendingSignInKindAuthenticatorCode:
+		err := body.FromSignInAuthenticatorCodeRequired(SignInAuthenticatorCodeRequired{
+			Outcome:         SignInAuthenticatorCodeRequiredOutcomeAUTHENTICATORCODEREQUIRED,
+			PendingSignInId: pendingSignIn.PendingSignInID,
+		})
+
+		return body, err
+	case signin.PendingSignInKindAuthenticatorSetup:
+		if pendingSignIn.Setup == nil {
+			return body, errSetupMissing
+		}
+
+		err := body.FromSignInAuthenticatorSetupRequired(SignInAuthenticatorSetupRequired{
+			Outcome:         SignInAuthenticatorSetupRequiredOutcomeAUTHENTICATORSETUPREQUIRED,
+			PendingSignInId: pendingSignIn.PendingSignInID,
+			Secret:          pendingSignIn.Setup.Secret,
+			OtpauthUri:      pendingSignIn.Setup.Address,
+			ExpiresAt:       pendingSignIn.Setup.ExpiresAt,
+		})
+
+		return body, err
+	}
+
+	return body, fmt.Errorf("unknown pending sign-in kind %q", pendingSignIn.Kind)
+}
+
+func (h *Handler) ConfirmSignInAuthenticatorAppSetup(
+	ctx context.Context,
+	request ConfirmSignInAuthenticatorAppSetupRequestObject,
+) (ConfirmSignInAuthenticatorAppSetupResponseObject, error) {
+	setupSignIn, err := h.signIn.ConfirmSignInAuthenticatorAppSetup(
+		ctx, request.PendingSignInId, getSecret(request.Body.Code), request.Body.CloudflareTurnstileToken,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return ConfirmSignInAuthenticatorAppSetup200JSONResponse{
+		UserId:        setupSignIn.Session.UserID,
+		Email:         setupSignIn.Session.Email,
+		Token:         setupSignIn.Session.Token,
+		RecoveryCodes: setupSignIn.RecoveryCodes,
+	}, nil
 }
 
 func (h *Handler) VerifySignInCode(

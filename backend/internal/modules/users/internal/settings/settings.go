@@ -1,5 +1,5 @@
 // Package settings owns the instance settings: who may register, invite and create workspaces,
-// and whether password sign-in asks for an emailed code. It also sends the test email.
+// and which second factor password sign-in requires. It also sends the test email.
 package settings
 
 import "github.com/google/uuid"
@@ -12,9 +12,31 @@ type Settings struct {
 	// IsAllowMemberInvitations lets a user who is not an instance admin invite users.
 	IsAllowMemberInvitations bool `gorm:"column:is_allow_member_invitations"`
 	// IsMemberAllowedToCreateWorkspaces lets a user who is not an instance admin create workspaces.
-	IsMemberAllowedToCreateWorkspaces bool `gorm:"column:is_member_allowed_to_create_workspaces"`
-	// IsTwoFactorAuthRequired makes a password sign-in also present a code emailed to the user.
-	IsTwoFactorAuthRequired bool `gorm:"column:is_two_factor_auth_required"`
+	IsMemberAllowedToCreateWorkspaces bool                 `gorm:"column:is_member_allowed_to_create_workspaces"`
+	TwoFactorRequirement              TwoFactorRequirement `gorm:"column:two_factor_requirement"`
+}
+
+// TwoFactorRequirement is the second factor the instance requires at password sign-in. An account
+// with a connected authenticator app presents the app under every value.
+type TwoFactorRequirement string
+
+const (
+	TwoFactorRequirementOff              TwoFactorRequirement = "OFF"
+	TwoFactorRequirementEmail            TwoFactorRequirement = "EMAIL"
+	TwoFactorRequirementAuthenticatorApp TwoFactorRequirement = "AUTHENTICATOR_APP"
+)
+
+func (r TwoFactorRequirement) IsValid() bool {
+	switch r {
+	case TwoFactorRequirementOff, TwoFactorRequirementEmail, TwoFactorRequirementAuthenticatorApp:
+		return true
+	default:
+		return false
+	}
+}
+
+func (r TwoFactorRequirement) IsRequired() bool {
+	return r != TwoFactorRequirementOff
 }
 
 func (Settings) TableName() string {
@@ -27,7 +49,7 @@ type InstanceSettings struct {
 	IsAllowExternalRegistrations      bool
 	IsAllowMemberInvitations          bool
 	IsMemberAllowedToCreateWorkspaces bool
-	IsTwoFactorAuthRequired           bool
+	TwoFactorRequirement              TwoFactorRequirement
 	IsEmailConfigured                 bool
 }
 
@@ -36,7 +58,7 @@ type Switches struct {
 	IsAllowExternalRegistrations      bool
 	IsAllowMemberInvitations          bool
 	IsMemberAllowedToCreateWorkspaces bool
-	IsTwoFactorAuthRequired           bool
+	TwoFactorRequirement              TwoFactorRequirement
 }
 
 // DefaultSwitches are the settings a new instance starts with.
@@ -45,7 +67,7 @@ func DefaultSwitches() Switches {
 		IsAllowExternalRegistrations:      true,
 		IsAllowMemberInvitations:          true,
 		IsMemberAllowedToCreateWorkspaces: true,
-		IsTwoFactorAuthRequired:           false,
+		TwoFactorRequirement:              TwoFactorRequirementOff,
 	}
 }
 
@@ -54,6 +76,6 @@ func (s Settings) GetSwitches() Switches {
 		IsAllowExternalRegistrations:      s.IsAllowExternalRegistrations,
 		IsAllowMemberInvitations:          s.IsAllowMemberInvitations,
 		IsMemberAllowedToCreateWorkspaces: s.IsMemberAllowedToCreateWorkspaces,
-		IsTwoFactorAuthRequired:           s.IsTwoFactorAuthRequired,
+		TwoFactorRequirement:              s.TwoFactorRequirement,
 	}
 }

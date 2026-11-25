@@ -29,16 +29,19 @@ var (
 	}
 	ErrTwoFactorWithoutMailServer = &apierror.Problem{
 		Code:   apierror.CodeEmailNotConfigured,
-		Detail: "cannot require two-factor authentication: the instance has no mail server configured",
+		Detail: "cannot require an emailed sign-in code: the instance has no mail server configured",
 		Errors: nil,
 	}
+	ErrTwoFactorRequirementInvalid = apierror.NewInvalidFieldsProblem([]apierror.FieldError{
+		{Field: "twoFactorRequirement", Detail: "must be OFF, EMAIL or AUTHENTICATOR_APP"},
+	})
 )
 
 func newTwoFactorAdminEmailMissingProblem(adminEmail string) *apierror.Problem {
 	return &apierror.Problem{
 		Code: apierror.CodeAdminEmailMissing,
 		Detail: fmt.Sprintf(
-			"cannot require two-factor authentication: administrator %q has no valid email address", adminEmail,
+			"cannot require an emailed sign-in code: administrator %q has no valid email address", adminEmail,
 		),
 		Errors: nil,
 	}

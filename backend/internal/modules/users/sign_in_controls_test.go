@@ -62,7 +62,7 @@ func TestSignInAttemptControls(t *testing.T) {
 			for attempt := range 10 {
 				if attempt == 1 {
 					twoFactorUpdate := defaultSettingsUpdate()
-					twoFactorUpdate.IsTwoFactorAuthRequired = true
+					twoFactorUpdate.TwoFactorRequirement = apiclient.TwoFactorRequirementEMAIL
 					updatedSettings := updateInstanceSettings(t, admin.Client, twoFactorUpdate)
 					require.Equal(t, http.StatusOK, updatedSettings.StatusCode(), string(updatedSettings.Body))
 				}

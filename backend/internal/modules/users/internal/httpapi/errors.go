@@ -1,8 +1,12 @@
 package httpapi
 
 import (
+	"errors"
+
 	"databasus-backend/internal/lib/apierror"
 )
+
+var errSetupMissing = errors.New("a pending sign-in that waits for a setup came without its secret")
 
 var (
 	errUnauthenticated = &apierror.Problem{

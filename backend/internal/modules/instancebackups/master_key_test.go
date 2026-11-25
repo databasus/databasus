@@ -201,10 +201,117 @@ func TestCreateMasterKeyExport(t *testing.T) {
 		requireProblemCode(t, response.StatusCode(), response.Body,
 			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
 	})
+	t.Run("exports with root admin's app code and sends no mail", func(t *testing.T) {
+		t.Parallel()
+		owner := newTwoFactorInstanceOwner(t)
+		connectedApp := owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+		code := owner.App.GenerateAuthenticatorCode(t, connectedApp.Secret)
+
+		issuedExport := requireMasterKeyExport(t, owner.RootAdmin, &code)
+		replayedResponse := createMasterKeyExport(t, owner.RootAdmin, &code)
+
+		download := downloadMasterKey(t, owner.App, issuedExport.Token)
+		require.Equal(t, http.StatusOK, download.StatusCode(), string(download.Body))
+		assert.Equal(t, owner.App.ReadMasterKeyFile(t), download.Body)
+		assert.Empty(t, owner.App.Mail.GetMessagesTo(owner.RootAdmin.Email))
+		requireProblemCode(t, replayedResponse.StatusCode(), replayedResponse.Body,
+			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
+	})
+
+	t.Run("exports with a recovery code on an instance without a mail server and spends the code",
+		func(t *testing.T) {
+			t.Parallel()
+			owner := newInstanceOwner(t, apptest.WithoutMailServer())
+			connectedApp := owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+			setTwoFactorRequirement(t, owner.RootAdmin, apiclient.TwoFactorRequirementAUTHENTICATORAPP)
+
+			issuedExport := requireMasterKeyExport(t, owner.RootAdmin, &connectedApp.RecoveryCodes[0])
+			reusedResponse := createMasterKeyExport(t, owner.RootAdmin, &connectedApp.RecoveryCodes[0])
+
+			download := downloadMasterKey(t, owner.App, issuedExport.Token)
+			require.Equal(t, http.StatusOK, download.StatusCode(), string(download.Body))
+			assert.Equal(t, owner.App.ReadMasterKeyFile(t), download.Body)
+			requireProblemCode(t, reusedResponse.StatusCode(), reusedResponse.Body,
+				http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
+		})
+
+	t.Run("refuses a wrong app code when root admin has an app", func(t *testing.T) {
+		t.Parallel()
+		owner := newTwoFactorInstanceOwner(t)
+		connectedApp := owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+		wrongCode := getWrongCode(owner.App.GenerateAuthenticatorCode(t, connectedApp.Secret))
+
+		response := createMasterKeyExport(t, owner.RootAdmin, &wrongCode)
+
+		requireProblemCode(t, response.StatusCode(), response.Body,
+			http.StatusBadRequest, apiclient.ProblemCodeIdentityProofInvalid)
+	})
 }
 
 func TestRequestMasterKeyConfirmation(t *testing.T) {
 	t.Parallel()
+
+	t.Run("answers the app method without expiry and sends no mail when root admin has an app",
+		func(t *testing.T) {
+			t.Parallel()
+			owner := newInstanceOwner(t, apptest.WithoutMailServer())
+			owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+			setTwoFactorRequirement(t, owner.RootAdmin, apiclient.TwoFactorRequirementAUTHENTICATORAPP)
+
+			response, err := owner.RootAdmin.Client.RequestMasterKeyConfirmationWithResponse(t.Context())
+
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
+			assert.Equal(t, apiclient.IdentityConfirmationMethodAUTHENTICATORAPP, response.JSON201.Method)
+			assert.Nil(t, response.JSON201.ExpiresAt)
+		})
+
+	t.Run("returns 409 and exports without a code when nothing is required although root admin has an app",
+		func(t *testing.T) {
+			t.Parallel()
+			owner := newInstanceOwner(t)
+			owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+
+			response, err := owner.RootAdmin.Client.RequestMasterKeyConfirmationWithResponse(t.Context())
+
+			require.NoError(t, err)
+			requireProblemCode(t, response.StatusCode(), response.Body,
+				http.StatusConflict, apiclient.ProblemCodeIdentityProofUnavailable)
+			requireMasterKeyExport(t, owner.RootAdmin, nil)
+		})
+
+	t.Run("returns 409 under the app method without a mail server after root admin's app was removed",
+		func(t *testing.T) {
+			t.Parallel()
+			owner := newInstanceOwner(t, apptest.WithoutMailServer())
+			connectedApp := owner.App.ConnectAuthenticatorApp(t, owner.RootAdmin)
+			removalCode := owner.App.GenerateAuthenticatorCode(t, connectedApp.Secret)
+			removal, err := owner.RootAdmin.Client.DisconnectAuthenticatorAppWithResponse(t.Context(),
+				owner.RootAdmin.UserID, apiclient.SecondFactorProof{Code: &removalCode})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, removal.StatusCode(), string(removal.Body))
+			setTwoFactorRequirement(t, owner.RootAdmin, apiclient.TwoFactorRequirementAUTHENTICATORAPP)
+
+			response, err := owner.RootAdmin.Client.RequestMasterKeyConfirmationWithResponse(t.Context())
+
+			require.NoError(t, err)
+			requireProblemCode(t, response.StatusCode(), response.Body,
+				http.StatusConflict, apiclient.ProblemCodeIdentityProofUnavailable)
+		})
+
+	t.Run("answers the email method with the expiry of the emailed code when root admin has no app",
+		func(t *testing.T) {
+			t.Parallel()
+			owner := newTwoFactorInstanceOwner(t)
+
+			response, err := owner.RootAdmin.Client.RequestMasterKeyConfirmationWithResponse(t.Context())
+
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
+			assert.Equal(t, apiclient.IdentityConfirmationMethodEMAIL, response.JSON201.Method)
+			assert.NotNil(t, response.JSON201.ExpiresAt)
+			assert.Len(t, owner.App.Mail.GetMessagesTo(owner.RootAdmin.Email), 1)
+		})
 
 	t.Run("returns 409 without a mail server", func(t *testing.T) {
 		t.Parallel()
@@ -314,16 +421,20 @@ func newTwoFactorInstanceOwner(t *testing.T) instanceOwner {
 func requireTwoFactorAfterMailServerLoss(t *testing.T, app *apptest.App) {
 	t.Helper()
 
-	app.ExecuteSQL(t, "UPDATE users_settings SET is_two_factor_auth_required = TRUE")
+	app.ExecuteSQL(t, "UPDATE users_settings SET two_factor_requirement = 'EMAIL'")
 }
 
 func requireTwoFactorSignIn(t *testing.T, rootAdmin apptest.Session) {
 	t.Helper()
 
-	setTwoFactorSignIn(t, rootAdmin, true)
+	setTwoFactorRequirement(t, rootAdmin, apiclient.TwoFactorRequirementEMAIL)
 }
 
-func setTwoFactorSignIn(t *testing.T, rootAdmin apptest.Session, isRequired bool) {
+func setTwoFactorRequirement(
+	t *testing.T,
+	rootAdmin apptest.Session,
+	requirement apiclient.TwoFactorRequirement,
+) {
 	t.Helper()
 
 	currentSettings, err := rootAdmin.Client.GetInstanceSettingsWithResponse(t.Context())
@@ -334,7 +445,7 @@ func setTwoFactorSignIn(t *testing.T, rootAdmin apptest.Session, isRequired bool
 		IsAllowExternalRegistrations:      currentSettings.JSON200.IsAllowExternalRegistrations,
 		IsAllowMemberInvitations:          currentSettings.JSON200.IsAllowMemberInvitations,
 		IsMemberAllowedToCreateWorkspaces: currentSettings.JSON200.IsMemberAllowedToCreateWorkspaces,
-		IsTwoFactorAuthRequired:           isRequired,
+		TwoFactorRequirement:              requirement,
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))

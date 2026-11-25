@@ -43,7 +43,6 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   const encryptionPipeline = `PostgreSQL pg_dump → Compression → Encryption → Cloud Storage`;
-  const disableTwoFactorCommand = `docker exec -it databasus ./main --disable-2fa`;
 
   return (
     <>
@@ -282,58 +281,7 @@ export default function SecurityPage() {
               </h2>
 
               <p>
-                Una contraseña por sí sola abre todas las credenciales de bases
-                de datos, las claves de almacenamiento y las copias de seguridad
-                que guarda la instancia, así que un administrador puede exigir
-                un segundo factor al iniciar sesión con contraseña. Con la
-                opción activada, una contraseña correcta envía un código de seis
-                dígitos al correo de la cuenta y el inicio de sesión termina
-                solo cuando se introduce ese código. El código deja de funcionar
-                diez minutos después de enviarse o tras cinco intentos fallidos,
-                y pedir otro anula el anterior. Activar el ajuste protege el
-                siguiente inicio de sesión y deja funcionando las sesiones ya
-                abiertas.
-              </p>
-
-              <p>
-                El ajuste cubre el inicio de sesión con contraseña. Entrar con
-                Google o GitHub sigue entregando un token directamente, porque
-                esos proveedores hacen sus propias comprobaciones de varios
-                factores: una instancia que quiera el segundo factor para todo
-                el mundo simplemente no los configura.
-              </p>
-
-              <p>
-                Solo se puede activar cuando la instancia tiene servidor de
-                correo y cada administrador activo lleva una dirección real, de
-                modo que nadie lo active y deje la instancia cerrada. Si más
-                tarde el correo deja de entregarse, nadie entra con contraseña,
-                y eso es deliberado: un servidor de correo averiado no debe
-                rebajar en silencio la autenticación a un solo factor. Un
-                operador con acceso al servidor vuelve a desactivarlo:
-              </p>
-
-              <div className="relative my-6">
-                <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
-                  <code>{disableTwoFactorCommand}</code>
-                </pre>
-                <div className="absolute right-2 top-2">
-                  <CopyButton text={disableTwoFactorCommand} />
-                </div>
-              </div>
-
-              <p>
-                El comando informa de lo que ha cambiado y lo registra en el
-                historial de auditoría, así que una instancia que dejó de pedir
-                códigos explica por qué. Está documentado junto a la
-                recuperación de contraseña en{" "}
-                <a
-                  href="/es/password#disable-two-factor"
-                  className="text-blue-400 hover:text-blue-600"
-                >
-                  la página de contraseña
-                </a>
-                .
+                Un administrador puede exigir autenticación de dos factores para el inicio de sesión con contraseña: un código enviado por correo o un código de una aplicación de autenticación (TOTP). Si el segundo factor no está disponible, por ejemplo porque el servidor de correo dejó de funcionar o se perdió el teléfono, la consola del servidor desactiva el requisito o restablece la aplicación de una cuenta, como se describe en <a href="/es/password#disable-two-factor" className="text-blue-400 hover:text-blue-600">la página de contraseña</a>.
               </p>
 
               <h2 id="security-and-reliability-engineering">
