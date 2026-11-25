@@ -1225,3 +1225,147 @@ func TestGetNextOccurrence(t *testing.T) {
 		})
 	}
 }
+
+func TestIsDueWithTimesOutsideUtc(t *testing.T) {
+	t.Parallel()
+
+	westOfUtc := time.FixedZone("UTC-3", -3*60*60)
+	farWestOfUtc := time.FixedZone("UTC-5", -5*60*60)
+	eastOfUtc := time.FixedZone("UTC+3", 3*60*60)
+
+	for _, testCase := range []struct {
+		name          string
+		schedule      Schedule
+		lastRun       time.Time
+		now           time.Time
+		isExpectedDue bool
+	}{
+		{
+			name:          "is not due before the UTC slot for a daily schedule with times west of UTC",
+			schedule:      Schedule{Type: TypeDaily, TimeOfDay: new("04:00")},
+			lastRun:       time.Date(2026, time.November, 24, 4, 0, 0, 0, time.UTC).In(westOfUtc),
+			now:           time.Date(2026, time.November, 25, 3, 59, 0, 0, time.UTC).In(westOfUtc),
+			isExpectedDue: false,
+		},
+		{
+			name:          "is due at the UTC slot for a daily schedule with times west of UTC",
+			schedule:      Schedule{Type: TypeDaily, TimeOfDay: new("04:00")},
+			lastRun:       time.Date(2026, time.November, 24, 4, 0, 0, 0, time.UTC).In(westOfUtc),
+			now:           time.Date(2026, time.November, 25, 4, 0, 0, 0, time.UTC).In(westOfUtc),
+			isExpectedDue: true,
+		},
+		{
+			name:          "is not due at the slot hour of the server's calendar for a daily schedule with times east of UTC",
+			schedule:      Schedule{Type: TypeDaily, TimeOfDay: new("04:00")},
+			lastRun:       time.Date(2026, time.November, 25, 4, 0, 0, 0, time.UTC).In(eastOfUtc),
+			now:           time.Date(2026, time.November, 26, 1, 0, 0, 0, time.UTC).In(eastOfUtc),
+			isExpectedDue: false,
+		},
+		{
+			name:          "is due at the UTC slot for a daily schedule with times east of UTC",
+			schedule:      Schedule{Type: TypeDaily, TimeOfDay: new("04:00")},
+			lastRun:       time.Date(2026, time.November, 25, 4, 0, 0, 0, time.UTC).In(eastOfUtc),
+			now:           time.Date(2026, time.November, 26, 4, 0, 0, 0, time.UTC).In(eastOfUtc),
+			isExpectedDue: true,
+		},
+		{
+			name:          "is not due on the same UTC day for a daily schedule without a time with times west of UTC",
+			schedule:      Schedule{Type: TypeDaily},
+			lastRun:       time.Date(2026, time.November, 25, 1, 0, 0, 0, time.UTC).In(westOfUtc),
+			now:           time.Date(2026, time.November, 25, 23, 0, 0, 0, time.UTC).In(westOfUtc),
+			isExpectedDue: false,
+		},
+		{
+			name:          "is not due at the slot hour of the server's calendar for a weekly schedule with times east of UTC",
+			schedule:      Schedule{Type: TypeWeekly, Weekday: new(0), TimeOfDay: new("23:00")},
+			lastRun:       time.Date(2026, time.November, 15, 23, 0, 0, 0, time.UTC).In(eastOfUtc),
+			now:           time.Date(2026, time.November, 22, 20, 0, 0, 0, time.UTC).In(eastOfUtc),
+			isExpectedDue: false,
+		},
+		{
+			name:          "is due at the UTC slot for a weekly schedule with times east of UTC",
+			schedule:      Schedule{Type: TypeWeekly, Weekday: new(0), TimeOfDay: new("23:00")},
+			lastRun:       time.Date(2026, time.November, 15, 23, 0, 0, 0, time.UTC).In(eastOfUtc),
+			now:           time.Date(2026, time.November, 22, 23, 0, 0, 0, time.UTC).In(eastOfUtc),
+			isExpectedDue: true,
+		},
+		{
+			name:          "is not due before the UTC slot for a monthly schedule with times west of UTC",
+			schedule:      Schedule{Type: TypeMonthly, DayOfMonth: new(1), TimeOfDay: new("03:00")},
+			lastRun:       time.Date(2026, time.November, 1, 3, 0, 0, 0, time.UTC).In(farWestOfUtc),
+			now:           time.Date(2026, time.December, 1, 2, 59, 0, 0, time.UTC).In(farWestOfUtc),
+			isExpectedDue: false,
+		},
+		{
+			name:          "is due at the UTC slot for a monthly schedule with times west of UTC",
+			schedule:      Schedule{Type: TypeMonthly, DayOfMonth: new(1), TimeOfDay: new("03:00")},
+			lastRun:       time.Date(2026, time.November, 1, 3, 0, 0, 0, time.UTC).In(farWestOfUtc),
+			now:           time.Date(2026, time.December, 1, 3, 0, 0, 0, time.UTC).In(farWestOfUtc),
+			isExpectedDue: true,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.isExpectedDue, testCase.schedule.IsDue(testCase.now, &testCase.lastRun))
+		})
+	}
+}
+
+func TestGetNextOccurrenceWithTimesOutsideUtc(t *testing.T) {
+	t.Parallel()
+
+	westOfUtc := time.FixedZone("UTC-3", -3*60*60)
+	farWestOfUtc := time.FixedZone("UTC-5", -5*60*60)
+	eastOfUtc := time.FixedZone("UTC+3", 3*60*60)
+
+	for _, testCase := range []struct {
+		name               string
+		schedule           Schedule
+		after              time.Time
+		expectedOccurrence time.Time
+	}{
+		{
+			name:               "returns the next UTC slot for a daily schedule with a moment west of UTC",
+			schedule:           Schedule{Type: TypeDaily, TimeOfDay: new("04:00")},
+			after:              time.Date(2026, time.November, 25, 4, 0, 0, 0, time.UTC).In(westOfUtc),
+			expectedOccurrence: time.Date(2026, time.November, 26, 4, 0, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns the next UTC slot for a daily schedule with a moment east of UTC",
+			schedule:           Schedule{Type: TypeDaily, TimeOfDay: new("04:00")},
+			after:              time.Date(2026, time.November, 25, 4, 0, 0, 0, time.UTC).In(eastOfUtc),
+			expectedOccurrence: time.Date(2026, time.November, 26, 4, 0, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns the next UTC midnight for a daily schedule without a time with a moment west of UTC",
+			schedule:           Schedule{Type: TypeDaily},
+			after:              time.Date(2026, time.November, 25, 1, 0, 0, 0, time.UTC).In(westOfUtc),
+			expectedOccurrence: time.Date(2026, time.November, 26, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns the next UTC slot for a weekly schedule with a moment east of UTC",
+			schedule:           Schedule{Type: TypeWeekly, Weekday: new(0), TimeOfDay: new("23:00")},
+			after:              time.Date(2026, time.November, 15, 23, 0, 0, 0, time.UTC).In(eastOfUtc),
+			expectedOccurrence: time.Date(2026, time.November, 22, 23, 0, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns the next UTC slot for a monthly schedule with a moment west of UTC",
+			schedule:           Schedule{Type: TypeMonthly, DayOfMonth: new(1), TimeOfDay: new("03:00")},
+			after:              time.Date(2026, time.November, 1, 3, 0, 0, 0, time.UTC).In(farWestOfUtc),
+			expectedOccurrence: time.Date(2026, time.December, 1, 3, 0, 0, 0, time.UTC),
+		},
+		{
+			name:               "returns the next UTC month for a monthly schedule without a day with a moment west of UTC",
+			schedule:           Schedule{Type: TypeMonthly},
+			after:              time.Date(2026, time.November, 1, 1, 0, 0, 0, time.UTC).In(westOfUtc),
+			expectedOccurrence: time.Date(2026, time.December, 1, 0, 0, 0, 0, time.UTC),
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.expectedOccurrence, testCase.schedule.GetNextOccurrence(testCase.after))
+		})
+	}
+}

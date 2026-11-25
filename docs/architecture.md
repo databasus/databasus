@@ -157,7 +157,7 @@ Each module owns its part of the internal database. Integrity rules live in the 
   - Lists of names and enum values are `text[]`.
   - A list of numbers is a typed numeric array, such as `double precision[]`, so a `CHECK` can bound its length and its elements.
   - `JSONB` holds only data we treat as opaque and store in clear, such as webhook headers.
-  - Time is `TIMESTAMPTZ`, and all time is UTC.
+  - Time is `TIMESTAMPTZ`, and all time is UTC, including times read back from the database, whatever time zone the server runs in.
   - Identifiers are UUIDs with `DEFAULT gen_random_uuid()`. A row that continues another row of the same module takes that row's ID as its primary key.
 - **Transactions travel in the context** and are never passed as parameters.
   - Services open transactions through an injected transactor and never hold the connection pool.

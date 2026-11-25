@@ -182,6 +182,48 @@ func TestTrackInstanceBackupHealth(t *testing.T) {
 		assert.Equal(t, []uuid.UUID{storageID}, owner.getSettings(t).StorageIds)
 	})
 
+	// Issue 933: a daily backup that ran on time opened an OVERDUE incident and an email every day
+	// on a server whose time zone was not UTC.
+	t.Run("keeps a daily backup on schedule healthy without an incident email on a server west of UTC",
+		func(t *testing.T) {
+			owner := newInstanceOwner(t)
+			owner.backUpDailyAtFour(t)
+
+			owner.setClockAt(t, 7, 16)
+			owner.App.RunJobPass(t, incidentJob)
+			status := getStatus(t, owner.RootAdmin)
+
+			assert.Equal(t, apiclient.InstanceBackupHealthHEALTHY, status.Health)
+			assert.Nil(t, status.Incident)
+			assert.Empty(t, owner.App.Mail.GetMessagesTo(owner.RootAdmin.Email))
+		})
+
+	// Issue 933: the deadline followed the slot on the server's calendar instead of the UTC one.
+	t.Run("sets the next deadline 15 minutes after the next UTC slot on a server west of UTC", func(t *testing.T) {
+		owner := newInstanceOwner(t)
+		owner.backUpDailyAtFour(t)
+
+		owner.setClockAt(t, 28, 1)
+		owner.App.RunJobPass(t, incidentJob)
+		status := getStatus(t, owner.RootAdmin)
+
+		require.Len(t, status.Destinations, 1)
+		require.NotNil(t, status.Destinations[0].OverdueAt)
+		assert.Equal(t, owner.getClockAt(28, 15), status.Destinations[0].OverdueAt.UTC())
+	})
+
+	t.Run("returns the last successful snapshot time in UTC on a server west of UTC", func(t *testing.T) {
+		owner := newInstanceOwner(t)
+		owner.backUpDailyAtFour(t)
+
+		status := getStatus(t, owner.RootAdmin)
+
+		require.Len(t, status.Destinations, 1)
+		require.NotNil(t, status.Destinations[0].LastSuccessfulSnapshotAt)
+		assert.Equal(t, time.UTC, status.Destinations[0].LastSuccessfulSnapshotAt.Location())
+		assert.Equal(t, owner.getClockAt(4, 0), *status.Destinations[0].LastSuccessfulSnapshotAt)
+	})
+
 	t.Run("opens no incident on an installation that never selected a destination", func(t *testing.T) {
 		owner := newInstanceOwner(t)
 
@@ -199,6 +241,20 @@ func everyFiveMinutes() apiclient.Schedule {
 		Type: apiclient.ScheduleTypeCRON, CronExpression: new("*/5 * * * *"),
 		DayOfMonth: nil, TimeOfDay: nil, Weekday: nil,
 	}
+}
+
+func (o instanceOwner) backUpDailyAtFour(t *testing.T) {
+	t.Helper()
+
+	storageID := o.createLocalStorage(t, "Archive")
+	o.setClockAt(t, 3, 58)
+	o.selectScheduledDestinations(t, apiclient.Schedule{
+		Type: apiclient.ScheduleTypeDAILY, TimeOfDay: new("04:00"),
+		CronExpression: nil, DayOfMonth: nil, Weekday: nil,
+	}, storageID)
+
+	o.setClockAt(t, 4, 0)
+	o.backUp(t)
 }
 
 // getClockAt is the time of day on the day after the test started, so moving the clock there

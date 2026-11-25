@@ -21,7 +21,8 @@ const (
 
 // Schedule names when a recurring run is due. TimeOfDay is "15:04" in UTC, Weekday is 0 to 7 with both 0
 // and 7 meaning Sunday, and DayOfMonth is 1 to 31. In a month without that day, a monthly schedule runs on
-// the month's last day. A cron expression must match a calendar date, so February 31 is refused.
+// the month's last day. A cron expression must match a calendar date, so February 31 is refused. Slots are on
+// the UTC calendar whatever time zone the times passed in carry.
 type Schedule struct {
 	Type           Type
 	TimeOfDay      *string
@@ -98,17 +99,20 @@ func (s Schedule) IsDue(now time.Time, lastRun *time.Time) bool {
 		return true
 	}
 
+	now = now.UTC()
+	lastRunInUtc := lastRun.UTC()
+
 	switch s.Type {
 	case TypeHourly:
-		return now.Sub(*lastRun) >= time.Hour
+		return now.Sub(lastRunInUtc) >= time.Hour
 	case TypeDaily:
-		return s.isDailyDue(now, *lastRun)
+		return s.isDailyDue(now, lastRunInUtc)
 	case TypeWeekly:
-		return s.isWeeklyDue(now, *lastRun)
+		return s.isWeeklyDue(now, lastRunInUtc)
 	case TypeMonthly:
-		return s.isMonthlyDue(now, *lastRun)
+		return s.isMonthlyDue(now, lastRunInUtc)
 	case TypeCron:
-		return s.isCronDue(now, *lastRun)
+		return s.isCronDue(now, lastRunInUtc)
 	default:
 		return false
 	}
@@ -121,6 +125,8 @@ func (s Schedule) GetNextOccurrence(after time.Time) time.Time {
 	if s.isCronWithoutRunDate() {
 		return time.Time{}
 	}
+
+	after = after.UTC()
 
 	switch s.Type {
 	case TypeHourly:
@@ -217,7 +223,7 @@ func (s Schedule) getNextCronOccurrence(after time.Time) time.Time {
 		return time.Time{}
 	}
 
-	return cronSchedule.Next(after.UTC())
+	return cronSchedule.Next(after)
 }
 
 func (s Schedule) isDailyDue(now, lastRun time.Time) bool {
@@ -292,7 +298,7 @@ func (s Schedule) isCronDue(now, lastRun time.Time) bool {
 		return false
 	}
 
-	return !now.Before(cronSchedule.Next(lastRun.UTC()))
+	return !now.Before(cronSchedule.Next(lastRun))
 }
 
 // isCronWithoutRunDate looks from a fixed leap year, because whether a day exists in a month does not depend
