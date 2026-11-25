@@ -32,9 +32,13 @@ Start with the files below. Check every area affected by the requested update, i
 | Database clients | `assets/tools/README.md`, files under `assets/tools/`, `tools/dependencies/clients.json` | PGDG, Oracle MySQL, MariaDB archives and MongoDB Database Tools |
 | Verification extensions | Verification Dockerfile and its `vectorchord.sha256` | PGDG/vendor repositories and official extension releases |
 
-This procedure covers dependencies from other projects. Treat images built from Databasus for testing separately, along with runtime images selected by operators and software required on the host.
+This procedure covers dependencies from other projects. Treat these separately:
 
-**Keep supported database versions intact.** Some test fixtures use older releases to check compatibility with them. Keep each fixture on the release line it tests; do not upgrade it just to make version declarations easier to manage.
+- Images built from Databasus for testing.
+- Runtime images selected by operators.
+- Software required on the host.
+
+**Keep supported database versions intact.** Some test fixtures use older releases to check compatibility with them. Keep each fixture on the release line it tests. Do not upgrade it just to make version declarations easier to manage.
 
 ## Plan before editing
 
@@ -57,9 +61,9 @@ Use the longer period when several dependencies must be updated together. Packag
 
 **Check official publication dates yourself.** Age filters may not cover exact version selections, newly selected transitive dependencies or security updates. Review the lock-file changes for unexpected packages, publisher changes and installation scripts.
 
-Report missing dates, uncertain sources and any exception to the waiting period. Explain the reason for an exception. Do not invent dates or use an image's build timestamp as the publication date of its digest. A digest identifies exact image content; the content may have been built before it was published.
+Report missing dates, uncertain sources and any exception to the waiting period. Explain the reason for an exception. Do not invent dates or use an image's build timestamp as the publication date of its digest. A digest identifies exact image content. That content may have been built before it was published.
 
-Choose the newest patch release that has completed the waiting period within the agreed release line. A patch updates an existing line, such as a later `8.0.x` release. You make this choice; `mise run verify-deps` works offline and does not look up available releases.
+Choose the newest patch release that has completed the waiting period within the agreed release line. A patch updates an existing line, such as a later `8.0.x` release. You make this choice. `mise run verify-deps` works offline and does not look up available releases.
 
 | Case | Selection |
 | --- | --- |
@@ -69,7 +73,11 @@ Choose the newest patch release that has completed the waiting period within the
 
 If no suitable release has completed the waiting period, report that the update is deferred. Keep the agreed release line and documented architecture support intact.
 
-**Shorten the waiting period only for a critical fix.** A release may be taken sooner when it fixes a security issue or a defect that breaks users' backups, restores or verification. The release must come from its official source, and the exception covers only that release; the other updates of the same task keep their normal period. The report and the commit name the reason, the release, its publication date and how many days the period was shortened.
+**Shorten the waiting period only for a critical fix.** A release may be taken sooner when it fixes a security issue or a defect that breaks users' backups, restores or verification. The exception has these conditions:
+
+- The release must come from its official source.
+- The exception covers only that release. The other updates of the same task keep their normal period.
+- The report and the commit name the reason, the release, its publication date and how many days the period was shortened.
 
 ## Install from lock files
 
@@ -98,22 +106,28 @@ Keep each package manager's own lock files. A separate list of resolved versions
 
 Go development tools isolate their dependencies in separate modules and use the pinned compiler. Run their installed wrappers from the project directory you want to analyze.
 
-API generation uses locked tools. Generator-specific upgrade instructions live beside the [server template](../backend/api/templates/README.md):
+API generation uses locked tools:
 
 ```sh
 mise run generate-api
 mise run frontend:lint
 ```
 
+Generator-specific upgrade instructions live beside the [server template](../backend/api/templates/README.md).
+
 ### Installation scripts and pnpm
 
 **Review package installation scripts before allowing them to run.** Package managers may call these lifecycle scripts during installation. Do not disable verification checks just to make installation succeed.
 
-Keep package-manager installation locked too. Do not reintroduce `pnpm dlx` commands that resolve packages independently, global npm installs or package-manager setup without a lock.
+Keep package-manager installation locked too. Do not reintroduce:
 
-Local development, CI and container builds must resolve the same locked pnpm version for both architectures. The [mise configuration](../mise.toml) owns the local/CI tool mapping, and [container installer manifests](../tools/pnpm/package.json) own the container selection. Keep lifecycle scripts disabled until their reviewed installation step.
+- `pnpm dlx` commands that resolve packages independently.
+- Global npm installs.
+- Package-manager setup without a lock.
 
-Dependency overrides and build-script permissions belong in each project's `pnpm-workspace.yaml`. Keep the frontend file among the Docker build inputs and the files used to calculate the browser-environment hash.
+Local development, CI and container builds must resolve the same locked pnpm version for both architectures. The [mise configuration](../mise.toml) owns the local/CI tool mapping. The [container installer manifests](../tools/pnpm/package.json) own the container selection. Keep lifecycle scripts disabled until their reviewed installation step.
+
+Dependency overrides and build-script permissions belong in each project's `pnpm-workspace.yaml`. Keep the frontend's `pnpm-workspace.yaml` among the Docker build inputs and the files used to calculate the browser-environment hash.
 
 ## Check clients, images and direct downloads
 
@@ -133,7 +147,7 @@ After extraction, check the resulting files and executable permissions. Preserve
 
 Update related tools and both supported architectures together. MySQL 5.7 remains intentionally absent on arm64.
 
-For MariaDB, update the exact package and source records before running `tools/refresh-mariadb-bundle.sh <bundle> <arch>`. The refresh verifies recorded package and archive-member hashes; it does not choose versions.
+For MariaDB, update the exact package and source records before running `tools/refresh-mariadb-bundle.sh <bundle> <arch>`. The refresh verifies recorded package and archive-member hashes. It does not choose versions.
 
 Run refreshed binaries in the runtime image. Follow the database engine's test requirements in the bundle procedure. **Never replace expected hashes automatically after a mismatch.**
 
@@ -141,7 +155,16 @@ Run refreshed binaries in the runtime image. Follow the database engine's test r
 
 Keep third-party image digests in their existing declarations or the test-image catalog. The verification Dockerfile pins a base image for each PostgreSQL major version. This makes `PG_MAJOR` select the same base locally and in CI.
 
-The verification agent restores into the [pinned PostgreSQL version](glossary.md) of each major, listed in `backend/internal/agent/container/postgres_versions.json`. Raising one changes three places together: that list, the verification Dockerfile's base digest for the major, and the test catalog, which holds the base under `postgres:<major>` and the published verification image under `databasus/verification-postgres:<version>`. The image build fails when its base or installed server is not the pinned version, and `mise run verify-deps` fails when the catalog has no record for a pinned version.
+The verification agent restores into the [pinned PostgreSQL version](glossary.md) of each major. These versions are listed in `backend/internal/agent/container/postgres_versions.json`. Raising one changes three places together:
+
+- That list.
+- The verification Dockerfile's base digest for the major.
+- The test catalog. It holds the base under `postgres:<major>` and the published verification image under `databasus/verification-postgres:<version>`.
+
+Two checks catch a mismatch:
+
+- The image build fails when its base or installed server is not the pinned version.
+- `mise run verify-deps` fails when the catalog has no record for a pinned version.
 
 Standalone VectorChord downloads check their recorded SHA256 before installation. Keep database clients committed to the repository; application image builds do not download them.
 
@@ -153,9 +176,16 @@ Standalone VectorChord downloads check their recorded SHA256 before installation
 mise run verify-deps
 ```
 
-Run this from the root or a module directory with Python available. It checks known local pins and lock-file presence, agreement between related declarations, both client architectures, and committed-file integrity in the working tree and existing index. It reads without installing dependencies, querying registries or changing the checkout.
+Run this from the root or a module directory with Python available. It checks:
 
-The [dependency checker](../tools/dependencies) owns its supported declarations and coverage. Review and extend that coverage when adding a dependency kind or declaration form; dynamic or multiline workflow tool selections need checker support before use. CI requires the same check before release and development publication.
+- Known local pins and the presence of lock files.
+- Agreement between related declarations.
+- Both client architectures.
+- Integrity of committed files in the working tree and the existing index.
+
+It only reads. It does not install dependencies, query registries or change the checkout.
+
+The [dependency checker](../tools/dependencies) owns its supported declarations and coverage. Review and extend that coverage when adding a dependency kind or declaration form. Dynamic or multiline workflow tool selections need checker support before use. CI requires the same check before release and development publication.
 
 **A passing `verify-deps` check covers only those local checks.** Frozen installations, architecture tests, vulnerability scans and secret scans remain separate requirements. Choose functional checks using [docs/testing.md](testing.md#checking-work).
 

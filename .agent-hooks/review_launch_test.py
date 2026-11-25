@@ -7,6 +7,18 @@ import unittest
 import review_gate_test as fixtures
 from review_gate_test import CHANGE_NAME, HOOK_PATH
 
+REPOSITORY_ROOT = HOOK_PATH.parent.parent
+
+
+def write_doctor_with_passing_environment(repository: fixtures.HookRepository) -> None:
+    doctor_script = repository.root / "scripts/doctor.sh"
+    repository.write("scripts/doctor.sh", (REPOSITORY_ROOT / "scripts/doctor.sh").read_text())
+    doctor_script.chmod(0o755)
+    repository.write("scripts/fedora.sh", "apply_libedit_shim() { :; }\n")
+    repository.write(
+        "scripts/development_environment_check.py", "print('Development environment:')\n"
+    )
+
 
 class ReviewLaunchTest(unittest.TestCase):
     def test_doctor_checks_only_selected_cli(self) -> None:
@@ -83,6 +95,8 @@ class ReviewLaunchTest(unittest.TestCase):
                         + "\n"
                     )
                     repository.write("mise.toml", task_config)
+                    if action == "doctor":
+                        write_doctor_with_passing_environment(repository)
                     repository.complete_tasks()
 
                     repository.environment["MISE_TRUSTED_CONFIG_PATHS"] = str(repository.root)

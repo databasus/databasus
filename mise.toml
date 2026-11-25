@@ -24,9 +24,9 @@ description = "Format every module"
 depends = ["backend:format", "frontend:format", "python:format"]
 
 [tasks.doctor]
-description = "Check review tools and whether Codex project hooks are enabled and trusted"
+description = "Check the review tools and Codex project hooks, then the development environment the commands and tests need"
 usage = 'flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
-run = '.agent-hooks/run.sh doctor ${usage_client:+--client "$usage_client"}'
+run = 'scripts/doctor.sh ${usage_client:+--client "$usage_client"}'
 
 [tasks.review]
 description = "Manually rerun parallel AI reviews of a finished OpenSpec change; runs no linting or tests"

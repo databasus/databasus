@@ -10,10 +10,12 @@ This document describes the kinds of tests, what they share and how runs are org
 
 - A test checks what a caller observes: the backend's HTTP API, an engine's behavior against a real database server or a frontend screen.
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
-- Independent tests run in parallel within and across packages, and alongside runs from other worktrees on the same machine. Tests that change process environment settings or share a bounded engine-version fixture stay sequential. Independent suites of one run start together. Runs aim to saturate the machine, as [Resource usage and parallelism](#resource-usage-and-parallelism) describes.
-- A test that passes alone but fails beside other suites has a defect in the test. It waits for the condition it depends on or gets a time limit that matches the operation; it is not moved out of the concurrent run or retried.
+- Independent tests run in parallel within and across packages. They also run alongside runs from other worktrees on the same machine.
+- Tests that change process environment settings or share a bounded engine-version fixture stay sequential.
+- Independent suites of one run start together. Runs aim to saturate the machine, as [Resource usage and parallelism](#resource-usage-and-parallelism) describes.
+- A test that passes alone but fails beside other suites has a defect in the test. Such a test waits for the condition it depends on or gets a time limit that matches the operation. It is not moved out of the concurrent run or retried.
 - A test never takes a shared resource under a fixed name.
-- Every check runs locally. CI repeats every suite except the review hook tests and the interruption test of the browser end-to-end suite on a clean machine; `mise run test-full` includes both locally.
+- Every check runs locally. CI repeats every suite on a clean machine, except the review hook tests and the interruption test of the browser end-to-end suite. `mise run test-full` includes both locally.
 
 ## Layers
 
@@ -33,14 +35,16 @@ Paths under `internal/` are inside `backend/`. The table distinguishes the test 
 | Browser end-to-end suite  | the critical path, sign-in with two-factor sign-in and workspace resources through the screens of the application image | `e2e/browser/` | the image, its internal database, PostgreSQL 18, Chromium, a Mailpit mail server, an isolated recovery runner and Docker daemon |
 | Frontend tests            | screens for every answer the contract allows                                                                        | `frontend/src/**/*.test.tsx`                               | the components; the network is mocked through `mockApi`, typed by the contract                           |
 
-- Module API tests cover most behavior. A module whose API tests outlast one package may split them into test-only packages under its directory, such as `internal/modules/backups/physicalapitests/`.
+- Module API tests cover most behavior. A module whose API tests outgrow one package may split them into test-only packages under its directory, such as `internal/modules/backups/physicalapitests/`.
 - A unit test without the application is only for pure logic that has no HTTP entry point or is too slow to enumerate through HTTP. Examples are the scheduler's decision function, retention arithmetic, WAL position math, manifest reconstruction and parsers.
 
 ## The test application
 
-Backend tests build the same application composition as the server, so they exercise real routing, middleware, modules and wiring. Each instance owns an isolated internal database, directories, encryption key, service state and lifecycle. External systems use the substitutes permitted by the [testing skill](../.agents/skills/testing/SKILL.md#unit-tests-and-fakes).
+Backend tests build the same application composition as the server. They therefore exercise real routing, middleware, modules and wiring. Each instance owns an isolated internal database, directories, encryption key, service state and lifecycle. External systems use the substitutes that the [testing skill](../.agents/skills/testing/SKILL.md#unit-tests-and-fakes) permits.
 
-A movable clock makes schedules deterministic. Background jobs stay stopped by default: tests advance time and run individual passes explicitly. Tests of live scheduling can start selected jobs without replacing the production mechanism or shortening an interval whose latency is under test. The [test application](../backend/internal/app/apptest) owns these setup and lifecycle options.
+A movable clock makes schedules deterministic. Background jobs stay stopped by default. Tests advance time and run individual passes explicitly; a pass is one round of a job's work.
+
+Tests of live scheduling can start selected jobs. They do so without replacing the production mechanism and without shortening an interval whose latency is under test. The [test application](../backend/internal/app/apptest) owns these setup and lifecycle options.
 
 ### Talking to the application
 
@@ -50,28 +54,45 @@ Tests create data and observe outcomes through real HTTP. Contract-checking clie
 
 Live physical backup jobs and tests serving a real agent use system time for execution, heartbeats and rate limits. Physical duration, progress and stall detection follow real time even when the schedule clock is fixed.
 
-A scheduler pass dispatches work; tests wait for completion through the API. Physical cleanup still requires explicit passes, while streamer management needs live-job mode. Seed timestamps with enough margin for live processing. Use explicit passes for negative checks and wait for positive outcomes from live jobs.
+A scheduler pass dispatches work, and tests wait for its completion through the API.
+
+- Physical cleanup still requires explicit passes.
+- Streamer management needs live-job mode.
+- Seed timestamps with enough margin for live processing.
+- Use explicit passes for negative checks, and wait for positive outcomes from live jobs.
 
 ### Restarting and cleanup
 
-A restart drains jobs and module work before startup recovery and resumption. Cleanup stops all instance-owned work before closing its dependencies; work that outlives cleanup fails the test. Several test applications can coexist, and stopping one must leave the others usable.
+A restart drains jobs and module work before startup recovery and resumption.
+
+Cleanup stops all instance-owned work before it closes the instance's dependencies. Work that outlives cleanup fails the test.
+
+Several test applications can coexist, and stopping one must leave the others usable.
 
 ## Isolation
 
-Tests from every worktree on a machine share one Docker daemon, so nothing a test creates may collide with another test's resources.
+Tests from every worktree on a machine share one Docker daemon. Nothing a test creates may therefore collide with another test's resources.
 
 - **Internal database.** All worktrees share one test PostgreSQL server. A test run never stops it.
   - Each test gets a uniquely named database from a template matching its migrations. Template creation is coordinated across concurrent runs.
-  - Passing tests drop their databases; failing tests retain them and print their addresses. Stale, unused databases are collected automatically.
+  - Passing tests drop their databases. Failing tests retain them and print their addresses. Stale, unused databases are collected automatically.
   - The server runs without durability, so a crash of the server or the host can corrupt it. A plain recreation does not help, because it keeps the data volume and reuses the existing template.
   - After such a crash, and only while no test run is active, discard the volume: `docker compose up -d --force-recreate --renew-anon-volumes backend-db-test`. The next test then builds a new template.
-- **Database servers for engines.** Tests reuse a source inside its engine-version scope, and each scope stops its container before starting the next version.
+- **Database servers for engines.** Tests reuse a source server inside its engine-version scope, the group of tests that share one server version. Each scope stops its container before starting the next version.
   - Booting a server for every scenario is too slow, and keeping every version at once uses too much memory. Independent top-level scopes can overlap.
   - The servers keep data in memory with durability off.
   - Tests sharing a server give a unique name to every database, role, schema and replication slot.
 - **Storages.** Each test uses its own bucket, container or directory.
-- **Docker networks.** Every network a test creates itself takes a random `/24` subnet from the test network range `10.160.0.0/11`, outside Docker's default address pools, and retries on an overlap. This holds for backend tests, the upgrade test and browser end-to-end runs. The verification agent cannot choose a range and allocates its restore networks from the default pools, so those pools stay free for it. The backend [container fixtures](../backend/internal/lib/testcontainers) and the browser suite's [supervisor](../e2e/browser) each follow the convention, because the browser suite imports no backend code. Stale networks are collected automatically: each backend test process removes, once, the networks in the test range that are older than an hour and have no running container, which a killed run or a Docker restart left behind. With Docker on firewalld every network is an interface in the firewall zone, and each one slows network creation further.
-- **Images.** An image a run builds has a tag no concurrent run uses, and the run removes it when it ends. The full run builds `databasus-full-test:local`; full runs take turns through their lock, so the tag cannot collide, and the next full run replaces an image a killed run left. The direct upgrade command builds `databasus-upgrade-test:<run ID>`. An image named through `DATABASUS_IMAGE` is used as given and never removed.
+- **Docker networks.** Every network a test creates itself takes a random `/24` subnet from the test network range `10.160.0.0/11`. That range lies outside Docker's default address pools. On an overlap, the test retries.
+  - This holds for backend tests, the upgrade test and browser end-to-end runs.
+  - The verification agent cannot choose a range. It allocates its restore networks from the default pools, so those pools stay free for it.
+  - The backend [container fixtures](../backend/internal/lib/testcontainers) and the browser suite's [supervisor](../e2e/browser) each follow the convention separately, because the browser suite imports no backend code.
+  - Stale networks are collected automatically. A killed run or a Docker restart can leave networks behind. Each backend test process removes them once: the networks in the test range that are older than an hour and have no running container.
+  - With Docker on firewalld, every network is an interface in the firewall zone, and each one slows network creation further.
+- **Images.** An image a run builds has a tag no concurrent run uses, and the run removes it when it ends.
+  - The full run builds `databasus-full-test:local`. Full runs take turns through their lock, so the tag cannot collide. The next full run replaces an image that a killed run left.
+  - The direct upgrade command builds `databasus-upgrade-test:<run ID>`.
+  - An image named through `DATABASUS_IMAGE` is used as given and never removed.
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files from `t.TempDir()`. Containers and processes get unique names and labels, and `t.Cleanup` removes them.
 - **Shared sources.** Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources stay available to `mise run run`, and test cleanup never removes their databases, roles or replication slots.
 
@@ -81,17 +102,21 @@ Tests should keep the machine busy. A run that waits while CPU, memory and disk 
 
 ### Reference machine
 
-Local runs assume a developer machine with:
+Local runs assume a [development VM](how-to-setup-vm.md) with:
 
-- 64 GB of memory, with up to 32 GB available exclusively for tests across the entire run, whether it runs selected packages, `mise run test` or `mise run test-full`; the rest serve compilation, the editor and the desktop;
-- 32 logical CPUs (vCPUs), which set Go's default parallel test limit;
+- about 32 GB of memory for the entire run, whether it runs selected packages, `mise run test` or `mise run test-full`;
+- 16 logical CPUs (vCPUs), which set Go's default parallel test limit;
 - free disk space that grows with concurrency, both on Docker's storage and in the temporary directory.
 
-Disk space needs a wide margin rather than an exact figure. Durable fixtures write data and WAL, and tests keep backups in temporary directories. When Docker keeps its data in an image file on the root filesystem, that file grows into the root filesystem's free space. If that space runs out, the run fails and the host can stall or restart.
+More memory and CPUs are welcome and shorten the runs. Fewer CPUs, down to the [minimum of the VM setup guide](how-to-setup-vm.md#cpu), only make them slower.
+
+Disk space needs a wide margin rather than an exact figure. Durable fixtures write data and WAL, and tests keep backups in temporary directories.
+
+When Docker keeps its data in an image file on the root filesystem, that file grows into the root filesystem's free space. If that space runs out, the run fails and the host can stall or restart.
 
 ### What bounds a run
 
-- **CPU** does not. Load above the core count is acceptable: most tests wait on containers and the network, so the cores stay busy only when many tests run at once.
+- **CPU** does not. Load above the core count is acceptable. Most tests wait on containers and the network, so the cores stay busy only when many tests run at once.
 - **Free memory and disk space** do.
 - **No test or package caps its own concurrency with a constant.** The runner's limits decide. When a resource requires a limit, the runner sets it from a measurement and states the reason beside it.
 
@@ -108,23 +133,27 @@ A test that exists to observe real time may take longer. It runs beside the othe
 
 ### Parallelism in local runs
 
-Go runs tests marked with `t.Parallel()` concurrently inside one test binary, up to `-parallel` at once. By default that is the number of logical CPUs. Every test owns its internal database, containers, ports and files, as [Isolation](#isolation) describes, so tests need no coordination beyond the shared engine-version scopes.
+Go runs tests marked with `t.Parallel()` concurrently inside one test binary, up to `-parallel` at once. By default that is the number of logical CPUs.
+
+Every test owns its internal database, containers, ports and files, as [Isolation](#isolation) describes. Tests therefore need no coordination beyond the shared engine-version scopes.
 
 Each command adds its own layer on top:
 
 - **`mise run test`** runs three suites at once: the slow backend packages, the other backend packages and the frontend tests.
   - Slow packages mostly wait on containers and get a lower package limit. The group already lasts as long as its longest package, so a higher limit only adds memory.
-  - Slow packages also get a parallel test limit. Their tests start containers, and the Docker daemon they share is the bottleneck: with one test per logical processor, dozens of Patroni clusters start at once, container stops and network removals outlast their deadlines, and the group fails and leaks containers.
+  - Slow packages also get a parallel test limit. Their tests start containers, and the Docker daemon they share is the bottleneck. With one test per logical processor, dozens of Patroni clusters start at once. Container stops and network removals then outlast their deadlines, and the group fails and leaks containers.
   - Other packages mostly compute and get a higher limit.
   - The [test runner](../scripts/test.sh) owns the numbers.
-- **`mise run test-full`** adds the end-to-end packages to the slow group and starts every other suite beside them, each as soon as what it needs is ready:
-  - the [crashed-run probes](#browser-end-to-end-suite), script tests, review hook tests, the browser suite's unit tests and browser UI start at once;
-  - the application image builds once at the start, then the upgrade test runs against it;
-  - the crashed-run probes and then the lifecycle interruption checks run while no other browser run of the command is active. They run one probe after another and no other browser run may overlap them, so they go first, beside the backend packages and the suites that start no browser run;
-  - after them, the browser end-to-end scenarios and the other lifecycle probes run together, the probes split into parts that several processes run, because one process runs its probes one after another.
+- **`mise run test-full`** adds the end-to-end packages to the slow group. It starts every other suite beside them, each as soon as what it needs is ready:
+  - The [crashed-run probes](#browser-end-to-end-suite), script tests, review hook tests, the browser suite's unit tests and browser UI start at once.
+  - The application image builds once at the start, and then the upgrade test runs against it.
+  - The crashed-run probes and then the lifecycle interruption checks run while no other browser run of the command is active. They run one probe after another, and no other browser run may overlap them. They therefore go first, beside the backend packages and the suites that start no browser run.
+  - After them, the browser end-to-end scenarios and the other lifecycle probes run together. The probes are split into parts that several processes run, because one process runs its probes one after another.
 
-  A failed suite stops no other suite; only a failed image build keeps the suites that run the image from starting. The run ends with a summary of each suite's outcome and duration, the build's duration and the total. Both commands also copy their output to a new `temp/test-<time>.txt` or `temp/test-full-<time>.txt` file in the checkout.
-- **Browser UI** takes its worker count from its runner: half the host's logical processors rounded up, and at least two, locally, and two per shard in CI.
+  A failed suite stops no other suite. Only a failed image build keeps the suites that run the image from starting.
+
+  The run ends with a summary of each suite's outcome and duration, the build's duration and the total. Both commands also copy their output to a new `temp/test-<time>.txt` or `temp/test-full-<time>.txt` file in the checkout.
+- **Browser UI** takes its worker count from its runner. Locally that is half the host's logical processors rounded up, and at least two. In CI it is two per shard.
 - **A direct package run** uses Go's defaults and gets the whole machine.
 
 ### Parallelism in CI
@@ -132,25 +161,32 @@ Each command adds its own layer on top:
 CI combines parallel jobs with parallel tests:
 
 - Each group or shard runs on its own runner. The longest check decides the wait, not the sum of all checks, and a slow runner holds back only its own shard.
-- Runners are available up to 16 vCPUs and 32 GB RAM. There is substantial aggregate concurrency available; use a 16-vCPU runner when a suite benefits from it.
-- Small jobs use small runners so they consume less of the paid runners' shared vCPU concurrency quota. Larger runners and higher test parallelism are chosen from measured runtime and peak memory, within the runner's 32 GB budget. Two concurrent tests is not a general limit.
+- Runners are available with up to 16 vCPUs and 32 GB RAM. Substantial aggregate concurrency is available, so use a 16-vCPU runner when a suite benefits from it.
+- Small jobs use small runners, so they consume less of the paid runners' shared vCPU concurrency quota.
+- Larger runners and higher test parallelism are chosen from measured runtime and peak memory, within the runner's 32 GB budget. Two concurrent tests is not a general limit.
 - A long package is split into several top-level tests. Their [recorded weights](../backend/test-shard-weights.txt) let the shards balance it.
 
 [CI](#ci) describes groups and shards.
 
 ### Storage speed
 
-Container creation and small synchronous writes also limit speed. [Preparing a machine](machine-setup.md) describes storage considerations without requiring a particular host setup.
+Container creation and small synchronous writes also limit speed. [Where the VM disk lives](how-to-setup-vm.md#step-3-choose-where-the-vm-disk-lives) describes the storage considerations.
 
 ## Waiting
 
-The [testing skill](../.agents/skills/testing/SKILL.md#waiting) defines condition-wait limits and their exceptions; fixed sleeps and `Eventually` are rejected by lint. Move the injected clock when time drives behavior. Go's timeout covers the whole package, so a call that hangs outside a bounded wait can still consume that timeout.
+The [testing skill](../.agents/skills/testing/SKILL.md#waiting) defines condition-wait limits and their exceptions. Lint rejects fixed sleeps and `Eventually`. Move the injected clock when time drives behavior.
+
+Go's timeout covers the whole package. A call that hangs outside a bounded wait can therefore still consume that timeout.
 
 ## Physical schema recovery tests
 
-Physical recovery tests start the recovered server and verify data, schema and generated-ID writes. They cover full and incremental chains and point-in-time recovery across transaction boundaries. PostgreSQL permits sequence gaps, so recovery checks prevent ID reuse without assuming consecutive allocations. The [physical suites](../backend/internal/modules/backups/e2e/postgresqlphysical) and their [shared fixtures](../backend/internal/app/apptest/physicaltest) own the detailed scenario matrix.
+Physical recovery tests start the recovered server and verify data, schema and generated-ID writes. They cover full and incremental chains, and point-in-time recovery across transaction boundaries.
 
-Run the schema and sequence scenarios from the repository root with the pinned tools and the [Fedora preparation](#commands):
+PostgreSQL permits sequence gaps. Recovery checks therefore prevent ID reuse without assuming consecutive allocations.
+
+The [physical suites](../backend/internal/modules/backups/e2e/postgresqlphysical) and their [shared fixtures](../backend/internal/app/apptest/physicaltest) own the detailed scenario matrix.
+
+Run the schema and sequence scenarios from the repository root with the pinned tools and the [libedit shim](#commands):
 
 ```sh
 source scripts/fedora.sh
@@ -162,9 +198,15 @@ TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -run '^TestRestore
 
 ## Patroni physical backup tests
 
-The Patroni suite exercises physical backup and recovery through a real highly available PostgreSQL source. Unlike the reusable engine servers, these sources use disk-backed data and durable settings. Every scenario owns its resources and tests cleanup on failure and interruption. Scenarios are grouped into top-level tests by family and PostgreSQL major, so CI can spread them across shards. The runner's parallel limit alone decides how many clusters run at once.
+The Patroni suite exercises physical backup and recovery through a real highly available PostgreSQL source. Unlike the reusable engine servers, these sources use disk-backed data and durable settings.
 
-Prepare Docker, the shared test PostgreSQL server, pinned tools and client bundles as described in [Commands](#commands). The initial fixture build needs network access; later runs can reuse its build cache. Missing tools and build failures fail the suite rather than skip scenarios. The [fixture README](../backend/internal/lib/testcontainers/testdata/patroni/README.md) owns dependency and build details.
+- Every scenario owns its resources and tests cleanup on failure and interruption.
+- Scenarios are grouped into top-level tests by family and PostgreSQL major version, so CI can spread them across shards.
+- The runner's parallel limit alone decides how many clusters run at once.
+
+Prepare Docker, the shared test PostgreSQL server, pinned tools and client bundles as described in [Commands](#commands). The initial fixture build needs network access; later runs can reuse its build cache.
+
+Missing tools and build failures fail the suite rather than skip scenarios. The [fixture README](../backend/internal/lib/testcontainers/testdata/patroni/README.md) owns dependency and build details.
 
 Run the complete matrix from the repository root:
 
@@ -181,14 +223,19 @@ Use Go's `-run` filter to repeat an individual scenario. [PostgreSQL with Patron
 
 The CloudNativePG (CNPG) suite checks physical backup and recovery on PostgreSQL 17 and 18 while Kubernetes manages the source's primary. Sources use disk-backed data and durable settings, as in the Patroni suite.
 
-Each package run owns disposable Kubernetes clusters running k3s, a lightweight Kubernetes distribution. Scenarios share k3s but own separate namespaces and PostgreSQL clusters. The suite never uses or changes the developer's Kubernetes configuration. Independent scenarios run in parallel up to the runner's limit; when a shared k3s reaches capacity, the suite starts another instead of limiting scenario concurrency. CI shards split scenarios by family and PostgreSQL major.
+Each package run owns disposable Kubernetes clusters running k3s, a lightweight Kubernetes distribution.
+
+- Scenarios share k3s but own separate namespaces and PostgreSQL clusters.
+- The suite never uses or changes the developer's Kubernetes configuration.
+- Independent scenarios run in parallel up to the runner's limit. When a shared k3s reaches capacity, the suite starts another one instead of limiting scenario concurrency.
+- CI shards split scenarios by family and PostgreSQL major version.
 
 The suite needs:
 
 - rootful Docker on Linux, with k3s container addresses reachable from the host;
 - a Docker daemon that allows privileged containers, which k3s requires;
-- raised [inotify limits](machine-setup.md#inotify-limits-for-cloudnativepg-tests);
-- the [`br_netfilter` kernel module](machine-setup.md#bridge-netfilter-for-cloudnativepg-tests) loaded on the host;
+- raised [inotify limits](how-to-setup-vm.md#inotify-limits-for-cloudnativepg-tests);
+- the [`br_netfilter` kernel module](how-to-setup-vm.md#bridge-netfilter-for-cloudnativepg-tests) loaded in the kernel that runs Docker;
 - Docker, the shared test PostgreSQL server, pinned tools and client bundles as described in [Commands](#commands).
 
 Missing prerequisites fail the suite rather than skip scenarios. The [fixture README](../backend/internal/lib/testcontainers/testdata/cnpg/README.md) owns dependency records and image preparation details.
@@ -204,7 +251,9 @@ TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -count=1 -timeout 15m \
 
 Use Go's `-run` filter to repeat an individual scenario. [PostgreSQL with CloudNativePG](postgresql-cloudnativepg.md) explains the source configuration, slot synchronization and recovery limits.
 
-A run removes its resources after success, failure or cancellation. The `mise run test-full` runner also cleans up when its test process is killed. A killed direct package run can leave resources behind. List k3s containers, networks and volumes by fixture label:
+A run removes its resources after success, failure or cancellation. The `mise run test-full` runner also cleans up when its test process is killed. A killed direct package run can leave resources behind.
+
+List k3s containers, networks and volumes by fixture label:
 
 ```sh
 docker ps -a --filter label=databasus.k3s-fixture
@@ -216,62 +265,121 @@ These commands also list fixtures active in other worktrees. Before removing any
 
 ## Neon tests
 
-Two tests reach an external service, Neon, because a managed service behaves in ways a container does not reproduce. The backup test backs up and restores a database of a real Neon project through the API. The storage test saves, reads and deletes files in Neon Object Storage through the S3 storage provider, including a multipart file and a cancelled save, because a managed object storage service may reject request details that MinIO accepts. Each also runs against a container, PostgreSQL or MinIO, so its own logic is checked without Neon.
+Two tests reach an external service, Neon, because a managed service behaves in ways a container does not reproduce:
 
-Both use a dedicated Neon project that holds no production data. Each run marks what it creates, removes it at the end, and sweeps what killed runs left behind, so parallel runs share one project. Without the Neon settings a test skips locally; in CI its group requires it, so a missing secret fails the check. The settings to fill locally are the `# tests` entries of [`.env.example`](../.env.example), and [`scripts/neon_secret_test.py`](../scripts/neon_secret_test.py) lists which CI group receives which secret.
+- **The backup test** backs up and restores a database of a real Neon project through the API.
+- **The storage test** saves, reads and deletes files in Neon Object Storage through the S3 storage provider, including a multipart file and a cancelled save. It exists because a managed object storage service may reject request details that MinIO accepts.
+
+Each test also runs against a container, PostgreSQL or MinIO, so its own logic is checked without Neon.
+
+Both use a dedicated Neon project that holds no production data. Each run marks what it creates and removes it at the end. It also sweeps what killed runs left behind, so parallel runs share one project.
+
+Without the Neon settings, a test skips locally. In CI its group requires the settings, so a missing secret fails the check. The settings to fill locally are the `# tests` entries of [`.env.example`](../.env.example). [`scripts/neon_secret_test.py`](../scripts/neon_secret_test.py) lists which CI group receives which secret.
 
 ## Databasus recovery-cycle tests
 
-These tests prove that a Databasus backup brings back a working instance on a server that never saw the original one: the target receives only the archive and the master key, recovers at startup or through UI import, and then restores user databases from the recovered catalog. They run the candidate application image in containers, building it from the checkout when no image is supplied, and remove only their own containers and volumes. [Commands](#commands) lists the run, which needs the Fedora preparation.
+These tests prove that a Databasus backup brings back a working instance on a server that never saw the original one:
+
+1. The target receives only the archive and the master key.
+2. It recovers at startup or through UI import.
+3. It then restores user databases from the recovered catalog.
+
+The tests run the candidate application image, the image under test, in containers. When no image is supplied, they build it from the checkout. They remove only their own containers and volumes.
+
+[Commands](#commands) lists the run, which needs the libedit shim.
 
 ## Verification agent end-to-end tests
 
-These tests run the real agent binary against a real backend, proving that they agree on the contract and can restore a backup. The separate agent unit-test command needs neither a container engine nor the test database. [Commands](#commands) lists both runs and the rootful Podman subset; source servers still use Docker in that subset.
+These tests run the real agent binary against a real backend. They prove that the two agree on the contract and can restore a backup.
+
+The separate agent unit-test command needs neither a container engine nor the test database. [Commands](#commands) lists both runs and the rootful Podman subset. Source servers still use Docker in that subset.
 
 - **Allowed stand-in.** A forwarding gateway may delay traffic or reduce a claimed resource budget. It never creates verifications or accepts reports in the backend's place.
-- **Concurrency.** Tests and separate runs may overlap through unique resources. The scenarios of `TestVerifyBackup` stay sequential because each agent allocates networks from Docker's default address pools.
+- **Concurrency.** Tests and separate runs may overlap through unique resources. The scenarios of `TestVerifyBackup` stay sequential, because each agent allocates networks from Docker's default address pools.
 - **Cleanup.** Each scenario waits for its containers and networks to disappear and explicitly cleans up detached daemon PIDs. Failed scenarios print agent output and logs.
 
 ## Frontend tests
 
-Screen tests render real components and mock only the network, typed by the contract, so they cover every answer the contract allows. The [testing skill](../.agents/skills/testing/SKILL.md#frontend-screen-tests) gives the authoring rules.
+Screen tests render real components and mock only the network, typed by the contract. They therefore cover every answer the contract allows. The [testing skill](../.agents/skills/testing/SKILL.md#frontend-screen-tests) gives the authoring rules.
 
 - **Environment.** Screen tests select happy-dom with `// @vitest-environment happy-dom` on the first line. Pure logic, API and architecture fixtures keep the default node environment.
-- **Rendering.** The [shared test infrastructure](../frontend/src/shared/lib/test) supplies real providers, isolated query state, routing, locale, theme and Strict Mode. Whole-application tests use the app-level renderer because the application supplies its own providers and browser router.
-- **HTTP.** Contract-typed mocks declare finite methods and paths and fail teardown on unexpected requests, even if the component catches the error. Controlled responses expose overlapping work without timers. A cancelled request is a settled transport outcome; Strict Mode setup counts do not imply an equal number of HTTP requests.
-- **Cleanup.** Unmount before settling pending responses, then restore browser state, globals and clocks. Session changes and unmount clear owned query state. Components own timers, listeners and late-response guards. Wait for observable dispatch before changing a pending action's session; polling tests assert reads and cleanup rather than library internals.
+- **Rendering.** The [shared test infrastructure](../frontend/src/shared/lib/test) supplies real providers, isolated query state, routing, locale, theme and Strict Mode. Whole-application tests use the app-level renderer, because the application supplies its own providers and browser router.
+- **HTTP.** Contract-typed mocks declare finite methods and paths.
+  - They fail teardown on unexpected requests, even if the component catches the error.
+  - Controlled responses expose overlapping work without timers.
+  - A cancelled request is a settled transport outcome.
+  - Strict Mode setup counts do not imply an equal number of HTTP requests.
+- **Cleanup.** Unmount before settling pending responses, then restore browser state, globals and clocks.
+  - Session changes and unmount clear owned query state.
+  - Components own timers, listeners and late-response guards.
+  - Wait for observable dispatch before changing a pending action's session.
+  - Polling tests assert reads and cleanup rather than library internals.
 - **Limits.** Test and condition-wait limits are shared across the suite.
 - **Tooling.** Expected-failure fixtures run in isolated child processes. Browser scenarios stay outside unit-test discovery.
 
 ## Browser UI tests
 
-These tests exercise the production build in a real browser, for what happy-dom cannot establish: geometry, focus, fonts and images. Screen tests stay the faster layer for overlapping responses and editing-session policy. The [browser UI command](#commands) needs Docker and no backend services, because HTTP responses are finite synthetic fixtures.
+These tests exercise the production build in a real browser. They cover what happy-dom cannot establish: geometry, focus, fonts and images. Screen tests stay the faster layer for overlapping responses and editing-session policy.
+
+The [browser UI command](#commands) needs Docker and no backend services, because HTTP responses are finite synthetic fixtures.
 
 - **Isolation.** Each run uses a pinned browser environment and an unprivileged container with its own temporary checkout and private preview server. It publishes no host port and cleans up only its own resources.
-- **Architectures.** Native amd64 and arm64 use the same committed references and exact pixel comparisons. Other architectures fail before scenarios; reference updates require the explicit command below.
+- **Architectures.** Native amd64 and arm64 use the same committed references and exact pixel comparisons. Other architectures fail before scenarios. Reference updates require the explicit command below.
 - **HTTP.** Finite contract fixtures fail teardown on undeclared requests or page errors, even if the application catches the failure. Only same-origin GET navigation and static resources pass through.
-- **References and artifacts.** [Browser fixtures](../frontend/browser) own scenarios, visual references and runner probes. Missing or changed images fail an ordinary run. Inspect changes after the explicit reference-update command. Failed runs save artifacts under `frontend/browser-results/` for local inspection and CI upload.
+- **References and artifacts.** [Browser fixtures](../frontend/browser) own scenarios, visual references and runner probes.
+  - Missing or changed images fail an ordinary run.
+  - Inspect changes after the explicit reference-update command.
+  - Failed runs save artifacts under `frontend/browser-results/` for local inspection and CI upload.
 
 ## Browser end-to-end suite
 
-These tests exercise the application image through its screens, without importing backend or frontend code or using paths into those trees from scenarios and fixtures. They need Docker with `image save --platform` support and the pinned tools, but no `.env`, running application or shared test database. The standalone command tests `DATABASUS_IMAGE` when set, or builds an image from the checkout; CI requires an explicit image.
+These tests exercise the application image through its screens. Scenarios and fixtures import no backend or frontend code and use no paths into those trees.
 
-- **Isolation.** Each run has its own application, source database, browser, recovery runner and private Docker daemon. Runs may overlap without taking a lock or conflicting with development ports. The private engine requires privileged containers; its Unix socket and writable data volumes belong only to that run. The host engine socket is never mounted, and only the browser publishes a host port.
-- **Evidence.** Success requires actual restored data in running databases, not screen status alone. Scenarios execute the recovery commands the interface presents and validate selection together with the canonical URL. The [suite](../e2e/browser) owns scenario coverage and recovery-runner setup.
-- **Prerequisites.** Recovery setup needs network access for its packages and any missing pinned images; nested recovery uses a locally supplied image. It supports Host tools and Docker recovery without rewriting the displayed commands.
-- **Cleanup.** Success, failure, interruption and crashed-run recovery remove only the run's resources, including nested containers and any image it built. Removal failures fail the run. Failed runs print bounded diagnostics with credentials and tokens masked; diagnostic failure cannot prevent cleanup.
+The suite needs Docker with `image save --platform` support and the pinned tools. It needs no `.env`, running application or shared test database.
+
+The standalone command tests `DATABASUS_IMAGE` when it is set, or builds an image from the checkout. CI requires an explicit image.
+
+- **Isolation.** Each run has its own application, source database, browser, recovery runner and private Docker daemon.
+  - Runs may overlap without taking a lock or conflicting with development ports.
+  - The private engine requires privileged containers. Its Unix socket and writable data volumes belong only to that run.
+  - The host engine socket is never mounted, and only the browser publishes a host port.
+- **Evidence.** Success requires actual restored data in running databases, not screen status alone. Scenarios execute the recovery commands the interface presents, and they validate the selection together with the canonical URL. The [suite](../e2e/browser) owns scenario coverage and recovery-runner setup.
+- **Prerequisites.** Recovery setup needs network access for its packages and any missing pinned images. Nested recovery uses a locally supplied image. The setup supports Host tools and Docker recovery without rewriting the displayed commands.
+- **Cleanup.** Success, failure, interruption and crashed-run recovery remove only the run's resources, including nested containers and any image it built.
+  - Removal failures fail the run.
+  - Failed runs print bounded diagnostics with credentials and tokens masked.
+  - A diagnostic failure cannot prevent cleanup.
 - **Checks of the suite.** Separate commands exercise unit logic and lifecycle failures, interruptions and overlapping runs. [Checking work](#checking-work) selects these checks, including the standalone lifecycle-command interruption check.
-- **Crashed-run probes.** Every browser run first removes what crashed runs left behind, anywhere on the machine. A crashed-run probe kills a run or prevents its cleanup and then expects its own later run to remove the remains, so it gives a reliable result only while its caller starts no other run. Such a probe registers its teardown through the lifecycle suite's shared fixture, which marks it automatically. `mise run e2e:lifecycle` takes `--only-crashed-run-probes` or `--without-crashed-run-probes`, alone or with a group, so a caller can run the other probes concurrently and these alone; `--shard INDEX/COUNT` splits a selection into parts for several processes. A browser run started from another worktree meanwhile can still remove a crashed run first; the suite takes no machine-wide lock against that race.
+- **Crashed-run probes.** Every browser run first removes what crashed runs left behind, anywhere on the machine. A crashed-run probe kills a run or prevents its cleanup. It then expects its own later run to remove the remains. The probe therefore gives a reliable result only while its caller starts no other run.
+  - Such a probe registers its teardown through the lifecycle suite's shared fixture, which marks it automatically.
+  - `mise run e2e:lifecycle` takes `--only-crashed-run-probes` or `--without-crashed-run-probes`, alone or with a group. A caller can thus run the other probes concurrently and these alone.
+  - `--shard INDEX/COUNT` splits a selection into parts for several processes.
+  - A browser run started meanwhile from another worktree can still remove a crashed run first. The suite takes no machine-wide lock against that race.
 
 ## Checking work
 
-Follow [the project rules](../AGENTS.md#tests) when deciding whether a change needs `mise run test`. For a localized functional change, run the affected package or screen tests directly. For a presentation change, run the frontend checks and verify the affected layout in a browser. Documentation-only changes need no test run. OpenSpec change verification names the commands selected for the change.
+Follow [the project rules](../AGENTS.md#tests) when deciding whether a change needs `mise run test`.
 
-`mise run test-full` runs every test that needs only the usual Docker development environment. It includes the routine run, the end-to-end packages of the verification agent and of backups, the upgrade test, frontend browser UI, the browser end-to-end suite and its unit, lifecycle and interruption checks, and the script and review hook tests. Podman and filesystem tests remain separate because they require additional host setup. An agent [does not start the full command on its own](../AGENTS.md#tests).
+- For a localized functional change, run the affected package or screen tests directly.
+- For a presentation change, run the frontend checks and verify the affected layout in a browser.
+- Documentation-only changes need no test run.
+
+OpenSpec change verification names the commands selected for the change.
+
+`mise run test-full` runs every test that needs only the usual Docker development environment. It includes:
+
+- the routine run;
+- the end-to-end packages of the verification agent and of backups;
+- the upgrade test;
+- frontend browser UI;
+- the browser end-to-end suite and its unit, lifecycle and interruption checks;
+- the script and review hook tests.
+
+Podman and filesystem tests remain separate, because they require additional host setup. An agent [does not start the full command on its own](../AGENTS.md#tests).
 
 Whether checking a change with targeted tests or with `mise run test`, an agent also runs by hand the specific long or end-to-end suites its change touches:
 
-- A change to scenarios in `e2e/browser/scenarios` or to the `Dockerfile` runs `mise run e2e:browser`, and the change verification names a scenario change's command.
+- A change to scenarios in `e2e/browser/scenarios` or to the `Dockerfile` runs `mise run e2e:browser`. For a scenario change, the change verification names the command.
 - A change to tests in `backend/internal/agent/e2e` or to the verification agent's code runs `mise run agent:e2e`, or the Go test command for the affected tests.
 - A change to tests in `backend/internal/modules/backups/e2e` runs the Go test command for the affected tests.
 - A change to tests in `backend/internal/modules/instancebackups/e2e`, or to how Databasus backups are produced or recovered, runs [the recovery-cycle command](#commands).
@@ -287,40 +395,54 @@ A change to the browser end-to-end suite's own code owes its commands too:
 
 ### What `mise run test` runs
 
-The routine command prepares locked frontend dependencies and runs backend tests outside the end-to-end packages plus frontend unit and screen tests. Independent groups finish even if another fails, and the summary identifies failures. Migration and architecture-linter tests are included.
+The routine command prepares locked frontend dependencies. It then runs the backend tests outside the end-to-end packages, plus the frontend unit and screen tests. Migration and architecture-linter tests are included. Independent groups finish even if another fails, and the summary identifies failures.
 
-The full command adds the Docker end-to-end, browser, upgrade, script and review-hook suites described above, scheduled as [Parallelism in local runs](#parallelism-in-local-runs) describes. Both commands share a machine-wide lock; a direct package test takes no such lock.
+The full command adds the Docker end-to-end, browser, upgrade, script and review-hook suites described above. They are scheduled as [Parallelism in local runs](#parallelism-in-local-runs) describes.
 
-The [test runner](../scripts/test.sh) owns process limits, package timeouts and full-run ordering. [Slow-package selection](../backend/test-slow-packages.txt) bounds container load: register a package there when it starts containers or networks or runs for over a minute. Unlisted packages still run in the fast group.
+Both commands share a machine-wide lock. A direct package test takes no such lock.
+
+The [test runner](../scripts/test.sh) owns process limits, package timeouts and full-run ordering.
+
+[Slow-package selection](../backend/test-slow-packages.txt) bounds container load. Register a package there when it starts containers or networks, or when it runs for over a minute. Unlisted packages still run in the fast group.
 
 ### What runs separately
 
 - The rootful Podman subset (`mise run agent:e2e-podman`) needs its socket configured.
 - The filesystem suite (`mise run test-filesystem`) needs host support for NFS/CIFS and their mount clients.
-- Every suite can also run directly when checking a change that touches it; the [commands](#commands) below include hidden CI tasks, which remain callable by name.
+- Every suite can also run directly when checking a change that touches it. The [commands](#commands) below include hidden CI tasks, which remain callable by name.
 
 ### CI
 
-CI repeats local verification on clean runners. The [release workflow](../.github/workflows/ci-release.yml) owns triggers, matrix groups, shard counts, resource limits and artifact transfer. All required results gate release version selection; manual development runs do not publish releases.
+CI repeats local verification on clean runners. The [release workflow](../.github/workflows/ci-release.yml) owns triggers, matrix groups, shard counts, resource limits and artifact transfer. All required results gate release version selection. Manual development runs do not publish releases.
 
 - Native amd64 and arm64 jobs exercise supported test surfaces. An architecture matrix or a local amd64 pass does not establish a successful native ARM run.
 - Sharding cannot exclude unweighted or newly added tests. Failures do not cancel other matrix legs, and each selected package runs once.
 - Unsupported server images follow the [shared exclusion policy](../backend/internal/lib/testcontainers/unavailable_images.json). Those versions still run where images exist, and container-free refusal checks remain on ARM. Other image failures are fatal.
 - Image-based suites consume candidates built for the tested commit and architecture. Host, engine and candidate architecture are checked before scenarios.
 - Podman and network-filesystem tests need suitable hosts. Local fixture checks do not prove mounted-filesystem behavior.
-- The `logical` and `storage-providers` groups need repository secrets for the [Neon tests](#neon-tests); [`scripts/neon_secret_test.py`](../scripts/neon_secret_test.py) names them per group.
-- Backend CI uses race detection. Add `-race` to a direct local command when reproducing a reported race; routine local runs omit it for speed.
+- The `logical` and `storage-providers` groups need repository secrets for the [Neon tests](#neon-tests). [`scripts/neon_secret_test.py`](../scripts/neon_secret_test.py) names them per group.
+- Backend CI uses race detection. Add `-race` to a direct local command when reproducing a reported race. Routine local runs omit it for speed.
 - Python quality and dependency checks gate both release and development publication. Offline dependency checks do not establish release age or replace locked installation.
 
 ### Python quality checks
 
-`mise run lint` includes every repository-owned Python file. `mise run format` applies Python formatting and safe lint fixes. The hidden `python:lint` and `python:format` tasks run those checks alone, from any repository directory. Tool versions are pinned in `mise.toml`; root `pyproject.toml` defines lint, annotation, formatting and type rules.
+`mise run lint` includes every repository-owned Python file. `mise run format` applies Python formatting and safe lint fixes. The hidden `python:lint` and `python:format` tasks run those checks alone, from any repository directory.
 
-Lint, formatting checks and type checks cover repository-owned Python, including new and hidden directories. Generated environments and deleted files are excluded. A failed stage does not hide later diagnostics; checks never modify source, the index or the stash. Explicit formatting makes safe fixes without rewriting types. The [quality runner](../scripts/python_quality.py) owns file discovery and tool invocation.
+Tool versions are pinned in `mise.toml`. The root `pyproject.toml` defines lint, annotation, formatting and type rules.
 
-Type checking uses the browser project's locked dependencies and pinned Python. It needs neither Docker nor a running application; initial dependency preparation may need network access, and setup failures fail lint. The [annotation convention](../AGENTS.md#functions-methods-and-types) applies at function and external-data boundaries.
+Lint, formatting checks and type checks cover repository-owned Python, including new and hidden directories. Generated environments and deleted files are excluded.
 
-The pre-commit hook checks the full Python selection when Python or its quality configuration changes, without automatic fixes or stashing. Unrelated prose does not select it. For deletion-only changes or a rename out of Python, explicitly run the full hook step below because automatic path selection omits deleted and old paths. CI checks the full selection.
+- A failed stage does not hide later diagnostics.
+- Checks never modify source, the index or the stash.
+- Explicit formatting makes safe fixes without rewriting types.
+
+The [quality runner](../scripts/python_quality.py) owns file discovery and tool invocation.
+
+Type checking uses the browser project's locked dependencies and pinned Python. It needs neither Docker nor a running application. Initial dependency preparation may need network access, and setup failures fail lint. The [annotation convention](../AGENTS.md#functions-methods-and-types) applies at function and external-data boundaries.
+
+The pre-commit hook checks the full Python selection when Python or its quality configuration changes. It makes no automatic fixes and does no stashing. Unrelated prose does not select it.
+
+Automatic path selection omits deleted and old paths. For deletion-only changes or a rename out of Python, run the full hook step below explicitly. CI checks the full selection.
 
 Run the checks directly with:
 
@@ -339,16 +461,23 @@ mise exec -- python3 -m unittest discover -s scripts -p '*_test.py'
 
 ### Upgrade test
 
-The upgrade test starts from the newest release tag by version and checks the image built from the checkout, unless `DATABASUS_IMAGE` names one. It builds that image as `databasus-upgrade-test:<run ID>` and removes it when the test ends. After the server assertions, it checks self-update and manual replacement using an actual older agent pinned by image digest. The `upgrade-test` spec defines that fixture and its acceptance criteria.
+The upgrade test starts from the newest release tag by version. It checks the image built from the checkout, unless `DATABASUS_IMAGE` names one. It builds that image as `databasus-upgrade-test:<run ID>` and removes it when the test ends.
+
+After the server assertions, the test checks self-update and manual replacement. It uses an actual older agent, pinned by image digest. The `upgrade-test` spec defines that fixture and its acceptance criteria.
 
 The agent scenarios require a local Unix Docker socket and Linux host networking. Cleanup removes their containers, labeled restore resources and anonymous volumes.
 
 #### Manual agent recovery
 
-Self-update needs write access to the directory holding the agent's executable. Permission or read-only filesystem errors in its update logs, together with no recent accepted heartbeat on the server, indicate a failed replacement. The upgrade test verifies this recovery procedure:
+Self-update needs write access to the directory holding the agent's executable. Two signs together indicate a failed replacement:
 
-1. Stop the agent. For its built-in daemon, run the installed binary's `stop` command by absolute path, from its existing working directory as its normal account. For a service or container, stop its supervisor instead.
-2. Replace the executable using an account permitted to write to its directory. Download from the connected server to a temporary file, choosing `arch=amd64` or `arch=arm64` for the agent's machine. For example, replacing the server address and installed path:
+- permission or read-only filesystem errors in the agent's update logs;
+- no recent accepted heartbeat on the server.
+
+The upgrade test verifies this recovery procedure:
+
+1. Stop the agent. For its built-in daemon, run the installed binary's `stop` command by absolute path. Run it from its existing working directory, as its normal account. For a service or container, stop its supervisor instead.
+2. Replace the executable using an account permitted to write to its directory. Download from the connected server to a temporary file, choosing `arch=amd64` or `arch=arm64` for the agent's machine. For example, after replacing the server address and the installed path:
 
    ```sh
    curl --fail --location --output /opt/databasus-agent/verification-agent.new \
@@ -359,9 +488,9 @@ Self-update needs write access to the directory holding the agent's executable. 
 
    For a container, deploy the updated image instead.
 
-3. Preserve `databasus-verification.json`, its token and resource settings. Restart the daemon with the installed binary's absolute path and `start` command, as the same account from the existing working directory, without resupplying setup credentials or resource flags. Restart a service or container through its supervisor with the existing settings.
+3. Preserve `databasus-verification.json`, its token and resource settings. Restart the daemon with the installed binary's absolute path and `start` command. Run it as the same account, from the existing working directory, without resupplying setup credentials or resource flags. Restart a service or container through its supervisor with the existing settings.
 
-Confirm accepted server contact and a completed backup verification. A successful local `version` or `status` command alone does not prove recovery, and no new token is needed.
+Confirm accepted server contact and a completed backup verification. A successful local `version` or `status` command alone does not prove recovery. No new token is needed.
 
 ## Commands
 
@@ -380,7 +509,7 @@ To repeat one failing test, call its Go or frontend runner directly. This takes 
 | One frontend browser UI shard                         | `pnpm --dir frontend test:browser --project=ui --shard=1/3`                       |
 | Update browser visual references                       | `pnpm --dir frontend test:browser --project=ui --update-references`              |
 | Upgrade test                                           | `mise run backend:test-upgrade`                                                  |
-| Databasus recovery-cycle tests                         | `go -C backend test -count=1 -timeout 20m ./internal/modules/instancebackups/e2e/...`, with the Fedora preparation below |
+| Databasus recovery-cycle tests                         | `go -C backend test -count=1 -timeout 20m ./internal/modules/instancebackups/e2e/...`, with the libedit shim below |
 | Filesystem tests                                       | `mise run test-filesystem`                                                       |
 | Browser end-to-end suite alone                         | `mise run e2e:browser`                                                           |
 | Its parts that need no Docker daemon                   | `mise run e2e:unit`                                                              |
@@ -389,7 +518,9 @@ To repeat one failing test, call its Go or frontend runner directly. This takes 
 | One backend remainder shard                            | See the race-enabled shard command below |
 | Review hook tests                                      | `python3 -m unittest discover -s .agent-hooks -p '*_test.py'`                    |
 
-The bundled PostgreSQL clients need the libedit shim on Fedora, and parallel test binaries collide on the Ryuk reaper name, so the full command that repeats a backend test is:
+The bundled PostgreSQL clients link `libedit.so.2`. The Ubuntu development VM has it. A Fedora host has only `libedit.so.0`, and the shim adds the missing name. Where the library is present, the shim does nothing.
+
+Parallel test binaries also collide on the name of the Ryuk reaper, the container Testcontainers starts to remove a test process's leftovers. The full command that repeats a backend test is therefore:
 
 ```sh
 cd backend
@@ -398,7 +529,7 @@ apply_libedit_shim
 TESTCONTAINERS_RYUK_DISABLED=true go test -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...
 ```
 
-To repeat one backend remainder shard with CI concurrency and race detection, prepare the Fedora shim as above, then run from the repository root:
+To repeat one backend remainder shard with CI concurrency and race detection, prepare the libedit shim as above. Then run from the repository root:
 
 ```sh
 packages=$(mise run --quiet backend:test-group-packages other-1-of-3)
@@ -406,7 +537,9 @@ pattern=$(mise run --quiet backend:test-group-tests other-1-of-3)
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -race -p=8 -parallel=2 -count=1 -timeout 40m -run "$pattern" $packages
 ```
 
-Use `other-2-of-3` and `other-3-of-3` for the remaining selections. The same commands repeat a shard of another sharded group by its name, such as `patroni-2-of-5`. For a `cnpg` shard, use `-parallel=4`, as its CI runner does. The provider root runs separately, without overlapping test work:
+Use `other-2-of-3` and `other-3-of-3` for the remaining selections. The same commands repeat a shard of another sharded group by its name, such as `patroni-2-of-5`. For a `cnpg` shard, use `-parallel=4`, as its CI runner does.
+
+The provider root runs separately, without overlapping test work:
 
 ```sh
 TESTCONTAINERS_RYUK_DISABLED=true go -C backend test -race -p=1 -parallel=1 -count=1 -timeout 40m ./internal/modules/storages/internal/providers

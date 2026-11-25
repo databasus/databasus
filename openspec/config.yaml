@@ -34,7 +34,7 @@ context: |
     specific issue's behavior.
   - Names state intent. Getters take Get, predicates read as questions,
     booleans take is/can/has/should.
-  - Work happens on a Fedora host with the tools pinned in mise.toml.
+  - Work happens in an Ubuntu VM with the tools pinned in mise.toml.
     Commands are mise tasks (mise run <task>, from any directory)
     and pnpm (frontend).
   - Review hooks gate plans, finished turns, full proposals and full
