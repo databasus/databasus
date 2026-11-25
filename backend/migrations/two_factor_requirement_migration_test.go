@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	twoFactorRequirementMigrationName    = "20261124120000_users_authenticator_apps.sql"
-	twoFactorRequirementMigrationVersion = 20261124120000
+	twoFactorRequirementMigrationName    = "20261124120200_users_authenticator_apps.sql"
+	twoFactorRequirementMigrationVersion = 20261124120200
 )
 
 func TestTwoFactorRequirementMigration(t *testing.T) {

@@ -99,6 +99,8 @@ test('retains newer profile input and a single pending save when locale and them
         email: 'owner@example.com',
         role: 'ADMIN',
         status: 'ACTIVE',
+        authenticatorAppConnectedAt: null,
+        unusedRecoveryCodeCount: null,
         createdAt: '2026-10-01T00:00:00Z',
       }),
     });
@@ -171,6 +173,8 @@ test('keeps pending profile actions reachable when text is enlarged to 200% at 3
         name: 'Submitted narrow profile',
         role: 'ADMIN',
         status: 'ACTIVE',
+        authenticatorAppConnectedAt: null,
+        unusedRecoveryCodeCount: null,
         createdAt: '2026-10-01T00:00:00Z',
       }),
     });
