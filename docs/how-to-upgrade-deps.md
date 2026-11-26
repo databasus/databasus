@@ -155,16 +155,17 @@ Run refreshed binaries in the runtime image. Follow the database engine's test r
 
 Keep third-party image digests in their existing declarations or the test-image catalog. The verification Dockerfile pins a base image for each PostgreSQL major version. This makes `PG_MAJOR` select the same base locally and in CI.
 
-The verification agent restores into the [pinned PostgreSQL version](glossary.md) of each major. These versions are listed in `backend/internal/agent/container/postgres_versions.json`. Raising one changes three places together:
+The verification agent restores into the [pinned PostgreSQL version](glossary.md) of each major. These versions are listed in `backend/internal/agent/container/postgres_versions.json`. The test catalog holds each major's base under `postgres:<major>` and each published verification image under `databasus/verification-postgres:<version>`. The image of a new pinned version exists only after the release that raises it, so a raise takes two commits:
 
-- That list.
-- The verification Dockerfile's base digest for the major.
-- The test catalog. It holds the base under `postgres:<major>` and the published verification image under `databasus/verification-postgres:<version>`.
+1. The raise commit changes the version in the list, the Dockerfile's base digest and the catalog's `postgres:<major>` record together. It removes the catalog record of the old version's verification image. Until the next step, the agent tests of that major build the image from the Dockerfile.
+2. After the release publishes the new verification image, a later commit adds its record to the catalog, and the agent tests restore into the published image.
+
+A new major follows the same order with nothing to remove.
 
 Two checks catch a mismatch:
 
 - The image build fails when its base or installed server is not the pinned version.
-- `mise run verify-deps` fails when the catalog has no record for a pinned version.
+- `mise run verify-deps` fails when a major's Dockerfile base differs from the catalog's `postgres:<major>` record, or when a catalog record of a verification image names a version that is not pinned.
 
 Standalone VectorChord downloads check their recorded SHA256 before installation. Keep database clients committed to the repository; application image builds do not download them.
 

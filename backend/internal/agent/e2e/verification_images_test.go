@@ -2,8 +2,10 @@ package e2e_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +16,7 @@ import (
 
 	agent_container "databasus-backend/internal/agent/container"
 	containers "databasus-backend/internal/lib/testcontainers"
+	"databasus-backend/internal/lib/testimages"
 )
 
 const pinnedVerificationImageRepository = "databasus/verification-postgres"
@@ -38,7 +41,7 @@ func getPinnedPostgresVersion(t *testing.T, major string) string {
 	return pinnedVersion
 }
 
-// getPinnedVerificationImage returns the catalog image of the pinned version,
+// getPinnedVerificationImage returns the test-image catalog's image of the pinned version,
 // addressed by digest, so a run never depends on what a registry tag points to.
 func getPinnedVerificationImage(t *testing.T, major string) string {
 	t.Helper()
@@ -46,46 +49,48 @@ func getPinnedVerificationImage(t *testing.T, major string) string {
 	return containers.GetPinnedImage(t, pinnedVerificationImageRepository+":"+getPinnedPostgresVersion(t, major))
 }
 
-// provideVerificationImage tags the pinned catalog image under the agent's
-// repository, so the agent finds its restore image locally instead of pulling
-// a tag that exists only after a release publishes it.
+// provideVerificationImage tags the image of the pinned version under the agent's repository, so the
+// agent finds its restore image locally instead of pulling a tag. The image is the test-image
+// catalog's record, addressed by digest. A pinned version without a record has no published image
+// yet, so its image is built from the recipe, see docs/how-to-upgrade-deps.md.
 func (a *agentProcess) provideVerificationImage(t *testing.T, engine *client.Client, major string) string {
 	t.Helper()
 
-	pinnedImage := getPinnedVerificationImage(t, major)
-	ensureLocalImage(t, engine, pinnedImage)
-
-	agentImage := a.verificationImageRepository + ":" + getPinnedPostgresVersion(t, major)
-	tagImage(t, engine, pinnedImage, agentImage)
+	pinnedVersion := getPinnedPostgresVersion(t, major)
+	agentImage := a.verificationImageRepository + ":" + pinnedVersion
+	pinnedImage, err := testimages.GetReference(testimages.Selection{
+		Image:        pinnedVerificationImageRepository + ":" + pinnedVersion,
+		Architecture: runtime.GOARCH,
+	})
+	switch {
+	case errors.Is(err, testimages.ErrUnknownImage):
+		buildVerificationImage(t, agentImage, major, pinnedVersion)
+		removeImageOnCleanup(t, engine, agentImage)
+	case err != nil:
+		t.Fatalf("select the verification image of PostgreSQL %s: %v", pinnedVersion, err)
+	default:
+		ensureLocalImage(t, engine, pinnedImage)
+		tagImage(t, engine, pinnedImage, agentImage)
+	}
 
 	return agentImage
 }
 
-// provideLocallyBuiltVerificationImage builds the pinned version's image from the recipe and tags
-// it into the agent's repository. It serves a major whose image no release has published yet, so
-// the catalog holds no digest for it. docker buildx skips the recipe's unused base stages, which the
-// Engine API's classic builder would pull one by one.
-func (a *agentProcess) provideLocallyBuiltVerificationImage(t *testing.T, engine *client.Client, major string) {
+// buildVerificationImage uses docker buildx because it skips the recipe's unused base stages, which
+// the Engine API's classic builder would pull one by one.
+func buildVerificationImage(t *testing.T, image, major, pinnedVersion string) {
 	t.Helper()
 
-	agentImage := a.verificationImageRepository + ":" + getPinnedPostgresVersion(t, major)
 	build := exec.CommandContext(
 		t.Context(),
 		"docker", "buildx", "build", "--load",
-		"--tag", agentImage,
+		"--tag", image,
 		"--build-arg", "PG_MAJOR="+major,
-		"--build-arg", "PG_SERVER_VERSION="+getPinnedPostgresVersion(t, major),
+		"--build-arg", "PG_SERVER_VERSION="+pinnedVersion,
 		"../../../cmd/verification-agent/images/postgres",
 	)
 	output, err := build.CombinedOutput()
 	require.NoError(t, err, string(output))
-
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), time.Minute)
-		defer cancel()
-
-		_, _ = engine.ImageRemove(ctx, agentImage, client.ImageRemoveOptions{Force: false})
-	})
 }
 
 func ensureLocalImage(t *testing.T, engine *client.Client, image string) {
@@ -112,11 +117,17 @@ func tagImage(t *testing.T, engine *client.Client, sourceImage, targetImage stri
 	_, err := engine.ImageTag(t.Context(), client.ImageTagOptions{Source: sourceImage, Target: targetImage})
 	require.NoError(t, err)
 
+	removeImageOnCleanup(t, engine, targetImage)
+}
+
+func removeImageOnCleanup(t *testing.T, engine *client.Client, image string) {
+	t.Helper()
+
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), time.Minute)
 		defer cancel()
 
-		_, _ = engine.ImageRemove(ctx, targetImage, client.ImageRemoveOptions{Force: false})
+		_, _ = engine.ImageRemove(ctx, image, client.ImageRemoveOptions{Force: false})
 	})
 }
 

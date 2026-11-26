@@ -1332,20 +1332,20 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Docker Hub refuses bursts of pushes with 429, so a push waits out its rate limit.
       - name: Build and push release image by digest
-        id: release-image-push
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: .
-          platforms: ${{ matrix.platform }}
-          build-args: |
-            APP_VERSION=${{ needs.determine-version.outputs.new_version }}
-          outputs: type=image,name=databasus/databasus,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Export image digest
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          APP_VERSION: ${{ needs.determine-version.outputs.new_version }}
         run: |
+          scripts/retry-on-registry-rate-limit.sh docker buildx build \
+            --platform "$PLATFORM" \
+            --build-arg "APP_VERSION=${APP_VERSION}" \
+            --output type=image,name=databasus/databasus,push-by-digest=true,name-canonical=true,push=true \
+            --metadata-file /tmp/image-metadata.json \
+            .
+          digest=$(jq -er '."containerimage.digest"' /tmp/image-metadata.json)
           mkdir -p /tmp/digests
-          digest="${{ steps.release-image-push.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
       - *upload-artifact-1
@@ -1356,7 +1356,8 @@ jobs:
 
   merge-image-manifest:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
-    timeout-minutes: 10
+    # Each registry call may wait about seven minutes out the rate limit.
+    timeout-minutes: 20
     env:
       ARTIFACT_NAME: ''
       ARTIFACT_PATTERN: digests-release-*
@@ -1368,6 +1369,9 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - *download-artifact-1
 
       - *download-artifact-2
@@ -1399,13 +1403,13 @@ jobs:
             platform_image_refs+=("databasus/databasus@sha256:${digest}")
           done
 
-          docker buildx imagetools create \
+          "$GITHUB_WORKSPACE/scripts/retry-on-registry-rate-limit.sh" docker buildx imagetools create \
             -t databasus/databasus:latest \
             -t "databasus/databasus:v${VERSION}" \
             -t "databasus/databasus:${{ github.sha }}" \
             "${platform_image_refs[@]}"
 
-          docker buildx imagetools create \
+          "$GITHUB_WORKSPACE/scripts/retry-on-registry-rate-limit.sh" docker buildx imagetools create \
             -t ghcr.io/databasus/databasus:latest \
             -t "ghcr.io/databasus/databasus:v${VERSION}" \
             -t "ghcr.io/databasus/databasus:${{ github.sha }}" \
@@ -1425,6 +1429,8 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
+      # Eighteen pushes at once drew 429 from Docker Hub; two waves of eight stay below that burst.
+      max-parallel: 8
       matrix:
         major: ['12', '13', '14', '15', '16', '17', '18', '19']
         arch: [amd64, arm64]
@@ -1453,21 +1459,22 @@ jobs:
           version=$(jq -er --arg major "$PG_MAJOR" '.[$major]' backend/internal/agent/container/postgres_versions.json)
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
+      # Docker Hub refuses bursts of pushes with 429, so a push waits out its rate limit.
       - name: Build and push verification image by digest
-        id: verification-image-push
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: backend/cmd/verification-agent/images/postgres
-          platforms: ${{ matrix.platform }}
-          build-args: |
-            PG_MAJOR=${{ matrix.major }}
-            PG_SERVER_VERSION=${{ steps.pinned-postgres-version.outputs.version }}
-          outputs: type=image,name=databasus/verification-postgres,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Export image digest
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          PG_MAJOR: ${{ matrix.major }}
+          PG_SERVER_VERSION: ${{ steps.pinned-postgres-version.outputs.version }}
         run: |
+          scripts/retry-on-registry-rate-limit.sh docker buildx build \
+            --platform "$PLATFORM" \
+            --build-arg "PG_MAJOR=${PG_MAJOR}" \
+            --build-arg "PG_SERVER_VERSION=${PG_SERVER_VERSION}" \
+            --output type=image,name=databasus/verification-postgres,push-by-digest=true,name-canonical=true,push=true \
+            --metadata-file /tmp/image-metadata.json \
+            backend/cmd/verification-agent/images/postgres
+          digest=$(jq -er '."containerimage.digest"' /tmp/image-metadata.json)
           mkdir -p /tmp/digests
-          digest="${{ steps.verification-image-push.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
       - *upload-artifact-1
@@ -1478,7 +1485,8 @@ jobs:
 
   merge-verification-image-manifest:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
-    timeout-minutes: 10
+    # Each registry call may wait about seven minutes out the rate limit.
+    timeout-minutes: 20
     env:
       ARTIFACT_NAME: ''
       ARTIFACT_PATTERN: digests-verification-${{ matrix.major }}-*
@@ -1529,7 +1537,7 @@ jobs:
             platform_image_refs+=("databasus/verification-postgres@sha256:${digest}")
           done
 
-          docker buildx imagetools create \
+          "$GITHUB_WORKSPACE/scripts/retry-on-registry-rate-limit.sh" docker buildx imagetools create \
             -t "databasus/verification-postgres:${PG_SERVER_VERSION}" \
             -t "databasus/verification-postgres:${{ matrix.major }}" \
             -t "databasus/verification-postgres:${{ matrix.major }}-v${VERSION}" \

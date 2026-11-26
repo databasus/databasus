@@ -11,26 +11,16 @@ def verify_image_pins(root: Path) -> None:
     document = json.loads((root / "backend/internal/lib/testimages/images.json").read_text())
     images = document["images"]
     verification = (root / "backend/cmd/verification-agent/images/postgres/Dockerfile").read_text()
-    for major in range(12, 19):
-        if (
-            f"FROM {images[f'postgres:{major}']['reference']} AS postgres-{major}"
-            not in verification
-        ):
-            raise ValueError(f"verification PostgreSQL {major}: base and catalog digests disagree")
-
-    pinned_versions = json.loads(
+    pinned_versions: dict[str, str] = json.loads(
         (root / "backend/internal/agent/container/postgres_versions.json").read_text()
     )
-    for major in range(12, 19):
-        version = pinned_versions.get(str(major))
-        if version is None:
-            raise ValueError(f"verification PostgreSQL {major}: no pinned version")
+    for major in pinned_versions:
+        base = images.get(f"postgres:{major}")
+        if base is None or f"FROM {base['reference']} AS postgres-{major}" not in verification:
+            raise ValueError(f"verification PostgreSQL {major}: base and catalog digests disagree")
 
-        if f"{VERIFICATION_REPOSITORY}:{version}" not in images:
-            raise ValueError(
-                f"verification PostgreSQL {major}: no catalog record for pinned version {version}"
-            )
-
+    # A pinned version may lack its verification record: its image exists only after the release
+    # that raises it, and the agent tests build it from the recipe until a later commit records it.
     for name in images:
         repository, _, tag = name.partition(":")
         if repository == VERIFICATION_REPOSITORY and tag not in pinned_versions.values():

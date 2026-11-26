@@ -84,6 +84,13 @@
       },
       "reference": "docker.io/databasus/verification-postgres:18.7@sha256:7b9ae02bd302cf6be8ae5ed4bb4c6e0671ead59c456126cb3a047029de288c50"
     },
+    "databasus/verification-postgres:19.0": {
+      "platforms": {
+        "linux-arm64": "sha256:6f8320ff41514b728a2aa154d74302fdbfb3736909abd31ad6dca41a25d8c9c7",
+        "linux-x64": "sha256:042c005e51a4ee919b9732b968a9a1500a67f07f1ca4c4d4a19cce7c154ab60d"
+      },
+      "reference": "docker.io/databasus/verification-postgres:19.0@sha256:e9b29c4152d6e690f5f95545bca5976a1231f86c28d077805d403dfc0e6f8ae3"
+    },
     "debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3": {
       "platforms": {
         "linux-arm64": "sha256:7ccb8b5b60c7654f5b795d94ee7d751cd0811500803f0b09cefcd555e755a55a",
@@ -369,19 +376,19 @@
       },
       "reference": "docker.io/library/postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553"
     },
-    "postgres:19": {
-      "platforms": {
-        "linux-arm64": "sha256:7a2d71c02bf63a2296900a86e9a2c889a3eea22f9004e1ea343ceb4586aa57e6",
-        "linux-x64": "sha256:3fb624f672a1cb628d0bdc0f533cffad31345421eedf16ab1f85ed1ea0d07d2e"
-      },
-      "reference": "docker.io/library/postgres:19@sha256:aaa10f7ba7328b4a221a6c3184d83eef885bd16bf1f6de864757863156b0a4d1"
-    },
     "postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553": {
       "platforms": {
         "linux-arm64": "sha256:ede0133b5b300f7609629c2bd8ac2cf8cbaf830527200ea2cbecf80f4481f2d3",
         "linux-x64": "sha256:c7fedce47eff6a78cb35dad6b627f0d684107f75ab15c0870e40c093766ba452"
       },
       "reference": "docker.io/library/postgres:18@sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553"
+    },
+    "postgres:19": {
+      "platforms": {
+        "linux-arm64": "sha256:7a2d71c02bf63a2296900a86e9a2c889a3eea22f9004e1ea343ceb4586aa57e6",
+        "linux-x64": "sha256:3fb624f672a1cb628d0bdc0f533cffad31345421eedf16ab1f85ed1ea0d07d2e"
+      },
+      "reference": "docker.io/library/postgres:19@sha256:aaa10f7ba7328b4a221a6c3184d83eef885bd16bf1f6de864757863156b0a4d1"
     },
     "quay.io/coreos/etcd:v3.6.16": {
       "platforms": {
