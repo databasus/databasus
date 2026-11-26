@@ -3,7 +3,6 @@ package webhook_test
 import (
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -119,9 +118,9 @@ func TestSend(t *testing.T) {
 
 	t.Run("fails when the endpoint cannot be reached", func(t *testing.T) {
 		t.Parallel()
-		server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
-		unreachableURL := server.URL
-		server.Close()
+		// No server can listen on port zero, while the port of a closed server can go to the
+		// server of a parallel test.
+		unreachableURL := "http://127.0.0.1:0"
 
 		require.Error(t, send(t, newSettings(unreachableURL, webhook.MethodPOST), notification.CategoryBackupSuccess))
 	})

@@ -2,7 +2,6 @@ package notifiers_test
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -432,18 +431,19 @@ func TestTestNotifierSettings(t *testing.T) {
 		t.Parallel()
 
 		tm := newTeam(t)
-		closedServer := httptest.NewServer(http.NotFoundHandler())
-		closedServer.Close()
+		// No server can listen on port zero, while the port of a closed server can go to the
+		// server of a parallel test.
+		unreachableHost := "127.0.0.1:0"
 
 		testResult := testSettings(t, tm.owner, apiclient.NotifierSettingsTest{
 			WorkspaceId: tm.workspace.Id,
 			NotifierId:  nil,
-			Settings:    newTelegramSettings(t, newTelegram(telegramBotToken, closedServer.URL+"/telegram")),
+			Settings:    newTelegramSettings(t, newTelegram(telegramBotToken, "http://"+unreachableHost+"/telegram")),
 		})
 
 		assert.False(t, testResult.IsDelivered)
 		require.NotNil(t, testResult.Error)
-		assert.Contains(t, *testResult.Error, strings.TrimPrefix(closedServer.URL, "http://"))
+		assert.Contains(t, *testResult.Error, unreachableHost)
 		assert.NotContains(t, *testResult.Error, "AAH-TEST-TOKEN")
 	})
 
