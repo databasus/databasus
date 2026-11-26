@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/distribution/reference"
 	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,7 +69,7 @@ func TestRestoreContainer(t *testing.T) {
 		instances, err := engine.ContainerList(t.Context(), client.ContainerListOptions{Filters: filters})
 		require.NoError(t, err)
 		require.Len(t, instances.Items, 1)
-		assert.Equal(t, agentImage, instances.Items[0].Image)
+		assertSameImageName(t, agentImage, instances.Items[0].Image)
 		restoreServerVersion := runInContainer(t, engine, instances.Items[0].ID, "postgres", "--version")
 		assert.Contains(t, restoreServerVersion, "(PostgreSQL) "+getPinnedPostgresVersion(t, "18")+" ")
 		status := readContainerStatus(t, engine, instances.Items[0].ID)
@@ -97,4 +98,17 @@ func TestRestoreContainer(t *testing.T) {
 		requireCompleted(t, waitForVerification(t, team.App, team.Owner, verificationID))
 		requireNoLeftovers(t, engine, credentials.Agent.ID)
 	})
+}
+
+// Docker lists a container's image under the name it was started with, while Podman lists the fully
+// qualified name, so the names are compared in their normalized form.
+func assertSameImageName(t *testing.T, agentImage, containerImage string) {
+	t.Helper()
+
+	agentImageName, err := reference.ParseNormalizedNamed(agentImage)
+	require.NoError(t, err)
+	containerImageName, err := reference.ParseNormalizedNamed(containerImage)
+	require.NoError(t, err)
+
+	assert.Equal(t, agentImageName.String(), containerImageName.String())
 }
